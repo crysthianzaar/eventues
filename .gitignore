@@ -1,0 +1,72 @@
+# Python
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+*.so
+*.log
+
+# Virtual Environment
+venv/
+.env
+
+# MySQL
+*.sql
+*.db
+*.sqlite3
+
+# Editor Configurations
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# Logs and Databases
+*.log
+*.pid
+*.swp
+
+# Node.js
+node_modules/
+npm-debug.log
+yarn-error.log
+*.lock
+
+# React
+/build
+/dist
+*.map
+
+# Coverage and Reports
+.coverage
+coverage/
+htmlcov/
+.tox/
+.nox/
+*.cover
+*.py,cover
+.cache
+pytest_cache/
+nosetests.xml
+coverage.xml
+*.egg-info
+dist/
+pip-wheel-metadata/
+
+# Backup Files
+*.bak
+*.tmp
+*.temp
+*.orig
+*.swp
+*.swo
+*.DS_Store
+
+# Miscellaneous
+*.log
+*.out
+.idea/
+.vscode/
