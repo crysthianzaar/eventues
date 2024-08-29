@@ -1,5 +1,5 @@
 from src.repositories.user_repository import UserRepository
-from src.models.user import User, UserRole
+from backend.src.models.user_model import UserModel, UserRole
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -17,9 +17,9 @@ class UserService:
                     role: UserRole = UserRole.PARTICIPANT,
                     google_id: str = None, profile_picture: str = None):
         hashed_password = pwd_context.hash(password) if password else None
-        user = User(username=username, email=email,
-                    hashed_password=hashed_password, role=role,
-                    google_id=google_id, profile_picture=profile_picture)
+        user = UserModel(username=username, email=email,
+                         hashed_password=hashed_password, role=role,
+                         google_id=google_id, profile_picture=profile_picture)
         return self.user_repository.create_user(user)
 
     def authenticate_user(self, email: str,

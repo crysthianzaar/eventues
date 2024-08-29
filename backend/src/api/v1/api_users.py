@@ -1,8 +1,9 @@
-from chalice import Blueprint
+from chalice import Blueprint, Response
 from src.schemas.user_schema import UserSchema
 from src.services.user_service import UserService
 from src.repositories.user_repository import UserRepository
 from src.core.config import SessionLocal
+import json
 
 user_bp = Blueprint(__name__)
 
@@ -21,7 +22,13 @@ def create_user():
         google_id=user_data.get('google_id'),
         profile_picture=user_data.get('profile_picture')
     )
-    return user
+
+    return Response(
+        body=json.dumps(UserSchema.model_validate(
+            user).model_dump(mode="json")),
+        status_code=201,
+        headers={'Content-Type': 'application/json'}
+    )
 
 
 @user_bp.route('/users/{user_id}', methods=['GET'])
@@ -31,9 +38,18 @@ def get_user(user_id):
     user = user_repository.get_user_by_id(user_id)
 
     if user:
-        return UserSchema.model_validate(user).model_dump(mode="json")
-    return {"error": "User not found"}, 404
+        return Response(
+            body=json.dumps(UserSchema.model_validate(
+                user).model_dump(mode="json")),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
 
+    return Response(
+        body=json.dumps({"error": "User not found"}),
+        status_code=404,
+        headers={'Content-Type': 'application/json'}
+    )
 
 
 @user_bp.route('/users/login', methods=['POST'])
@@ -48,6 +64,17 @@ def login_user():
         password=user_data.get('password'),
         google_id=user_data.get('google_id')
     )
+
     if not user:
-        return {"error": "Invalid credentials"}, 401
-    return user
+        return Response(
+            body=json.dumps({"error": "Invalid credentials"}),
+            status_code=401,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    return Response(
+        body=json.dumps(UserSchema.model_validate(
+            user).model_dump(mode="json")),
+        status_code=200,
+        headers={'Content-Type': 'application/json'}
+    )

@@ -1,5 +1,5 @@
 from chalice import Chalice
-from src.api.v1.users import user_bp
+from backend.src.api.v1.api_users import user_bp
 
 app = Chalice(app_name='backend')
 
