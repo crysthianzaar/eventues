@@ -28,7 +28,7 @@ class EventResponse(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class EventSchema(BaseModel):
@@ -45,5 +45,5 @@ class EventSchema(BaseModel):
     updated_at: datetime
 
     class Config:
-        orm_mode = True
+        from_attributes = True
         from_attributes = True

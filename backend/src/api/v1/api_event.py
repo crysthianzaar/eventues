@@ -1,7 +1,7 @@
 from chalice import Blueprint
-from backend.src.core.config import SessionLocal
-from backend.src.repositories.event_repository import EventRepository
-from backend.src.services.event_service import EventService
+from src.core.config import SessionLocal
+from src.repositories.event_repository import EventRepository
+from src.services.event_service import EventService
 from chalice import Response
 import json
 

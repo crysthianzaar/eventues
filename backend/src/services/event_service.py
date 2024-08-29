@@ -1,4 +1,4 @@
-from backend.src.repositories.event_repository import EventRepository
+from src.repositories.event_repository import EventRepository
 
 
 class EventService:

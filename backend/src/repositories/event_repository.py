@@ -1,5 +1,5 @@
 
-from backend.src.models.event_model import EventModel
+from src.models.event_model import EventModel
 
 
 class EventRepository:

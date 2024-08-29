@@ -1,5 +1,5 @@
 from src.repositories.user_repository import UserRepository
-from backend.src.models.user_model import UserModel, UserRole
+from src.models.user_model import UserModel, UserRole
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

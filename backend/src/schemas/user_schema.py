@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from backend.src.models.user_model import UserRole
+from src.models.user_model import UserRole
 
 
 class UserCreate(BaseModel):
@@ -20,7 +20,7 @@ class UserResponse(BaseModel):
     profile_picture: str = None
 
     class Config:
-        orm_mode = True
+        from_attributes = True
 
 
 class UserSchema(BaseModel):
@@ -32,5 +32,4 @@ class UserSchema(BaseModel):
     profile_picture: str = None
 
     class Config:
-        orm_mode = True
         from_attributes = True
