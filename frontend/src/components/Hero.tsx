@@ -79,6 +79,17 @@ const Hero: React.FC = () => {
             o seu evento esportivo em minutos.
           </span>
         </Typography>
+
+        {/* Texto "EM BREVE..." abaixo */}
+        <Typography
+          variant="h4"
+          sx={{
+            color: '#FFFFFF',
+            textShadow: '2px 2px 4px #000000', // Borda preta
+          }}
+        >
+          EM BREVE...
+        </Typography>
       </Box>
     </Box>
   );
