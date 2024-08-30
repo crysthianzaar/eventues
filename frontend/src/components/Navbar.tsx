@@ -35,13 +35,21 @@ const Navbar: React.FC = () => {
         />
 
         <Box sx={{ display: "flex", gap: "20px" }}>
-          <Button sx={{ color: "#2D3748" }} onClick={handleInicio}>
+          <Button sx={{ color: "#2D3748", textTransform: "none" }} onClick={handleInicio}>
             Início
           </Button>
-          <Button sx={{ color: "#2D3748" }}>Eventos</Button>
-          <Button sx={{ color: "#2D3748" }}>Espaço do Organizador</Button>
-          <Button sx={{ color: "#2D3748" }}>Minhas Inscrições</Button>
-          <Button sx={{ color: "#2D3748" }}>Contato</Button>
+          <Button sx={{ color: "#2D3748", textTransform: "none" }}>
+            Explorar Eventos
+          </Button>
+          <Button sx={{ color: "#2D3748", textTransform: "none" }}>
+            Portal do Organizador
+          </Button>
+          <Button sx={{ color: "#2D3748", textTransform: "none" }}>
+            Meus Eventos
+          </Button>
+          <Button sx={{ color: "#2D3748", textTransform: "none" }}>
+            Fale Conosco
+          </Button>
           {user ? (
             <Button
               variant="outlined"
@@ -49,10 +57,11 @@ const Navbar: React.FC = () => {
                 borderRadius: "30px",
                 color: "#5A67D8",
                 borderColor: "#5A67D8",
+                textTransform: "none",
               }}
               onClick={handleLogout}
             >
-              Logoff
+              Sair
             </Button>
           ) : (
             <Button
@@ -61,10 +70,11 @@ const Navbar: React.FC = () => {
                 borderRadius: "30px",
                 color: "#5A67D8",
                 borderColor: "#5A67D8",
+                textTransform: "none",
               }}
               onClick={handleLogin}
             >
-              Login
+              Entrar
             </Button>
           )}
           <Button
@@ -73,9 +83,10 @@ const Navbar: React.FC = () => {
               borderRadius: "30px",
               backgroundColor: "#68D391",
               color: "white",
+              textTransform: "none",
             }}
           >
-            Crie seu evento
+            Criar Evento
           </Button>
         </Box>
       </Toolbar>

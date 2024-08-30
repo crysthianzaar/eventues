@@ -1,13 +1,14 @@
 import React, { useEffect } from 'react';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
-import { I18n } from '@aws-amplify/core';  // Ajuste a importação
+import { I18n } from '@aws-amplify/core';  // Importando corretamente de '@aws-amplify/core'
 import { useNavigate } from 'react-router-dom';
 import '@aws-amplify/ui-react/styles.css';
 
-// Definindo as traduções em português
 I18n.putVocabularies({
   'pt-BR': {
-    'Sign In': 'Entrar',
+    'Sign in': 'Entrar',
+    'Sign In with Google': 'Entrar com o Google',
+    'Sign Up with Google': 'Cadastrar com o Google',
     'Sign Up': 'Registrar-se',
     'Sign Out': 'Sair',
     'Username': 'Nome de usuário',
@@ -18,14 +19,16 @@ I18n.putVocabularies({
     'Reset your password': 'Redefinir sua senha',
     'Back to Sign In': 'Voltar para Entrar',
     'No account?': 'Não tem conta?',
-    'Create account': 'Criar conta',
+    'Create Account': 'Criar Conta',
     'Resend Code': 'Reenviar código',
     'Confirm': 'Confirmar',
+    'Confirm Password': 'Confirmar Senha',
+    'Please confirm your Password': 'Confirme a sua Senha',
     'Confirmation Code': 'Código de Confirmação',
     'New Password': 'Nova Senha',
     'Create a new account': 'Criar uma nova conta',
-    'Enter your email address': 'Digite seu endereço de email',
-    'Enter your phone number': 'Digite seu número de telefone',
+    'Enter your Email': 'Digite seu endereço de email',
+    'Enter your Password': 'Digite a sua senha',
     'Verification code': 'Código de verificação',
     'Code': 'Código',
     'Enter your confirmation code': 'Digite seu código de confirmação',
@@ -37,6 +40,7 @@ I18n.putVocabularies({
   }
 });
 
+// Definindo o idioma padrão para português
 I18n.setLanguage('pt-BR');
 
 const MyAuthenticator: React.FC = () => {
@@ -50,14 +54,22 @@ const MyAuthenticator: React.FC = () => {
   }, [user, navigate]);
 
   return (
-    <Authenticator socialProviders={['google']} hideSignUp={false}>
-      {({ signOut, user }) => (
-        <div>
-          <p>Bem-vindo de volta, {user?.username}</p>
-          <button onClick={signOut}>Sair</button>
-        </div>
-      )}
-    </Authenticator>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'center',
+      alignItems: 'center',
+      height: '100vh',
+      backgroundColor: '#f5f5f5',
+    }}>
+      <Authenticator socialProviders={['google']} hideSignUp={false}>
+        {({ signOut, user }) => (
+          <div>
+            <p>Bem-vindo de volta, {user?.username}</p>
+            <button onClick={signOut}>Sair</button>
+          </div>
+        )}
+      </Authenticator>
+    </div>
   );
 };
 
