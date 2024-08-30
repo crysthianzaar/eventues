@@ -5,17 +5,18 @@ import Filters from './Filters';
 import Events from './Events';
 import FAQ from './FAQ';
 import Footer from './Footer';
+import MyAuthenticator from './MyAuthenticator';
 
 const App: React.FC = () => {
   return (
-    <div>
+    <MyAuthenticator>
       <Navbar />
       <Hero />
       <Filters />
       <Events />
       <FAQ />
       <Footer />
-    </div>
+    </MyAuthenticator>
   );
 };
 
