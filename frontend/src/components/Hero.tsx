@@ -33,7 +33,7 @@ const Hero: React.FC = () => {
   return (
     <Box
       sx={{
-        height: '50vh',
+        height: { xs: '30vh', md: '50vh' }, // Altura ajustada para telas pequenas
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -59,7 +59,18 @@ const Hero: React.FC = () => {
       />
 
       <Box>
-        <Typography variant="h2" gutterBottom>
+        <Typography
+          variant="h2"
+          gutterBottom
+          sx={{
+            fontSize: {
+              xs: '1.5rem',  // Tamanho da fonte em telas pequenas
+              sm: '2rem',  // Tamanho da fonte em telas médias
+              md: '3rem',  // Tamanho da fonte em telas grandes
+              lg: '4rem',  // Tamanho da fonte em telas muito grandes
+            },
+          }}
+        >
           {/* Texto que troca de cor e palavra */}
           <span
             style={{
@@ -78,17 +89,6 @@ const Hero: React.FC = () => {
           >
             o seu evento esportivo em minutos.
           </span>
-        </Typography>
-
-        {/* Texto "EM BREVE..." abaixo */}
-        <Typography
-          variant="h4"
-          sx={{
-            color: '#FFFFFF',
-            textShadow: '2px 2px 4px #000000', // Borda preta
-          }}
-        >
-          EM BREVE...
         </Typography>
       </Box>
     </Box>

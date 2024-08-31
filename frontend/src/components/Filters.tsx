@@ -6,20 +6,24 @@ const Filters: React.FC = () => {
   return (
     <Box
       sx={{
-        position: 'absolute',
-        top: '57%',
-        left: 0,
-        right: 0,
         backgroundColor: '#F7FAFC',
         padding: '15px',
-        borderRadius: '40px',
+        borderRadius: '20px',
         boxShadow: '0 8px 20px rgba(0, 0, 0, 0.2)',
         maxWidth: '1200px',
-        margin: '0 auto',
-        transform: 'translateY(-50%)'
+        margin: { xs: '20px auto', md: '0 auto' }, // Margem para telas pequenas e grandes
+        position: { xs: 'relative', md: 'absolute' }, // Posicionamento relativo em telas pequenas
+        top: { md: '57%' }, // Mantém sobreposto em telas médias e grandes
+        left: { md: 0 },
+        right: { md: 0 },
+        transform: { md: 'translateY(-50%)' }, // Mantém o efeito sobreposto em telas médias e grandes
       }}
     >
-      <Stack spacing={2} direction="row" alignItems="center">
+      <Stack
+        spacing={2}
+        direction={{ xs: 'column', md: 'row' }} // Alinha em coluna para telas pequenas e em linha para telas maiores
+        alignItems="center"
+      >
         <TextField
           variant="outlined"
           placeholder="Procurar eventos..."
@@ -32,9 +36,10 @@ const Filters: React.FC = () => {
             ),
           }}
           sx={{
-            flexGrow: 1, // Aumenta o tamanho do campo de pesquisa proporcionalmente
+            flexGrow: 1,
             borderRadius: '20px',
             fontSize: '0.875rem',
+            width: { xs: '100%', md: 'auto' },
           }}
         />
         <TextField
@@ -44,43 +49,14 @@ const Filters: React.FC = () => {
           variant="outlined"
           size="small"
           sx={{
-            flexGrow: 1, // Aumenta o tamanho do filtro proporcionalmente
+            flexGrow: 1,
             borderRadius: '20px',
             fontSize: '0.875rem',
+            width: { xs: '100%', md: 'auto' },
           }}
         >
           <MenuItem value="Cidade A">Cidade A</MenuItem>
           <MenuItem value="Cidade B">Cidade B</MenuItem>
-        </TextField>
-        <TextField
-          select
-          label="Preços"
-          defaultValue=""
-          variant="outlined"
-          size="small"
-          sx={{
-            flexGrow: 1, // Aumenta o tamanho do filtro proporcionalmente
-            borderRadius: '20px',
-            fontSize: '0.875rem',
-          }}
-        >
-          <MenuItem value="Gratuito">Gratuito</MenuItem>
-          <MenuItem value="Até R$50">Até R$50</MenuItem>
-        </TextField>
-        <TextField
-          select
-          label="Datas"
-          defaultValue=""
-          variant="outlined"
-          size="small"
-          sx={{
-            flexGrow: 1, // Aumenta o tamanho do filtro proporcionalmente
-            borderRadius: '20px',
-            fontSize: '0.875rem',
-          }}
-        >
-          <MenuItem value="Este mês">Este mês</MenuItem>
-          <MenuItem value="Próximo mês">Próximo mês</MenuItem>
         </TextField>
         <TextField
           select
@@ -89,9 +65,10 @@ const Filters: React.FC = () => {
           variant="outlined"
           size="small"
           sx={{
-            flexGrow: 1, // Aumenta o tamanho do filtro proporcionalmente
+            flexGrow: 1,
             borderRadius: '20px',
             fontSize: '0.875rem',
+            width: { xs: '100%', md: 'auto' },
           }}
         >
           <MenuItem value="Ciclismo">Ciclismo</MenuItem>
@@ -107,6 +84,7 @@ const Filters: React.FC = () => {
             backgroundColor: '#5A67D8',
             color: 'white',
             whiteSpace: 'nowrap',
+            width: { xs: '100%', md: 'auto' },
             '&:hover': {
               backgroundColor: '#434190',
             },

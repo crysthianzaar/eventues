@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
-import { I18n } from '@aws-amplify/core';  // Importando corretamente de '@aws-amplify/core'
+import { I18n } from '@aws-amplify/core';
 import { useNavigate } from 'react-router-dom';
 import '@aws-amplify/ui-react/styles.css';
 
