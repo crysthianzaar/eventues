@@ -8,6 +8,7 @@ import FAQ from "./FAQ";
 import Footer from "./Footer";
 import MyAuthenticator from "./MyAuthenticator";
 import { Authenticator } from "@aws-amplify/ui-react";
+import Callback from "./Callback";
 
 const App: React.FC = () => {
   return (
@@ -28,6 +29,7 @@ const App: React.FC = () => {
             }
           />
           <Route path="/login" element={<MyAuthenticator />} />
+          <Route path="/callback" element={<Callback />} />
         </Routes>
       </Router>
     </Authenticator.Provider>

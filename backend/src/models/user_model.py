@@ -1,24 +1,16 @@
-from sqlalchemy import Column, Integer, String, Boolean, Enum
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy.dialects.postgresql import UUID
 from .base import Base
-import enum
-
-
-class UserRole(enum.Enum):
-    ADMIN = "admin"
-    ORGANIZER = "organizer"
-    PARTICIPANT = "participant"
+import uuid
+from datetime import datetime
 
 
 class UserModel(Base):
     __tablename__ = 'users'
 
     id = Column(Integer, primary_key=True, index=True)
-    username = Column(String(255), unique=True, index=True)
+    uuid = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
     email = Column(String(255), unique=True, index=True)
-    hashed_password = Column(String(255), nullable=True)
     is_active = Column(Boolean, default=True)
-    role = Column(Enum(UserRole), default=UserRole.PARTICIPANT)
-    google_id = Column(String(255), unique=True, index=True, nullable=True)
-    profile_picture = Column(String(255), nullable=True)
-    access_token = Column(String(255), nullable=True)
-    refresh_token = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now(), onupdate=datetime.now())

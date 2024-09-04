@@ -40,7 +40,6 @@ I18n.putVocabularies({
   }
 });
 
-// Definindo o idioma padrão para português
 I18n.setLanguage('pt-BR');
 
 const MyAuthenticator: React.FC = () => {
@@ -49,7 +48,7 @@ const MyAuthenticator: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/callback');
     }
   }, [user, navigate]);
 
@@ -61,7 +60,7 @@ const MyAuthenticator: React.FC = () => {
       height: '100vh',
       backgroundColor: '#f5f5f5',
     }}>
-      <Authenticator socialProviders={['google']} hideSignUp={false}>
+      <Authenticator hideSignUp={false}>
         {({ signOut, user }) => (
           <div>
             <p>Bem-vindo de volta, {user?.username}</p>
