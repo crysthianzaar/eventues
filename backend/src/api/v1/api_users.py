@@ -1,5 +1,4 @@
 from chalice import Blueprint, Response, CORSConfig
-from src.schemas.user_schema import UserCreate
 from src.services.user_service import UserService
 from src.repositories.user_repository import UserRepository
 from src.core.config import SessionLocal
@@ -16,18 +15,16 @@ user_bp = Blueprint(__name__)
 
 @user_bp.route('/auth', methods=['POST'], cors=cors_config)
 def create_user():
-    db = SessionLocal()
+    db = SessionLocal()  # Cria uma nova sessão de banco de dados
     user_data = user_bp.current_request.json_body
-    user_repository = UserRepository(db)
-    user_service = UserService(user_repository)
 
-    user = user_service.create_user(
-        uuid_str=user_data.get('uuid'),
-        email=user_data['email']
-    )
+    user_repository = UserRepository(db)  # Passa o repositório
+    user_service = UserService(user_repository)  # Passa o repositório ao serviço
+
+    response_data = user_service.authenticate_or_create_user(user_data)
 
     return Response(
-        body=json.dumps(UserCreate.model_validate(user).model_dump(mode="json")),
+        body=json.dumps(response_data),
         status_code=201,
         headers={'Content-Type': 'application/json'}
     )

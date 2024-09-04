@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getCurrentUser } from '@aws-amplify/auth';
+import { getCurrentUser, signOut } from '@aws-amplify/auth'; // Inclua o signOut
 import axios from 'axios';
+import { ClipLoader } from 'react-spinners'; // Componente de loading
 
 interface AuthResponse {
   status: string;
@@ -13,7 +14,7 @@ const Callback: React.FC = () => {
 
   useEffect(() => {
     async function handleCallback() {
-      if (hasFetched) return; // Evita execução duplicada
+      if (hasFetched) return;
 
       try {
         const { userId, signInDetails } = await getCurrentUser();
@@ -27,12 +28,16 @@ const Callback: React.FC = () => {
         const response = await axios.post<AuthResponse>('http://localhost:8000/auth', userData);
 
         if (response.status === 201) {
-          navigate('/');
+          navigate('/');  // Redireciona para a página principal em caso de sucesso
         } else {
           console.error('Erro ao autenticar o usuário:', response.data);
+          await signOut();  // Desloga o usuário
+          navigate('/');  // Redireciona para a página inicial após o logout
         }
       } catch (error) {
         console.error('Erro durante o callback:', error);
+        await signOut();  // Desloga o usuário em caso de erro
+        navigate('/');  // Redireciona para a página inicial após o logout
       }
 
       setHasFetched(true); // Marca a execução como realizada
@@ -41,7 +46,12 @@ const Callback: React.FC = () => {
     handleCallback();
   }, [navigate, hasFetched]);
 
-  return <div>Processando autenticação...</div>;
+  return (
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <ClipLoader color="#36d7b7" size={50} /> {/* Indicador de carregamento */}
+      <p>Aquecendo...</p>
+    </div>
+  );
 };
 
 export default Callback;

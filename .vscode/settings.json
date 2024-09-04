@@ -2,5 +2,7 @@
     "python.analysis.extraPaths": [
         "./backend/app"
     ],
-    "git.ignoreLimitWarning": true
+    "git.ignoreLimitWarning": true,
+    "flake8.args": ["--disable=C0111", "--max-line-length=140"]
+
 }
