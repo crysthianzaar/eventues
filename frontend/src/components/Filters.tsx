@@ -1,8 +1,58 @@
-import React from 'react';
-import { Box, TextField, MenuItem, Button, Stack, InputAdornment } from '@mui/material';
+import React, { useState } from 'react';
+import { Box, TextField, Button, Stack, InputAdornment, Autocomplete } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 
+const estados = [
+  { label: 'Acre (AC)' },
+  { label: 'Alagoas (AL)' },
+  { label: 'Amapá (AP)' },
+  { label: 'Amazonas (AM)' },
+  { label: 'Bahia (BA)' },
+  { label: 'Ceará (CE)' },
+  { label: 'Distrito Federal (DF)' },
+  { label: 'Espírito Santo (ES)' },
+  { label: 'Goiás (GO)' },
+  { label: 'Maranhão (MA)' },
+  { label: 'Mato Grosso (MT)' },
+  { label: 'Mato Grosso do Sul (MS)' },
+  { label: 'Minas Gerais (MG)' },
+  { label: 'Pará (PA)' },
+  { label: 'Paraíba (PB)' },
+  { label: 'Paraná (PR)' },
+  { label: 'Pernambuco (PE)' },
+  { label: 'Piauí (PI)' },
+  { label: 'Rio de Janeiro (RJ)' },
+  { label: 'Rio Grande do Norte (RN)' },
+  { label: 'Rio Grande do Sul (RS)' },
+  { label: 'Rondônia (RO)' },
+  { label: 'Roraima (RR)' },
+  { label: 'Santa Catarina (SC)' },
+  { label: 'São Paulo (SP)' },
+  { label: 'Sergipe (SE)' },
+  { label: 'Tocantins (TO)' },
+];
+
+const modalidades = [
+  { label: 'Artes Marciais' },
+  { label: 'Badminton' },
+  { label: 'Caminhada' },
+  { label: 'Canoagem' },
+  { label: 'Ciclismo' },
+  { label: 'Corrida de Rua' },
+  { label: 'Escalada Esportiva' },
+  { label: 'Mountain Bike' },
+  { label: 'Natação' },
+  { label: 'Skate' },
+  { label: 'Surf' },
+  { label: 'Tênis' },
+  { label: 'Tiro com Arco' },
+  { label: 'Triatlo' },
+  { label: 'Vôlei de Praia' },
+];
+
 const Filters: React.FC = () => {
+  const [searchValue, setSearchValue] = useState('');
+
   return (
     <Box
       sx={{
@@ -28,6 +78,8 @@ const Filters: React.FC = () => {
           variant="outlined"
           placeholder="Procurar eventos..."
           size="small"
+          value={searchValue}
+          onChange={(e) => setSearchValue(e.target.value)}
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -36,82 +88,38 @@ const Filters: React.FC = () => {
             ),
           }}
           sx={{
-            flexGrow: 1,
             borderRadius: '20px',
             fontSize: '0.875rem',
-            width: { xs: '100%', md: 'auto' },
+            width: '100%',
           }}
         />
-        <TextField
-          select
-          label="Local"
-          defaultValue=""
-          variant="outlined"
-          size="small"
+
+        <Autocomplete
+          options={estados}
+          getOptionLabel={(option) => option.label}
+          renderInput={(params) => (
+            <TextField {...params} label="Local" variant="outlined" size="small" />
+          )}
           sx={{
-            flexGrow: 1,
             borderRadius: '20px',
             fontSize: '0.875rem',
-            width: { xs: '100%', md: 'auto' },
+            width: '100%',
           }}
-        >
-          <MenuItem value="AC">Acre (AC)</MenuItem>
-          <MenuItem value="AL">Alagoas (AL)</MenuItem>
-          <MenuItem value="AP">Amapá (AP)</MenuItem>
-          <MenuItem value="AM">Amazonas (AM)</MenuItem>
-          <MenuItem value="BA">Bahia (BA)</MenuItem>
-          <MenuItem value="CE">Ceará (CE)</MenuItem>
-          <MenuItem value="DF">Distrito Federal (DF)</MenuItem>
-          <MenuItem value="ES">Espírito Santo (ES)</MenuItem>
-          <MenuItem value="GO">Goiás (GO)</MenuItem>
-          <MenuItem value="MA">Maranhão (MA)</MenuItem>
-          <MenuItem value="MT">Mato Grosso (MT)</MenuItem>
-          <MenuItem value="MS">Mato Grosso do Sul (MS)</MenuItem>
-          <MenuItem value="MG">Minas Gerais (MG)</MenuItem>
-          <MenuItem value="PA">Pará (PA)</MenuItem>
-          <MenuItem value="PB">Paraíba (PB)</MenuItem>
-          <MenuItem value="PR">Paraná (PR)</MenuItem>
-          <MenuItem value="PE">Pernambuco (PE)</MenuItem>
-          <MenuItem value="PI">Piauí (PI)</MenuItem>
-          <MenuItem value="RJ">Rio de Janeiro (RJ)</MenuItem>
-          <MenuItem value="RN">Rio Grande do Norte (RN)</MenuItem>
-          <MenuItem value="RS">Rio Grande do Sul (RS)</MenuItem>
-          <MenuItem value="RO">Rondônia (RO)</MenuItem>
-          <MenuItem value="RR">Roraima (RR)</MenuItem>
-          <MenuItem value="SC">Santa Catarina (SC)</MenuItem>
-          <MenuItem value="SP">São Paulo (SP)</MenuItem>
-          <MenuItem value="SE">Sergipe (SE)</MenuItem>
-          <MenuItem value="TO">Tocantins (TO)</MenuItem>
-        </TextField>
-        <TextField
-          select
-          label="Modalidades"
-          defaultValue=""
-          variant="outlined"
-          size="small"
+        />
+
+        <Autocomplete
+          options={modalidades}
+          getOptionLabel={(option) => option.label}
+          renderInput={(params) => (
+            <TextField {...params} label="Modalidades" variant="outlined" size="small" />
+          )}
           sx={{
-            flexGrow: 1,
             borderRadius: '20px',
             fontSize: '0.875rem',
-            width: { xs: '100%', md: 'auto' },
+            width: '100%',
           }}
-        >
-          <MenuItem value="Artes Marciais">Artes Marciais</MenuItem>
-          <MenuItem value="Badminton">Badminton</MenuItem>
-          <MenuItem value="Caminhada">Caminhada</MenuItem>
-          <MenuItem value="Canoagem">Canoagem</MenuItem>
-          <MenuItem value="Ciclismo">Ciclismo</MenuItem>
-          <MenuItem value="Corrida de Rua">Corrida de Rua</MenuItem>
-          <MenuItem value="Escalada Esportiva">Escalada Esportiva</MenuItem>
-          <MenuItem value="Mountain Bike">Mountain Bike</MenuItem>
-          <MenuItem value="Natação">Natação</MenuItem>
-          <MenuItem value="Skate">Skate</MenuItem>
-          <MenuItem value="Surf">Surf</MenuItem>
-          <MenuItem value="Tênis">Tênis</MenuItem>
-          <MenuItem value="Tiro com Arco">Tiro com Arco</MenuItem>
-          <MenuItem value="Triatlo">Triatlo</MenuItem>
-          <MenuItem value="Vôlei de Praia">Vôlei de Praia</MenuItem>
-        </TextField>
+        />
+
         <Button
           variant="contained"
           sx={{
@@ -122,7 +130,7 @@ const Filters: React.FC = () => {
             backgroundColor: '#5A67D8',
             color: 'white',
             whiteSpace: 'nowrap',
-            width: { xs: '100%', md: 'auto' },
+            width: '100%',
             '&:hover': {
               backgroundColor: '#434190',
             },
