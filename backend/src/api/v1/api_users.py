@@ -15,11 +15,11 @@ user_bp = Blueprint(__name__)
 
 @user_bp.route('/auth', methods=['POST'], cors=cors_config)
 def create_user():
-    db = SessionLocal()  # Cria uma nova sessão de banco de dados
+    db = SessionLocal()
     user_data = user_bp.current_request.json_body
 
-    user_repository = UserRepository(db)  # Passa o repositório
-    user_service = UserService(user_repository)  # Passa o repositório ao serviço
+    user_repository = UserRepository(db)
+    user_service = UserService(user_repository)
 
     response_data = user_service.authenticate_or_create_user(user_data)
 

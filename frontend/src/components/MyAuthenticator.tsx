@@ -58,9 +58,12 @@ const MyAuthenticator: React.FC = () => {
       justifyContent: 'center',
       alignItems: 'center',
       height: '100vh',
-      backgroundColor: '#f5f5f5',
+      backgroundImage: 'url(https://pixabay.com/get/gee2875b8aa22cb0018b36546adad9d513531e3f4d5b6c1843a5b0a5887ebe368a04afcb1950e0fb6ed97f33c74c32206e1578d8072b9cba814eec1ba6222fac7_1280.jpg)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
     }}>
-      <Authenticator hideSignUp={false}>
+      <Authenticator socialProviders={['google']} hideSignUp={false}>
         {({ signOut, user }) => (
           <div>
             <p>Bem-vindo de volta, {user?.username}</p>

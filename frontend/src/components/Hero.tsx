@@ -80,14 +80,13 @@ const Hero: React.FC = () => {
           >
             {items[currentIndex].word}
           </span>{' '}
-          {/* Texto fixo com borda preta e cor branca */}
           <span
             style={{
               color: '#FFFFFF',
-              textShadow: '2px 2px 4px #000000', // Borda preta no texto fixo
+              textShadow: '2px 2px 4px #000000',
             }}
           >
-            o seu evento esportivo em minutos.
+            o seu evento esportivo.
           </span>
         </Typography>
       </Box>
