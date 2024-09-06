@@ -2,11 +2,12 @@ import React, { useEffect } from 'react';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import { I18n } from '@aws-amplify/core';
 import { useNavigate } from 'react-router-dom';
+import backgroundImage from '../assets/login.png';
 import '@aws-amplify/ui-react/styles.css';
 
 I18n.putVocabularies({
   'pt-BR': {
-    'Sign in': 'Entrar',
+    'Sign In': 'Entrar',
     'Sign In with Google': 'Entrar com o Google',
     'Sign Up with Google': 'Cadastrar com o Google',
     'Sign Up': 'Registrar-se',
@@ -15,6 +16,7 @@ I18n.putVocabularies({
     'Password': 'Senha',
     'Enter your username': 'Digite seu nome de usuário',
     'Enter your password': 'Digite sua senha',
+    'Enter your email': 'Digite o seu email',
     'Forgot your password?': 'Esqueceu sua senha?',
     'Reset your password': 'Redefinir sua senha',
     'Back to Sign In': 'Voltar para Entrar',
@@ -34,8 +36,8 @@ I18n.putVocabularies({
     'Enter your confirmation code': 'Digite seu código de confirmação',
     'Reset Password': 'Redefinir Senha',
     'Submit': 'Enviar',
+    'Send code': 'Enviar código',
     'Enter your code': 'Digite seu código',
-    'Resend code': 'Reenviar código',
     'Reset code': 'Código de Redefinição',
   }
 });
@@ -58,7 +60,7 @@ const MyAuthenticator: React.FC = () => {
       justifyContent: 'center',
       alignItems: 'center',
       height: '100vh',
-      backgroundImage: 'url(https://pixabay.com/get/gee2875b8aa22cb0018b36546adad9d513531e3f4d5b6c1843a5b0a5887ebe368a04afcb1950e0fb6ed97f33c74c32206e1578d8072b9cba814eec1ba6222fac7_1280.jpg)',
+      backgroundImage: `url(${backgroundImage})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',

@@ -2,22 +2,29 @@ import React, { useState } from "react";
 import { AppBar, Toolbar, Button, Box, IconButton, Drawer, List, ListItemButton, ListItemText } from "@mui/material";
 import { Menu as MenuIcon } from "@mui/icons-material";
 import { useAuthenticator } from "@aws-amplify/ui-react";
+import { useNavigate } from "react-router-dom"; // Adicione o hook useNavigate
 import logo from "../assets/logo.png";
 
 const Navbar: React.FC = () => {
   const { signOut, user } = useAuthenticator();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const navigate = useNavigate(); // Inicialize o hook
 
   const handleLogin = () => {
-    window.location.href = "/login";
+    navigate("/login"); // Redireciona para a rota de login
+  };
+
+  const handleCreateEvent = () => {
+    navigate("/criar_evento"); // Redireciona para a rota de criação de eventos
   };
 
   const handleLogout = () => {
     signOut();
+    navigate("/"); // Redireciona para a home após logout
   };
 
   const handleInicio = () => {
-    window.location.href = "/";
+    navigate("/"); // Redireciona para a home
   };
 
   const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
@@ -59,7 +66,7 @@ const Navbar: React.FC = () => {
             <ListItemText primary="Entrar" />
           </ListItemButton>
         )}
-        <ListItemButton>
+        <ListItemButton onClick={handleCreateEvent}>
           <ListItemText primary="Criar Evento" />
         </ListItemButton>
       </List>
@@ -157,6 +164,7 @@ const Navbar: React.FC = () => {
                 textTransform: "none",
                 fontSize: '1rem'
               }}
+              onClick={handleCreateEvent} // Chama a função para redirecionar para criação de eventos
             >
               Criar Evento
             </Button>

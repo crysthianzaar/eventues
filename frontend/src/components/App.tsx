@@ -9,28 +9,33 @@ import Footer from "./Footer";
 import MyAuthenticator from "./MyAuthenticator";
 import { Authenticator } from "@aws-amplify/ui-react";
 import Callback from "./Callback";
+import CreateEvent from "./CreateEvent";
+import { Box } from "@mui/material";
 
 const App: React.FC = () => {
   return (
     <Authenticator.Provider>
       <Router>
         <Navbar />
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <>
-                <Hero />
-                <Filters />
-                <Events />
-                <FAQ />
-                <Footer />
-              </>
-            }
-          />
-          <Route path="/login" element={<MyAuthenticator />} />
-          <Route path="/callback" element={<Callback />} />
-        </Routes>
+        <Box sx={{ flexGrow: 1, minHeight: 'calc(100vh - 120px)' }}>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <>
+                  <Hero />
+                  <Filters />
+                  <Events />
+                  <FAQ />
+                </>
+              }
+            />
+            <Route path="/login" element={<MyAuthenticator />} />
+            <Route path="/callback" element={<Callback />} />
+            <Route path="/criar_evento" element={<CreateEvent />} />
+          </Routes>
+        </Box>
+        <Footer />
       </Router>
     </Authenticator.Provider>
   );
