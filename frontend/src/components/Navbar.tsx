@@ -27,6 +27,10 @@ const Navbar: React.FC = () => {
     navigate("/"); // Redireciona para a home
   };
 
+  const handleMyEvents = () => {
+    navigate("/meus_eventos"); // Redireciona para a rota de "Meus Eventos"
+  };
+
   const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
     if (event.type === 'keydown' && ((event as React.KeyboardEvent).key === 'Tab' || (event as React.KeyboardEvent).key === 'Shift')) {
       return;
@@ -120,7 +124,7 @@ const Navbar: React.FC = () => {
             <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }}>
               Portal do Organizador
             </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }}>
+            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }} onClick={handleMyEvents}>
               Meus Eventos
             </Button>
             <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }}>

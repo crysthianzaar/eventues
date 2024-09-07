@@ -26,18 +26,21 @@ const Callback: React.FC = () => {
         await handleLogout();
         return;
       }
-
+  
       const email = typeof token.payload?.email === 'string' ? token.payload.email : '';
       const uuid = typeof token.payload?.sub === 'string' ? token.payload.sub : '';
-
+  
       if (!email || !uuid) {
         setErrorMessage('Erro: Email ou UUID inválidos.');
         await handleLogout();
         return;
       }
-
+  
+      // Armazenar o UUID do usuário no localStorage
+      localStorage.setItem('user_id', uuid);
+  
       const isAuthenticated = await authenticateUser({ email, uuid });
-
+  
       if (isAuthenticated) {
         navigate('/');
       } else {
@@ -50,6 +53,7 @@ const Callback: React.FC = () => {
       await handleLogout();
     }
   }, [navigate, handleLogout]);
+  
 
   useEffect(() => {
     if (hasFetched) return;

@@ -5,12 +5,11 @@ import Step from '@mui/material/Step';
 import StepLabel from '@mui/material/StepLabel';
 import Button from '@mui/material/Button';
 import Typography from '@mui/material/Typography';
-import { TextField, MenuItem, Grid, Stack, FormControlLabel, Switch, Card, CircularProgress } from '@mui/material';
+import { TextField, MenuItem, Grid, Stack, Card, CircularProgress } from '@mui/material';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import axios from 'axios'; 
 import { useNavigate } from "react-router-dom";
 
-// Definindo interfaces para os estados e cidades
 interface Estado {
   id: number;
   sigla: string;
@@ -26,10 +25,10 @@ const steps = ['Detalhes do Evento', 'Tipo de Evento', 'Localização e Contato'
 
 export default function CreateEventStepper() {
   const [activeStep, setActiveStep] = React.useState(0);
-  const [submitted, setSubmitted] = React.useState(false); // Estado para animação após submissão
-  const [isSubmitting, setIsSubmitting] = React.useState(false); // Controle de estado do botão
-  const [errors, setErrors] = React.useState<string[]>([]); // Armazena mensagens de erro
-  const router = useNavigate(); // Para redirecionar para a página inicial
+  const [submitted, setSubmitted] = React.useState(false); 
+  const [isSubmitting, setIsSubmitting] = React.useState(false); 
+  const [errors, setErrors] = React.useState<string[]>([]);
+  const router = useNavigate();
 
   const [formValues, setFormValues] = React.useState({
     nomeEvento: '',
@@ -38,20 +37,17 @@ export default function CreateEventStepper() {
     horaInicio: '',
     dataTermino: '',
     horaTermino: '',
-    presencial: false,
-    virtual: false,
-    hibrido: false,
+    event_type: '', // novo campo para o ComboBox
     estado: '',
     cidade: '',
     nomeOrganizador: '',
     telefone: ''
   });
 
-  const [estados, setEstados] = React.useState<Estado[]>([]); // Definir array de estados como Estado[]
-  const [cidades, setCidades] = React.useState<Cidade[]>([]); // Definir array de cidades como Cidade[]
+  const [estados, setEstados] = React.useState<Estado[]>([]); 
+  const [cidades, setCidades] = React.useState<Cidade[]>([]);
 
   React.useEffect(() => {
-    // Carregar a lista de estados ao montar o componente
     axios.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
       .then(response => {
         setEstados(response.data as Estado[]);
@@ -63,7 +59,6 @@ export default function CreateEventStepper() {
     const { value } = e.target;
     setFormValues({ ...formValues, estado: value });
     
-    // Carregar as cidades do estado selecionado
     axios.get(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${value}/municipios`)
       .then(response => {
         setCidades(response.data as Cidade[]);
@@ -74,7 +69,6 @@ export default function CreateEventStepper() {
   const validateForm = (): boolean => {
     const newErrors: string[] = [];
 
-    // Validações para cada campo
     if (!formValues.nomeEvento) newErrors.push('Nome do evento é obrigatório.');
     if (!formValues.categoria) newErrors.push('Categoria é obrigatória.');
     if (!formValues.dataInicio) newErrors.push('Data de início é obrigatória.');
@@ -85,11 +79,7 @@ export default function CreateEventStepper() {
     if (!formValues.cidade) newErrors.push('Cidade é obrigatória.');
     if (!formValues.nomeOrganizador) newErrors.push('Nome do organizador é obrigatório.');
     if (!formValues.telefone) newErrors.push('Telefone é obrigatório.');
-
-    // Validação dos tipos de evento (pelo menos um deve ser true)
-    if (!formValues.presencial && !formValues.virtual && !formValues.hibrido) {
-      newErrors.push('Pelo menos um tipo de evento (presencial, virtual ou híbrido) deve ser selecionado.');
-    }
+    if (!formValues.event_type) newErrors.push('Tipo de evento é obrigatório.');
 
     setErrors(newErrors);
 
@@ -99,13 +89,42 @@ export default function CreateEventStepper() {
   const handleSubmit = () => {
     if (validateForm()) {
       setIsSubmitting(true);
-      setTimeout(() => {
-        setSubmitted(true); // Animação de sucesso
-
-        setTimeout(() => {
-          router('/'); // Redireciona para a página inicial
-        }, 2000);
-      }, 1000);
+      
+      const userId = localStorage.getItem('user_id');
+  
+      if (!userId) {
+        setErrors(['Erro: Usuário não autenticado.']);
+        setIsSubmitting(false);
+        return;
+      }
+  
+      const payload = {
+        name: formValues.nomeEvento,
+        category: formValues.categoria,
+        start_date: `${formValues.dataInicio}T${formValues.horaInicio}:00`,
+        start_time: formValues.horaInicio,
+        end_date: `${formValues.dataTermino}T${formValues.horaTermino}:00`,
+        end_time: formValues.horaTermino,
+        event_type: formValues.event_type, // Atualizado para o ComboBox
+        event_category: formValues.categoria,
+        state: formValues.estado,
+        city: formValues.cidade,
+        organization_name: formValues.nomeOrganizador,
+        organization_contact: formValues.telefone,
+        user_id:  userId?.replace(/-/g, '') // Utilizando o user_id do localStorage sem hífens
+      };
+  
+      axios.post('http://127.0.0.1:8000/events', payload)
+        .then(response => {
+          setSubmitted(true);
+          setTimeout(() => {
+            router('/');
+          }, 2000);
+        })
+        .catch(error => {
+          console.error('Erro ao criar evento:', error);
+          setIsSubmitting(false);
+        });
     }
   };
 
@@ -116,15 +135,6 @@ export default function CreateEventStepper() {
       [name]: value
     });
   };
-
-  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, checked } = e.target;
-    setFormValues({
-      ...formValues,
-      [name]: checked
-    });
-  };
-
 
   const handleNext = () => {
     setActiveStep((prevActiveStep) => prevActiveStep + 1);
@@ -143,9 +153,7 @@ export default function CreateEventStepper() {
       horaInicio: '',
       dataTermino: '',
       horaTermino: '',
-      presencial: false,
-      virtual: false,
-      hibrido: false,
+      event_type: '',
       estado: '',
       cidade: '',
       nomeOrganizador: '',
@@ -210,6 +218,10 @@ export default function CreateEventStepper() {
                   name="dataTermino"
                   value={formValues.dataTermino}
                   onChange={handleChange}
+                  // Definindo o valor mínimo como a data de início
+                  InputProps={{
+                    inputProps: { min: formValues.dataInicio }
+                  }}
                   error={!!errors.find((error) => error.includes('Data de término'))}
                   helperText={errors.find((error) => error.includes('Data de término'))}
                 />
@@ -224,6 +236,12 @@ export default function CreateEventStepper() {
                   name="horaTermino"
                   value={formValues.horaTermino}
                   onChange={handleChange}
+                  // Definindo o valor mínimo como a hora de início se a data for a mesma
+                  InputProps={{
+                    inputProps: { 
+                      min: formValues.dataInicio === formValues.dataTermino ? formValues.horaInicio : undefined 
+                    }
+                  }}
                   error={!!errors.find((error) => error.includes('Hora de término'))}
                   helperText={errors.find((error) => error.includes('Hora de término'))}
                 />
@@ -234,24 +252,23 @@ export default function CreateEventStepper() {
       case 1:
         return (
           <Stack spacing={3}>
-            <FormControlLabel
-              control={<Switch checked={formValues.presencial} onChange={handleSwitchChange} name="presencial" />}
-              label="Presencial"
-              sx={{ color: '#2D3748' }}
-            />
-            <FormControlLabel
-              control={<Switch checked={formValues.virtual} onChange={handleSwitchChange} name="virtual" />}
-              label="Virtual"
-              sx={{ color: '#2D3748' }}
-            />
-            <FormControlLabel
-              control={<Switch checked={formValues.hibrido} onChange={handleSwitchChange} name="hibrido" />}
-              label="Híbrido"
-              sx={{ color: '#2D3748' }}
-            />
-            {errors.find((error) => error.includes('Pelo menos um tipo de evento')) && (
-              <Typography color="error">Pelo menos um tipo de evento deve ser selecionado.</Typography>
-            )}
+            <TextField
+              select
+              label="Tipo de Evento"
+              variant="outlined"
+              fullWidth
+              required
+              name="event_type"
+              value={formValues.event_type}
+              onChange={handleChange}
+              error={!!errors.find((error) => error.includes('Tipo de evento'))}
+              helperText={errors.find((error) => error.includes('Tipo de evento'))}
+            >
+              <MenuItem value="presencial">Presencial</MenuItem>
+              <MenuItem value="virtual">Virtual</MenuItem>
+              <MenuItem value="hibrido">Híbrido</MenuItem>
+            </TextField>
+  
             <TextField
               select
               label="Categoria do evento"
@@ -314,7 +331,7 @@ export default function CreateEventStepper() {
                 </TextField>
               </Grid>
             </Grid>
-
+  
             <TextField
               label="Nome do organizador"
               variant="outlined"

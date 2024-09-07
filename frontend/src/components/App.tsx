@@ -12,6 +12,7 @@ import Callback from "./Callback";
 import CreateEvent from "./CreateEvent";
 import ProtectedRoute from "./ProtectedRoute";
 import { Box } from "@mui/material";
+import MyEvents from "./MyEvents";
 
 const App: React.FC = () => {
   return (
@@ -34,6 +35,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<MyAuthenticator />} />
             <Route path="/callback" element={<Callback />} />
             <Route path="/criar_evento" element={<ProtectedRoute element={<CreateEvent />} />} />
+            <Route path="/meus_eventos" element={<ProtectedRoute element={<MyEvents />} />} />
           </Routes>
         </Box>
         <Footer />
