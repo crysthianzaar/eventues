@@ -21,6 +21,10 @@ interface Cidade {
   nome: string;
 }
 
+interface EventResponse {
+  event_id: string;
+}
+
 const steps = ['Detalhes do Evento', 'Tipo de Evento', 'Localização e Contato'];
 
 export default function CreateEventStepper() {
@@ -37,7 +41,7 @@ export default function CreateEventStepper() {
     horaInicio: '',
     dataTermino: '',
     horaTermino: '',
-    event_type: '', // novo campo para o ComboBox
+    event_type: '',
     estado: '',
     cidade: '',
     nomeOrganizador: '',
@@ -89,7 +93,7 @@ export default function CreateEventStepper() {
   const handleSubmit = () => {
     if (validateForm()) {
       setIsSubmitting(true);
-      
+  
       const userId = localStorage.getItem('user_id');
   
       if (!userId) {
@@ -105,28 +109,28 @@ export default function CreateEventStepper() {
         start_time: formValues.horaInicio,
         end_date: `${formValues.dataTermino}T${formValues.horaTermino}:00`,
         end_time: formValues.horaTermino,
-        event_type: formValues.event_type, // Atualizado para o ComboBox
+        event_type: formValues.event_type,
         event_category: formValues.categoria,
         state: formValues.estado,
         city: formValues.cidade,
         organization_name: formValues.nomeOrganizador,
         organization_contact: formValues.telefone,
-        user_id:  userId?.replace(/-/g, '') // Utilizando o user_id do localStorage sem hífens
+        user_id: userId?.replace(/-/g, '')
       };
   
-      axios.post('http://127.0.0.1:8000/events', payload)
-        .then(response => {
-          setSubmitted(true);
-          setTimeout(() => {
-            router('/');
-          }, 2000);
-        })
-        .catch(error => {
-          console.error('Erro ao criar evento:', error);
-          setIsSubmitting(false);
-        });
+      axios.post<EventResponse>('http://127.0.0.1:8000/events', payload)
+      .then(response => {
+        const eventId = response.data.event_id;
+        setSubmitted(true);
+        router(`/event_detail/${eventId}`);
+      })
+      .catch(error => {
+        console.error('Erro ao criar evento:', error);
+        setIsSubmitting(false);
+      });
     }
   };
+  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;

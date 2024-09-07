@@ -47,3 +47,22 @@ def list_events():
         status_code=200,
         headers={'Content-Type': 'application/json'}
     )
+
+@event_bp.route('/organizator_detail/{event_id}', methods=['GET'], cors=cors_config)
+def get_event_detail(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    event_detail = event_service.get_event_by_id(event_id)
+
+    if not event_detail:
+        return Response(
+            body=json.dumps({"error": "Evento não encontrado."}),
+            status_code=404,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    return Response(
+        body=json.dumps(event_detail.to_dict()),  # Retornando os detalhes como dicionário
+        status_code=200,
+        headers={'Content-Type': 'application/json'}
+    )

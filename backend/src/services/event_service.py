@@ -10,3 +10,6 @@ class EventService:
     
     def get_events_by_user(self, user_id: str):
         return self.event_repository.get_events_by_user(user_id)
+
+    def get_event_by_id(self, event_id):
+            return self.event_repository.get_event_by_id(event_id)

@@ -16,3 +16,6 @@ class EventRepository:
 
     def get_events_by_user(self, user_id: str):
         return self.session.query(EventModel).filter_by(user_id=user_id).all()
+
+    def get_event_by_id(self, event_id):
+        return self.session.query(EventModel).filter_by(event_id=event_id).first()
