@@ -170,7 +170,7 @@ export default function CreateEventStepper() {
               helperText={errors.find((error) => error.includes('Nome do evento'))}
             />
             <Grid container spacing={0}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Data de início"
                   type="date"
@@ -184,7 +184,7 @@ export default function CreateEventStepper() {
                   helperText={errors.find((error) => error.includes('Data de início'))}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Hora de início"
                   type="time"
@@ -200,7 +200,7 @@ export default function CreateEventStepper() {
               </Grid>
             </Grid>
             <Grid container spacing={0}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Data de término"
                   type="date"
@@ -214,7 +214,7 @@ export default function CreateEventStepper() {
                   helperText={errors.find((error) => error.includes('Data de término'))}
                 />
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   label="Hora de término"
                   type="time"
@@ -274,7 +274,7 @@ export default function CreateEventStepper() {
         return (
           <Stack spacing={3}>
             <Grid container spacing={0}>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   select
                   label="Estado"
@@ -293,7 +293,7 @@ export default function CreateEventStepper() {
                   ))}
                 </TextField>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12} sm={6}>
                 <TextField
                   select
                   label="Cidade"
@@ -383,6 +383,12 @@ export default function CreateEventStepper() {
             borderRadius: '15px',
             opacity: submitted ? 0 : 1,
             transition: 'opacity 1s ease-in-out',
+            '@media (max-width: 600px)': {
+              flexDirection: 'column',
+              width: '95%', 
+              minHeight: 'auto',
+              padding: '20px',
+            },
           }}
         >
           <Box
@@ -390,6 +396,11 @@ export default function CreateEventStepper() {
               width: '50%',
               background: 'url(https://img.freepik.com/vetores-gratis/ilustracao-de-execucao-de-mulher-geometrica-azul_1284-52845.jpg) center center / cover no-repeat',
               borderRadius: '15px 0 0 15px',
+              '@media (max-width: 600px)': {
+                width: '100%',
+                height: '200px',
+                borderRadius: '15px 15px 0 0',
+              },
             }}
           />
 
@@ -400,9 +411,21 @@ export default function CreateEventStepper() {
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
+              '@media (max-width: 600px)': {
+                width: '100%',
+                padding: '10px',
+              },
             }}
           >
-            <Stepper activeStep={activeStep} sx={{ marginBottom: '30px' }}>
+            <Stepper 
+              activeStep={activeStep} 
+              sx={{ 
+                marginBottom: '30px',
+                '@media (max-width: 600px)': {
+                  flexDirection: 'column',
+                },
+              }}
+            >
               {steps.map((label, index) => (
                 <Step key={label}>
                   <StepLabel>{label}</StepLabel>

@@ -11,8 +11,7 @@ event_bp = Blueprint(__name__)
 @event_bp.route('/events', methods=['POST'])
 def create_event():
     db = SessionLocal()
-    request = event_bp.current_request
-    event_data = request.json_body
+    event_data = event_bp.current_request.request.json_body
     event_service = EventService(EventRepository(db))
     new_event = event_service.create_event(event_data)
 

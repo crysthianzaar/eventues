@@ -10,6 +10,7 @@ import MyAuthenticator from "./MyAuthenticator";
 import { Authenticator } from "@aws-amplify/ui-react";
 import Callback from "./Callback";
 import CreateEvent from "./CreateEvent";
+import ProtectedRoute from "./ProtectedRoute";
 import { Box } from "@mui/material";
 
 const App: React.FC = () => {
@@ -32,7 +33,7 @@ const App: React.FC = () => {
             />
             <Route path="/login" element={<MyAuthenticator />} />
             <Route path="/callback" element={<Callback />} />
-            <Route path="/criar_evento" element={<CreateEvent />} />
+            <Route path="/criar_evento" element={<ProtectedRoute element={<CreateEvent />} />} />
           </Routes>
         </Box>
         <Footer />
