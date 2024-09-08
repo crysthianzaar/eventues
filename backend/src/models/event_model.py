@@ -22,6 +22,7 @@ class EventModel(Base):
     city: str = Column(String(100), nullable=False)
     organization_name: str = Column(String(255), nullable=False) 
     organization_contact: str = Column(String(255), nullable=False)
+    event_status: str = Column(String(255))
 
     def to_dict(self):
         """Converts the EventModel instance to a dictionary with serializable types."""

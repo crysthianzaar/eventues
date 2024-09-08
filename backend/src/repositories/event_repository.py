@@ -9,6 +9,7 @@ class EventRepository:
 
     def create_event(self, event_data):
         event_data['event_id'] = uuid4()
+        event_data['event_status'] = 'rascunho'
         new_event = EventModel(**event_data)
         self.session.add(new_event)
         self.session.commit()

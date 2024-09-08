@@ -1,5 +1,5 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import React, { ReactNode } from "react";
+import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./Navbar";
 import Hero from "./Hero";
 import Filters from "./Filters";
@@ -15,12 +15,32 @@ import { Box } from "@mui/material";
 import MyEvents from "./MyEvents";
 import OrganizatorEventDetail from "./OrganizatorEventDetail";
 
+// Defina a interface para as props que o LayoutWithNavbar irá receber
+interface LayoutWithNavbarProps {
+  children: ReactNode;
+}
+
+const LayoutWithNavbar: React.FC<LayoutWithNavbarProps> = ({ children }) => {
+  const location = useLocation();
+
+  const hideNavbar = location.pathname.startsWith("/event_detail");
+
+  return (
+    <>
+      {!hideNavbar && <Navbar />}
+      <Box sx={{ flexGrow: 1, minHeight: 'calc(100vh - 120px)' }}>
+        {children}
+      </Box>
+      <Footer />
+    </>
+  );
+};
+
 const App: React.FC = () => {
   return (
     <Authenticator.Provider>
       <Router>
-        <Navbar />
-        <Box sx={{ flexGrow: 1, minHeight: 'calc(100vh - 120px)' }}>
+        <LayoutWithNavbar>
           <Routes>
             <Route
               path="/"
@@ -39,8 +59,7 @@ const App: React.FC = () => {
             <Route path="/meus_eventos" element={<ProtectedRoute element={<MyEvents />} />} />
             <Route path="/event_detail/:event_id" element={<ProtectedRoute element={<OrganizatorEventDetail />} />} />
           </Routes>
-        </Box>
-        <Footer />
+        </LayoutWithNavbar>
       </Router>
     </Authenticator.Provider>
   );
