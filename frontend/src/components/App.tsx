@@ -13,7 +13,7 @@ import CreateEvent from "./CreateEvent";
 import ProtectedRoute from "./ProtectedRoute";
 import { Box } from "@mui/material";
 import MyEvents from "./MyEvents";
-import OrganizatorEventDetail from "./OrganizatorEventDetail";
+import OrganizatorEventDetail from "./OrganizatorEventDetails/OrganizatorEventDetail";
 
 // Defina a interface para as props que o LayoutWithNavbar irá receber
 interface LayoutWithNavbarProps {
@@ -23,7 +23,7 @@ interface LayoutWithNavbarProps {
 const LayoutWithNavbar: React.FC<LayoutWithNavbarProps> = ({ children }) => {
   const location = useLocation();
 
-  const hideNavbar = location.pathname.startsWith("/event_detail");
+  const hideNavbar = location.pathname.startsWith("/not_nav");
 
   return (
     <>
