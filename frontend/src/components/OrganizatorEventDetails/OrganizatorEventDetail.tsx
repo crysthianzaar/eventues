@@ -10,8 +10,13 @@ import DiscountIcon from "@mui/icons-material/LocalOffer";
 import FormIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
-import PaymentIcon from "@mui/icons-material/AttachMoney";
 import LockIcon from "@mui/icons-material/Lock";
+import PolicyIcon from "@mui/icons-material/Policy";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import BarChartIcon from "@mui/icons-material/BarChart";
+import NotificationsIcon from "@mui/icons-material/Notifications";
+import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
+import SportsIcon from "@mui/icons-material/Sports";
 
 import SummaryCard from './SummaryCard';
 import BannerDocumentCard from './BannerDocumentCard';
@@ -84,17 +89,98 @@ const OrganizatorEventDetail: React.FC = () => {
   };
 
   const cards = [
-    { icon: <DashboardIcon />, title: "Resumo", component: <SummaryCard eventDetail={eventDetail} /> },
-    { icon: <ImageIcon />, title: "Banner e Documentos", component: <BannerDocumentCard /> },
-    { icon: <InfoIcon />, title: "Informações", component: <InformationCard /> },
-    { icon: <TicketIcon />, title: "Ingressos/Inscrições", component: <TicketsCard /> },
-    { icon: <DiscountIcon />, title: "Cupons", component: <CouponsCard /> },
-    { icon: <FormIcon />, title: "Formulário de Inscrição", component: <FormCard /> },
-    { icon: <PeopleIcon />, title: "Participantes", component: <ParticipantsCard /> },
-    { icon: <CheckCircleIcon />, title: "Check-In", component: <CheckInCard /> },
-    { icon: <PaymentIcon />, title: "Financeiro", component: <FinanceCard /> },
-    { icon: <LockIcon />, title: "Níveis de Acesso", component: <AccessLevelsCard /> },
+    {
+      icon: <DashboardIcon />, 
+      title: "Resumo", 
+      component: <SummaryCard eventDetail={eventDetail} />, 
+      description: "Visão geral do evento, status atual, principais métricas e ações rápidas."
+    },
+    {
+      icon: <ImageIcon />, 
+      title: "Banner e Documentos", 
+      component: <BannerDocumentCard eventId={event_id!} />, // Passa o eventId corretamente
+      description: "Upload e gerenciamento de materiais visuais e documentos importantes."
+    },
+    {
+      icon: <InfoIcon />, 
+      title: "Detalhes do Evento", 
+      component: <InformationCard />, 
+      description: "Informações completas sobre o evento (nome, local, data, descrição)."
+    },
+    {
+      icon: <PolicyIcon />, 
+      title: "Políticas do Evento", 
+      component: <CouponsCard />, 
+      description: "Configuração das políticas de cancelamento, reembolso, e termos de participação."
+    },
+    {
+      icon: <SportsIcon />, 
+      title: "Categorias e Valores", 
+      component: <CouponsCard />, 
+      description: "Definição de categorias de inscrição e respectivos preços."
+    },
+    {
+      icon: <TicketIcon />, 
+      title: "Ingressos/Inscrições", 
+      component: <TicketsCard />, 
+      description: "Gerenciamento de ingressos ou inscrições, controle de disponibilidade e venda."
+    },
+    {
+      icon: <DiscountIcon />, 
+      title: "Cupons", 
+      component: <CouponsCard />, 
+      description: "Criação e gerenciamento de cupons de desconto para participantes."
+    },
+    {
+      icon: <FormIcon />, 
+      title: "Formulário de Inscrição", 
+      component: <FormCard />, 
+      description: "Personalização do formulário que os participantes devem preencher ao se inscrever."
+    },
+    {
+      icon: <PeopleIcon />, 
+      title: "Participantes", 
+      component: <ParticipantsCard />, 
+      description: "Listagem de todos os inscritos, com filtros e opções de exportação."
+    },
+    {
+      icon: <CheckCircleIcon />, 
+      title: "Check-In", 
+      component: <CheckInCard />, 
+      description: "Ferramenta para fazer o check-in dos participantes no dia do evento."
+    },
+    {
+      icon: <AttachMoneyIcon />, 
+      title: "Financeiro", 
+      component: <FinanceCard />, 
+      description: "Resumo financeiro do evento, incluindo taxas pagas, receitas geradas e pagamento de comissões."
+    },
+    {
+      icon: <BarChartIcon />, 
+      title: "Relatórios e Estatísticas", 
+      component: <FinanceCard />, 
+      description: "Dados de performance, como número de visualizações do evento, taxa de conversão, e relatórios detalhados em tempo real."
+    },
+    {
+      icon: <NotificationsIcon />, 
+      title: "Mensagens/Notificações", 
+      component: <FinanceCard />, 
+      description: "Ferramenta de comunicação para enviar e-mails ou notificações para os participantes."
+    },
+    {
+      icon: <CalendarTodayIcon />, 
+      title: "Agenda/Cronograma", 
+      component: <FinanceCard />, 
+      description: "Ferramenta para gerenciar datas e horários importantes do evento, como largadas ou palestras."
+    },
+    {
+      icon: <LockIcon />, 
+      title: "Níveis de Acesso", 
+      component: <AccessLevelsCard />, 
+      description: "Configuração dos níveis de acesso para organizadores e colaboradores."
+    },
   ];
+  
 
   return (
     <Box sx={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F7FAFC" }}>

@@ -62,7 +62,11 @@ def get_event_detail(event_id):
         )
 
     return Response(
-        body=json.dumps(event_detail.to_dict()),  # Retornando os detalhes como dicionário
+        body=json.dumps(event_detail.to_dict()),
         status_code=200,
         headers={'Content-Type': 'application/json'}
     )
+
+@event_bp.route('/organizator_detail/{event_id}/document_files', methods=['POST'], cors=cors_config)
+def upload_files():
+    pass

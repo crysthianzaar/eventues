@@ -12,7 +12,17 @@ interface Event {
   end_date: string;
   city: string;
   state: string;
+  event_status: string; // Adicionando o status do evento
 }
+
+const colors = {
+  primary: "#5A67D8",
+  green: "#48BB78",
+  red: "#F56565",
+  grayDark: "#2D3748",
+  grayLight: "#CBD5E0",
+  white: "#FFFFFF",
+};
 
 const MyEvents: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
@@ -29,7 +39,7 @@ const MyEvents: React.FC = () => {
           setLoading(false);
           return;
         }
-  
+
         const response = await axios.get<Event[]>(`http://127.0.0.1:8000/list_events?user_id=${userId}`);
         setEvents(response.data);
       } catch (err) {
@@ -38,7 +48,7 @@ const MyEvents: React.FC = () => {
         setLoading(false);
       }
     };
-  
+
     fetchEvents();
   }, []);
 
@@ -47,7 +57,7 @@ const MyEvents: React.FC = () => {
   };
 
   if (loading) {
-    return <CircularProgress sx={{ color: "#5A67D8" }} />;
+    return <CircularProgress sx={{ color: colors.primary }} />;
   }
 
   if (error) {
@@ -56,7 +66,7 @@ const MyEvents: React.FC = () => {
 
   return (
     <Box sx={{ padding: "20px", backgroundColor: "#F7FAFC", minHeight: "100vh" }}>
-      <Typography variant="h4" sx={{ marginBottom: "20px", color: "#5A67D8", fontWeight: "bold" }}>
+      <Typography variant="h4" sx={{ marginBottom: "20px", color: colors.primary, fontWeight: "bold" }}>
         Meus Eventos
       </Typography>
       <Grid container spacing={3}>
@@ -65,28 +75,49 @@ const MyEvents: React.FC = () => {
             <Grid item xs={12} sm={6} md={4} key={event.id}>
               <Card
                 sx={{
-                  backgroundColor: "#ffffff",
+                  backgroundColor: colors.white,
                   borderRadius: "10px",
                   boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
                   transition: "transform 0.3s ease",
-                  cursor: "pointer", // Adiciona cursor pointer para indicar que o card é clicável
+                  cursor: "pointer",
                   "&:hover": {
                     transform: "translateY(-5px)",
                   },
                 }}
-                onClick={() => handleCardClick(event.event_id)} // Chama a função de redirecionamento com o event_id correto
+                onClick={() => handleCardClick(event.event_id)}
               >
                 <CardContent>
-                  <Typography variant="h6" sx={{ color: "#5A67D8", fontWeight: "bold" }}>
-                    {event.name}
-                  </Typography>
-                  <Typography variant="body2" sx={{ color: "#2D3748" }}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="h6" sx={{ color: colors.primary, fontWeight: "bold" }}>
+                      {event.name}
+                    </Typography>
+                    <Box
+                      sx={{
+                        padding: "5px 15px",
+                        borderRadius: "20px",
+                        backgroundColor:
+                          event.event_status === "Rascunho"
+                            ? colors.grayLight
+                            : event.event_status === "Inscrições abertas"
+                            ? colors.green
+                            : event.event_status === "Inscrições encerradas"
+                            ? colors.red
+                            : colors.grayLight,
+                        color: "#FFF",
+                        fontWeight: "bold",
+                        textAlign: "center",
+                      }}
+                    >
+                      {event.event_status}
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: colors.grayDark }}>
                     Categoria: {event.category}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: "#2D3748" }}>
+                  <Typography variant="body2" sx={{ color: colors.grayDark }}>
                     Data: {new Date(event.start_date).toLocaleDateString()} - {new Date(event.end_date).toLocaleDateString()}
                   </Typography>
-                  <Typography variant="body2" sx={{ color: "#2D3748" }}>
+                  <Typography variant="body2" sx={{ color: colors.grayDark }}>
                     Local: {event.city}, {event.state}
                   </Typography>
                 </CardContent>
@@ -94,7 +125,7 @@ const MyEvents: React.FC = () => {
             </Grid>
           ))
         ) : (
-          <Typography variant="body1" sx={{ color: "#2D3748" }}>
+          <Typography variant="body1" sx={{ color: colors.grayDark }}>
             Você ainda não criou nenhum evento.
           </Typography>
         )}
