@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Box, CircularProgress, Card, CardContent, Collapse, IconButton, Typography } from "@mui/material";
-import { useParams } from "react-router-dom"; 
+import { Box, CircularProgress, Card, Typography } from "@mui/material";
+import { useParams } from "react-router-dom";
 import axios from "axios";
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore'; 
 import DashboardIcon from "@mui/icons-material/Dashboard";
 import ImageIcon from "@mui/icons-material/Image";
 import InfoIcon from "@mui/icons-material/Info";
@@ -26,10 +25,14 @@ import FinanceCard from './FinanceCard';
 import AccessLevelsCard from './AccessLevelsCard';
 
 const colors = {
-  primary: "#5A67D8", 
+  primary: "#5A67D8",
+  green: "#48BB78",
+  red: "#F56565",
   grayDark: "#2D3748",
-  white: "#FFFFFF", 
-  backgroundCardExpanded: "#EBF4FF", 
+  grayLight: "#CBD5E0",
+  white: "#FFFFFF",
+  backgroundCardExpanded: "#EBF4FF",
+  footerBackground: "#2D3748",
 };
 
 interface EventDetail {
@@ -94,56 +97,147 @@ const OrganizatorEventDetail: React.FC = () => {
   ];
 
   return (
-    <Box sx={{ width: "100%", padding: "20px", backgroundColor: "#F7FAFC" }}>
-      {cards.map((card, index) => (
-        <Card
-          key={index}
+    <Box sx={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F7FAFC" }}>
+      {/* Nome do evento centralizado */}
+      {eventDetail && (
+        <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          marginBottom: "20px",
+          marginTop: "20px", // Adicionando margem superior
+          paddingX: { xs: "20px", md: "0px" },
+        }}
+      >
+        <Typography
+          variant="h4"
           sx={{
-            marginBottom: "15px",
-            boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
-            borderRadius: "10px",
-            transition: "box-shadow 0.3s",
-            "&:hover": {
-              boxShadow: "0 6px 15px rgba(0, 0, 0, 0.2)",
-            },
+            textAlign: "center",
+            color: colors.primary,
+            fontWeight: "bold",
+            fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2rem" }, // Ajuste do tamanho da fonte conforme o tamanho da tela
           }}
         >
+          {eventDetail.name}
+        </Typography>
+        <Box
+          sx={{
+            marginLeft: "10px",
+            padding: "5px 15px",
+            borderRadius: "20px",
+            backgroundColor:
+              eventDetail.event_status === "Rascunho"
+                ? colors.grayLight
+                : eventDetail.event_status === "Inscrições abertas"
+                ? colors.green
+                : eventDetail.event_status === "Inscrições encerradas"
+                ? colors.red
+                : colors.grayLight,
+            color: "#FFF",
+            fontWeight: "bold",
+            textAlign: "center",
+          }}
+        >
+          {eventDetail.event_status}
+        </Box>
+      </Box>
+      
+      )}
+
+      <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, flexGrow: 1 }}>
+        {/* Cards à esquerda */}
+        <Box
+          sx={{
+            flexBasis: { xs: "100%", md: expandedCard !== null ? "20%" : "100%" },
+            transition: "flex-basis 0.5s ease",
+          }}
+        >
+          {cards.map((card, index) => (
+            <React.Fragment key={index}>
+              <Card
+                sx={{
+                  marginBottom: "8px",
+                  padding: "8px",
+                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
+                  borderRadius: "8px",
+                  cursor: "pointer",
+                  transition: "box-shadow 0.3s, padding 0.3s",
+                  "&:hover": {
+                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.15)",
+                    padding: "10px",
+                  },
+                  backgroundColor: expandedCard === index ? colors.backgroundCardExpanded : colors.white,
+                }}
+                onClick={() => handleExpand(index)}
+              >
+                <Box sx={{ display: "flex", alignItems: "center" }}>
+                  {card.icon}
+                  <Typography
+                    variant="h6"
+                    sx={{
+                      marginLeft: "8px",
+                      color: expandedCard === index ? colors.primary : colors.grayDark,
+                      fontWeight: expandedCard === index ? "bold" : "normal",
+                    }}
+                  >
+                    {card.title}
+                  </Typography>
+                </Box>
+              </Card>
+
+              {/* Em dispositivos móveis, expande o conteúdo logo abaixo do card selecionado */}
+              {expandedCard === index && (
+                <Box
+                  sx={{
+                    display: { xs: "block", md: "none" }, // Mostra somente em mobile (xs)
+                    minHeight: "100%",
+                    transition: "flex-basis 0.5s ease",
+                    backgroundColor: colors.white,
+                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+                    borderRadius: "10px",
+                    marginTop: { xs: "8px", md: "0" }, // Margem no mobile
+                    padding: "15px",
+                  }}
+                >
+                  {cards[expandedCard].component}
+                </Box>
+              )}
+            </React.Fragment>
+          ))}
+        </Box>
+
+        {/* Em telas grandes (md+), o conteúdo será expandido ao lado */}
+        {expandedCard !== null && (
           <Box
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              flexBasis: "80%", // Ocupa 80% da largura da tela em md+
+              display: { xs: "none", md: "block" }, // Somente para telas md+ (desktop)
+              minHeight: "100%",
+              transition: "flex-basis 0.5s ease",
+              backgroundColor: colors.white,
+              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
+              borderRadius: "10px",
+              marginLeft: "10px",
               padding: "15px",
-              backgroundColor: expandedCard === index ? colors.backgroundCardExpanded : colors.white,
-              cursor: "pointer",
             }}
-            onClick={() => handleExpand(index)}
           >
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              {card.icon}
-              <Typography
-                variant="h6"
-                sx={{
-                  marginLeft: "10px",
-                  color: expandedCard === index ? colors.primary : colors.grayDark,
-                  fontWeight: expandedCard === index ? "bold" : "normal",
-                }}
-              >
-                {card.title}
-              </Typography>
-            </Box>
-            <IconButton>
-              <ExpandMoreIcon
-                sx={{ color: expandedCard === index ? colors.primary : colors.grayDark }}
-              />
-            </IconButton>
+            {cards[expandedCard].component}
           </Box>
+        )}
+      </Box>
 
-          <Collapse in={expandedCard === index} timeout="auto" unmountOnExit>
-            <CardContent>{card.component}</CardContent>
-          </Collapse>
-        </Card>
-      ))}
+      {/* Footer com a mesma cor do sidebar */}
+      <Box
+        sx={{
+          backgroundColor: colors.footerBackground,
+          padding: "20px",
+          textAlign: "center",
+          marginTop: "auto",
+        }}
+      >
+        <Typography sx={{ color: colors.white }}>© 2024 Eventues. Todos os direitos reservados.</Typography>
+      </Box>
     </Box>
   );
 };

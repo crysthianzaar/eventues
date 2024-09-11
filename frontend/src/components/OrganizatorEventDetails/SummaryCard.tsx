@@ -1,13 +1,13 @@
 import React from 'react';
-import { Box, Typography, Button, Card, CardContent } from '@mui/material';
+import { Box, Typography, Button, CardContent } from '@mui/material';
 
 // Paleta de cores Eventues
 const colors = {
-  primary: "#5A67D8", 
-  green: "#48BB78", 
-  red: "#F56565", 
-  grayDark: "#2D3748", 
-  grayLight: "#CBD5E0", // Cinza claro padrão para status neutro
+  primary: "#5A67D8",
+  green: "#48BB78",
+  red: "#F56565",
+  grayDark: "#2D3748",
+  white: "#FFFFFF",
 };
 
 interface EventDetail {
@@ -30,102 +30,67 @@ interface SummaryCardProps {
 
 const SummaryCard: React.FC<SummaryCardProps> = ({ eventDetail }) => {
   return (
-    <Box>
+    <Box sx={{ padding: { xs: '20px', md: '40px' }, maxWidth: { xs: '100%', md: '1400px' }, margin: '0 auto' }}>
       {eventDetail && (
-        <Card
-          sx={{
-            backgroundColor: "#ffffff",
-            borderRadius: "10px",
-            boxShadow: "0 4px 20px rgba(0, 0, 0, 0.2)",
-          }}
-        >
-          <CardContent>
-            {/* Nome do evento com status ao lado */}
-            <Box sx={{ display: "flex", alignItems: "center", marginBottom: "20px" }}>
-              <Typography variant="h5" sx={{ color: colors.primary, fontWeight: "bold" }}>
-                {eventDetail.name}
-              </Typography>
-              <Box
-                sx={{
-                  marginLeft: "10px",
-                  padding: "5px 15px",
-                  borderRadius: "20px",
-                  backgroundColor:
-                    eventDetail.event_status === "Rascunho"
-                      ? colors.grayLight // Cinza para rascunho
-                      : eventDetail.event_status === "Inscrições abertas"
-                      ? colors.green // Verde para inscrições abertas
-                      : eventDetail.event_status === "Inscrições encerradas"
-                      ? colors.red // Vermelho para inscrições encerradas
-                      : colors.grayLight, // Padrão, cinza claro
-                  color: "#FFF",
-                  fontWeight: "bold",
-                  textAlign: "center",
-                }}
-              >
-                {eventDetail.event_status}
-              </Box>
-            </Box>
+        <CardContent>
+          <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
+            Categoria: {eventDetail.category}
+          </Typography>
+          <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
+            Data: {new Date(eventDetail.start_date).toLocaleDateString()} -{" "}
+            {new Date(eventDetail.end_date).toLocaleDateString()}
+          </Typography>
+          <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
+            Horário: {eventDetail.start_time} - {eventDetail.end_time}
+          </Typography>
+          <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
+            Local: {eventDetail.city}, {eventDetail.state}
+          </Typography>
+          <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
+            Visualizações: {eventDetail.views}
+          </Typography>
+          <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
+            Visibilidade: {eventDetail.visibility}
+          </Typography>
 
-            {/* Detalhes do evento */}
-            <Typography variant="body2" sx={{ color: colors.grayDark }}>
-              Categoria: {eventDetail.category}
-            </Typography>
-            <Typography variant="body2" sx={{ color: colors.grayDark }}>
-              Data: {new Date(eventDetail.start_date).toLocaleDateString()} -{" "}
-              {new Date(eventDetail.end_date).toLocaleDateString()}
-            </Typography>
-            <Typography variant="body2" sx={{ color: colors.grayDark }}>
-              Horário: {eventDetail.start_time} - {eventDetail.end_time}
-            </Typography>
-            <Typography variant="body2" sx={{ color: colors.grayDark }}>
-              Local: {eventDetail.city}, {eventDetail.state}
-            </Typography>
-            <Typography variant="body2" sx={{ color: colors.grayDark }}>
-              Visualizações: {eventDetail.views}
-            </Typography>
-            <Typography variant="body2" sx={{ color: colors.grayDark }}>
-              Visibilidade: {eventDetail.visibility}
-            </Typography>
+          <Box sx={{ display: 'flex', marginTop: '20px', gap: '10px' }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: colors.primary,
+                "&:hover": { backgroundColor: "#434190" },
+                padding: '10px 20px',
+              }}
+            >
+              Ver página do evento
+            </Button>
 
-            {/* Ações do evento */}
-            <Box sx={{ display: "flex", marginTop: "20px", gap: "10px" }}>
+            {eventDetail.event_status === "Rascunho" && (
               <Button
                 variant="contained"
                 sx={{
-                  backgroundColor: colors.primary,
-                  "&:hover": { backgroundColor: "#434190" },
+                  backgroundColor: colors.green,
+                  "&:hover": { backgroundColor: "#38A169" },
+                  padding: '10px 20px',
                 }}
               >
-                Ver página do evento
+                Publicar Evento
               </Button>
-
-              {/* Botões extras de acordo com o status */}
-              {eventDetail.event_status === "Rascunho" && (
-                <Button
-                  variant="contained"
-                  sx={{
-                    backgroundColor: colors.green,
-                    "&:hover": { backgroundColor: "#38A169" },
-                  }}
-                >
-                  Publicar Evento
-                </Button>
-              )}
-              {eventDetail.event_status === "Inscrições abertas" && (
-                <Button
-                  variant="contained"
-                  sx={{
-                    backgroundColor: colors.red,
-                    "&:hover": { backgroundColor: "#E53E3E" },
-                  }}
-                >
-                  Encerrar Inscrições
-                </Button>
-              )}
-            </Box>
-          </CardContent>
-        </Card>
+            )}
+            {eventDetail.event_status === "Inscrições abertas" && (
+              <Button
+                variant="contained"
+                sx={{
+                  backgroundColor: colors.red,
+                  "&:hover": { backgroundColor: "#E53E3E" },
+                  padding: '10px 20px',
+                }}
+              >
+                Encerrar Inscrições
+              </Button>
+            )}
+          </Box>
+        </CardContent>
       )}
     </Box>
   );
