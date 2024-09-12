@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Box, CircularProgress, Card, Typography } from "@mui/material";
+import {
+  Box,
+  CircularProgress,
+  Card,
+  Typography,
+  Tooltip,
+  useMediaQuery,
+} from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
 import DashboardIcon from "@mui/icons-material/Dashboard";
@@ -17,17 +24,19 @@ import BarChartIcon from "@mui/icons-material/BarChart";
 import NotificationsIcon from "@mui/icons-material/Notifications";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import SportsIcon from "@mui/icons-material/Sports";
+import LocationOnIcon from "@mui/icons-material/LocationOn";
 
-import SummaryCard from './SummaryCard';
-import BannerDocumentCard from './BannerDocumentCard';
-import InformationCard from './InformationCard';
-import TicketsCard from './TicketsCard';
-import CouponsCard from './CouponsCard';
-import FormCard from './FormCard';
-import ParticipantsCard from './ParticipantsCard';
-import CheckInCard from './CheckInCard';
-import FinanceCard from './FinanceCard';
-import AccessLevelsCard from './AccessLevelsCard';
+import SummaryCard from "./SummaryCard";
+import BannerDocumentCard from "./BannerDocumentCard";
+import InformationCard from "./InformationCard";
+import TicketsCard from "./TicketsCard";
+import CouponsCard from "./CouponsCard";
+import FormCard from "./FormCard";
+import ParticipantsCard from "./ParticipantsCard";
+import CheckInCard from "./CheckInCard";
+import FinanceCard from "./FinanceCard";
+import AccessLevelsCard from "./AccessLevelsCard";
+import banner_template from "../../assets/banner_template.png";
 
 const colors = {
   primary: "#5A67D8",
@@ -61,10 +70,15 @@ const OrganizatorEventDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expandedCard, setExpandedCard] = useState<number | null>(0);
 
+  // Responsividade: verifica se a tela é pequena
+  const isSmallScreen = useMediaQuery("(max-width: 600px)");
+
   useEffect(() => {
     const fetchEventDetail = async () => {
       try {
-        const response = await axios.get<EventDetail>(`http://127.0.0.1:8000/organizator_detail/${event_id}`);
+        const response = await axios.get<EventDetail>(
+          `http://127.0.0.1:8000/organizator_detail/${event_id}`
+        );
         setEventDetail(response.data);
       } catch (err) {
         setError("Erro ao carregar detalhes do evento.");
@@ -90,239 +104,263 @@ const OrganizatorEventDetail: React.FC = () => {
 
   const cards = [
     {
-      icon: <DashboardIcon />, 
-      title: "Resumo", 
-      component: <SummaryCard eventDetail={eventDetail} />, 
-      description: "Visão geral do evento, status atual, principais métricas e ações rápidas."
+      icon: <DashboardIcon />,
+      title: "Resumo",
+      component: <SummaryCard eventDetail={eventDetail} />,
+      description:
+        "Visão geral do evento, status atual, principais métricas e ações rápidas.",
     },
     {
-      icon: <ImageIcon />, 
-      title: "Banner e Documentos", 
-      component: <BannerDocumentCard eventId={event_id!} />, // Passa o eventId corretamente
-      description: "Upload e gerenciamento de materiais visuais e documentos importantes."
+      icon: <ImageIcon />,
+      title: "Banner e Documentos",
+      component: <BannerDocumentCard eventId={event_id!} />,
+      description:
+        "Upload e gerenciamento de materiais visuais e documentos importantes.",
     },
     {
-      icon: <InfoIcon />, 
-      title: "Detalhes do Evento", 
-      component: <InformationCard />, 
-      description: "Informações completas sobre o evento (nome, local, data, descrição)."
+      icon: <InfoIcon />,
+      title: "Detalhes do Evento",
+      component: <InformationCard />,
+      description:
+        "Informações completas sobre o evento (nome, local, data, descrição).",
     },
     {
-      icon: <PolicyIcon />, 
-      title: "Políticas do Evento", 
-      component: <CouponsCard />, 
-      description: "Configuração das políticas de cancelamento, reembolso, e termos de participação."
+      icon: <PolicyIcon />,
+      title: "Políticas",
+      component: <CouponsCard />,
+      description:
+        "Configuração das políticas de cancelamento, reembolso, e termos de participação.",
     },
     {
-      icon: <SportsIcon />, 
-      title: "Categorias e Valores", 
-      component: <CouponsCard />, 
-      description: "Definição de categorias de inscrição e respectivos preços."
+      icon: <SportsIcon />,
+      title: "Categorias e Valores",
+      component: <CouponsCard />,
+      description: "Definição de categorias de inscrição e respectivos preços.",
     },
     {
-      icon: <TicketIcon />, 
-      title: "Ingressos/Inscrições", 
-      component: <TicketsCard />, 
-      description: "Gerenciamento de ingressos ou inscrições, controle de disponibilidade e venda."
+      icon: <TicketIcon />,
+      title: "Ingressos/Inscrições",
+      component: <TicketsCard />,
+      description:
+        "Gerenciamento de ingressos ou inscrições, controle de disponibilidade e venda.",
     },
     {
-      icon: <DiscountIcon />, 
-      title: "Cupons", 
-      component: <CouponsCard />, 
-      description: "Criação e gerenciamento de cupons de desconto para participantes."
+      icon: <DiscountIcon />,
+      title: "Cupons",
+      component: <CouponsCard />,
+      description:
+        "Criação e gerenciamento de cupons de desconto para participantes.",
     },
     {
-      icon: <FormIcon />, 
-      title: "Formulário de Inscrição", 
-      component: <FormCard />, 
-      description: "Personalização do formulário que os participantes devem preencher ao se inscrever."
+      icon: <FormIcon />,
+      title: "Formulário de Inscrição",
+      component: <FormCard />,
+      description:
+        "Personalização do formulário que os participantes devem preencher ao se inscrever.",
     },
     {
-      icon: <PeopleIcon />, 
-      title: "Participantes", 
-      component: <ParticipantsCard />, 
-      description: "Listagem de todos os inscritos, com filtros e opções de exportação."
+      icon: <PeopleIcon />,
+      title: "Participantes",
+      component: <ParticipantsCard />,
+      description:
+        "Listagem de todos os inscritos, com filtros e opções de exportação.",
     },
     {
-      icon: <CheckCircleIcon />, 
-      title: "Check-In", 
-      component: <CheckInCard />, 
-      description: "Ferramenta para fazer o check-in dos participantes no dia do evento."
+      icon: <CheckCircleIcon />,
+      title: "Check-In",
+      component: <CheckInCard />,
+      description:
+        "Ferramenta para fazer o check-in dos participantes no dia do evento.",
     },
     {
-      icon: <AttachMoneyIcon />, 
-      title: "Financeiro", 
-      component: <FinanceCard />, 
-      description: "Resumo financeiro do evento, incluindo taxas pagas, receitas geradas e pagamento de comissões."
+      icon: <AttachMoneyIcon />,
+      title: "Financeiro",
+      component: <FinanceCard />,
+      description:
+        "Resumo financeiro do evento, incluindo taxas pagas, receitas geradas e pagamento de comissões.",
     },
     {
-      icon: <BarChartIcon />, 
-      title: "Relatórios e Estatísticas", 
-      component: <FinanceCard />, 
-      description: "Dados de performance, como número de visualizações do evento, taxa de conversão, e relatórios detalhados em tempo real."
+      icon: <BarChartIcon />,
+      title: "Relatórios e Estatísticas",
+      component: <FinanceCard />,
+      description:
+        "Dados de performance, como número de visualizações do evento, taxa de conversão, e relatórios detalhados em tempo real.",
     },
     {
-      icon: <NotificationsIcon />, 
-      title: "Mensagens/Notificações", 
-      component: <FinanceCard />, 
-      description: "Ferramenta de comunicação para enviar e-mails ou notificações para os participantes."
+      icon: <NotificationsIcon />,
+      title: "Mensagens/Notificações",
+      component: <FinanceCard />,
+      description:
+        "Ferramenta de comunicação para enviar e-mails ou notificações para os participantes.",
     },
     {
-      icon: <CalendarTodayIcon />, 
-      title: "Agenda/Cronograma", 
-      component: <FinanceCard />, 
-      description: "Ferramenta para gerenciar datas e horários importantes do evento, como largadas ou palestras."
+      icon: <CalendarTodayIcon />,
+      title: "Agenda/Cronograma",
+      component: <FinanceCard />,
+      description:
+        "Ferramenta para gerenciar datas e horários importantes do evento, como largadas ou palestras.",
     },
     {
-      icon: <LockIcon />, 
-      title: "Níveis de Acesso", 
-      component: <AccessLevelsCard />, 
-      description: "Configuração dos níveis de acesso para organizadores e colaboradores."
+      icon: <LockIcon />,
+      title: "Níveis de Acesso",
+      component: <AccessLevelsCard />,
+      description:
+        "Configuração dos níveis de acesso para organizadores e colaboradores.",
     },
   ];
-  
 
   return (
-    <Box sx={{ width: "100%", minHeight: "100vh", display: "flex", flexDirection: "column", backgroundColor: "#F7FAFC" }}>
-      {/* Nome do evento centralizado */}
-      {eventDetail && (
-        <Box
+    <Box
+      sx={{
+        width: "100%",
+        minHeight: "100vh",
+        backgroundColor: "#F7FAFC",
+        display: "flex",
+        flexDirection: "column",
+        padding: "20px",
+      }}
+    >
+      {/* Cabeçalho com Banner e status do evento */}
+      <Box
         sx={{
+          position: "relative",
+          width: "100%",
+          height: isSmallScreen ? "150px" : "200px", // Ajuste de tamanho para mobile
+          backgroundImage: `url(${banner_template})`, // Usando a imagem do logo como fundo
+          backgroundSize: "cover", // Para cobrir todo o espaço do banner
+          backgroundPosition: "center", // Centraliza a imagem
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
-          marginBottom: "20px",
-          marginTop: "20px", // Adicionando margem superior
-          paddingX: { xs: "20px", md: "0px" },
+          borderRadius: "20px",
+          overflow: "hidden",
+          boxShadow: "0 4px 12px rgba(1, 1, 1, 1)", // Sombra para profundidade
         }}
       >
-        <Typography
-          variant="h4"
-          sx={{
-            textAlign: "center",
-            color: colors.primary,
-            fontWeight: "bold",
-            fontSize: { xs: "1.2rem", sm: "1.5rem", md: "2rem" }, // Ajuste do tamanho da fonte conforme o tamanho da tela
-          }}
-        >
-          {eventDetail.name}
-        </Typography>
-        <Box
-          sx={{
-            marginLeft: "10px",
-            padding: "5px 15px",
-            borderRadius: "20px",
-            backgroundColor:
-              eventDetail.event_status === "Rascunho"
-                ? colors.grayLight
-                : eventDetail.event_status === "Inscrições abertas"
-                ? colors.green
-                : eventDetail.event_status === "Inscrições encerradas"
-                ? colors.red
-                : colors.grayLight,
-            color: "#FFF",
-            fontWeight: "bold",
-            textAlign: "center",
-          }}
-        >
-          {eventDetail.event_status}
-        </Box>
-      </Box>
-      
-      )}
+        {eventDetail && (
+          <Box sx={{ textAlign: "center", color: colors.white }}>
+            <Box
+              sx={{
+                marginBottom: "10px",
+                padding: "5px 15px",
+                borderRadius: "20px",
+                backgroundColor:
+                  eventDetail.event_status === "Rascunho"
+                    ? colors.grayLight
+                    : eventDetail.event_status === "Inscrições abertas"
+                    ? colors.green
+                    : colors.red,
+                color: colors.white,
+                fontWeight: "bold",
+                textAlign: "center",
+                display: "inline-block",
+              }}
+            >
+              {eventDetail.event_status}
+            </Box>
 
-      <Box sx={{ display: "flex", flexDirection: { xs: "column", md: "row" }, flexGrow: 1 }}>
-        {/* Cards à esquerda */}
+            <Typography
+              variant={isSmallScreen ? "h5" : "h3"} // Tamanho do texto ajustado para telas pequenas
+              sx={{
+                fontWeight: "bold",
+                textTransform: "uppercase",
+                marginTop: "10px",
+              }}
+            >
+              {eventDetail.name}
+            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+              <LocationOnIcon sx={{ marginRight: "8px" }} />
+              <Typography variant={isSmallScreen ? "body1" : "h6"}>
+                {eventDetail.city}, {eventDetail.state}
+              </Typography>
+            </Box>
+          </Box>
+        )}
+      </Box>
+
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: isSmallScreen ? "column" : "row", // Em telas pequenas, as seções ficam empilhadas
+          flexGrow: 1,
+          padding: "15px",
+        }}
+      >
+        {/* Sidebar com as seções */}
         <Box
           sx={{
-            flexBasis: { xs: "100%", md: expandedCard !== null ? "20%" : "100%" },
-            transition: "flex-basis 0.5s ease",
+            flexBasis: isSmallScreen ? "100%" : "20%", // Sidebar ocupa toda a largura em telas pequenas
+            padding: "10px",
           }}
         >
           {cards.map((card, index) => (
-            <React.Fragment key={index}>
-              <Card
-                sx={{
-                  marginBottom: "8px",
-                  padding: "8px",
-                  boxShadow: "0 2px 5px rgba(0, 0, 0, 0.1)",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  transition: "box-shadow 0.3s, padding 0.3s",
-                  "&:hover": {
-                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.15)",
+            <Box key={index}>
+              <Tooltip title={card.description} placement="right" arrow>
+                <Card
+                  sx={{
+                    marginBottom: "8px",
                     padding: "10px",
-                  },
-                  backgroundColor: expandedCard === index ? colors.backgroundCardExpanded : colors.white,
-                }}
-                onClick={() => handleExpand(index)}
-              >
-                <Box sx={{ display: "flex", alignItems: "center" }}>
-                  {card.icon}
-                  <Typography
-                    variant="h6"
-                    sx={{
-                      marginLeft: "8px",
-                      color: expandedCard === index ? colors.primary : colors.grayDark,
-                      fontWeight: expandedCard === index ? "bold" : "normal",
-                    }}
-                  >
-                    {card.title}
-                  </Typography>
-                </Box>
-              </Card>
+                    cursor: "pointer",
+                    backgroundColor:
+                      expandedCard === index
+                        ? colors.backgroundCardExpanded
+                        : colors.white,
+                    transition: "background-color 0.3s",
+                    "&:hover": {
+                      backgroundColor: colors.backgroundCardExpanded,
+                    },
+                  }}
+                  onClick={() => handleExpand(index)}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    {card.icon}
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        marginLeft: "8px",
+                        fontWeight: expandedCard === index ? "bold" : "normal",
+                      }}
+                    >
+                      {card.title}
+                    </Typography>
+                  </Box>
+                </Card>
+              </Tooltip>
 
-              {/* Em dispositivos móveis, expande o conteúdo logo abaixo do card selecionado */}
-              {expandedCard === index && (
+              {/* Exibir o conteúdo logo abaixo do card em telas pequenas */}
+              {isSmallScreen && expandedCard === index && (
                 <Box
                   sx={{
-                    display: { xs: "block", md: "none" }, // Mostra somente em mobile (xs)
-                    minHeight: "100%",
-                    transition: "flex-basis 0.5s ease",
+                    padding: "20px",
                     backgroundColor: colors.white,
-                    boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
-                    borderRadius: "10px",
-                    marginTop: { xs: "8px", md: "0" }, // Margem no mobile
-                    padding: "15px",
+                    borderRadius: "15px",
+                    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                    marginBottom: "20px",
                   }}
                 >
-                  {cards[expandedCard].component}
+                  {card.component}
                 </Box>
               )}
-            </React.Fragment>
+            </Box>
           ))}
         </Box>
 
-        {/* Em telas grandes (md+), o conteúdo será expandido ao lado */}
-        {expandedCard !== null && (
+        {/* Conteúdo expandido das seções em telas maiores */}
+        {!isSmallScreen && expandedCard !== null && (
           <Box
             sx={{
-              flexBasis: "80%", // Ocupa 80% da largura da tela em md+
-              display: { xs: "none", md: "block" }, // Somente para telas md+ (desktop)
-              minHeight: "100%",
-              transition: "flex-basis 0.5s ease",
+              flexBasis: "80%", // Em telas grandes, o conteúdo ocupa o espaço lateral
+              padding: "20px",
               backgroundColor: colors.white,
-              boxShadow: "0 4px 10px rgba(0, 0, 0, 0.1)",
-              borderRadius: "10px",
-              marginLeft: "10px",
-              padding: "15px",
+              borderRadius: "15px", // Borda arredondada
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)", // Sombra suave
+              transition: "all 0.3s ease-in-out", // Suavização da transição
             }}
           >
             {cards[expandedCard].component}
           </Box>
         )}
-      </Box>
-
-      {/* Footer com a mesma cor do sidebar */}
-      <Box
-        sx={{
-          backgroundColor: colors.footerBackground,
-          padding: "20px",
-          textAlign: "center",
-          marginTop: "auto",
-        }}
-      >
-        <Typography sx={{ color: colors.white }}>© 2024 Eventues. Todos os direitos reservados.</Typography>
       </Box>
     </Box>
   );

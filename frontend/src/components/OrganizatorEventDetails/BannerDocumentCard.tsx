@@ -11,21 +11,22 @@ const colors = {
 };
 
 interface FileData {
+  id: string; // Identificação única para garantir conformidade
   name: string;
-  file: File | null; // Store actual file object
-  base64: string;    // Base64 encoded string
+  file: File | null;
+  base64: string;
   title: string;
-  required: boolean; // Mark required files like Banner and Regulamento
+  required: boolean; // Arquivos obrigatórios como Banner e Regulamento
 }
 
 const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
   const [files, setFiles] = useState<FileData[]>([
-    { name: '', file: null, base64: '', title: 'Banner do Evento', required: true },
-    { name: '', file: null, base64: '', title: 'Regulamento', required: true },
+    { id: '1', name: '', file: null, base64: '', title: 'Banner do Evento', required: true },
+    { id: '2', name: '', file: null, base64: '', title: 'Regulamento', required: true },
   ]);
   const [errors, setErrors] = useState<string[]>([]);
 
-  // Function to convert file to base64
+  // Função para converter arquivo para base64
   const convertToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -35,17 +36,17 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     });
   };
 
-  // Handle file upload for a specific file title
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, title: string) => {
+  // Lidar com o upload de arquivo para um documento específico
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, id: string) => {
     const uploadedFiles = event.target.files;
     if (uploadedFiles) {
-      const file = uploadedFiles[0]; // Only one file is allowed per input
+      const file = uploadedFiles[0]; // Apenas um arquivo é permitido por input
 
       if (file.type.includes('image') || file.type.includes('pdf')) {
         try {
           const base64 = await convertToBase64(file);
           setFiles(files.map(f =>
-            f.title === title
+            f.id === id
               ? { ...f, name: file.name, file: file, base64: base64 }
               : f
           ));
@@ -58,27 +59,28 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     }
   };
 
-  // Handle deleting a specific file, but keeping the item in the list
-  const handleFileDelete = (title: string) => {
-    setFiles(files.map(f => (f.title === title ? { ...f, name: '', file: null, base64: '' } : f)));
+  // Excluir um arquivo específico, mantendo o item na lista
+  const handleFileDelete = (id: string) => {
+    setFiles(files.map(f => (f.id === id ? { ...f, name: '', file: null, base64: '' } : f)));
   };
 
-  // Handle deleting the entire item from the list (only for non-required items)
-  const handleItemDelete = (title: string) => {
-    setFiles(files.filter(file => file.title !== title));
+  // Excluir o item inteiro (apenas para itens não obrigatórios)
+  const handleItemDelete = (id: string) => {
+    setFiles(files.filter(file => file.id !== id));
   };
 
-  // Add a new file item to the list
+  // Adicionar um novo arquivo à lista
   const addNewFile = () => {
-    setFiles([...files, { name: '', file: null, base64: '', title: '', required: false }]);
+    const newId = `${files.length + 1}`;
+    setFiles([...files, { id: newId, name: '', file: null, base64: '', title: '', required: false }]);
   };
 
-  // Handle changing the title of a new file
+  // Lidar com a mudança de título de um novo arquivo
   const handleTitleChange = (index: number, title: string) => {
     setFiles(files.map((file, i) => (i === index ? { ...file, title } : file)));
   };
 
-  // Validate that required files are uploaded before submitting
+  // Validar que os arquivos obrigatórios estão anexados
   const isFormValid = () => {
     const missingFiles = files
       .filter(file => file.required && !file.name)
@@ -92,11 +94,11 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     return true;
   };
 
-  // Handle form submission with file upload to backend
+  // Lidar com o envio do formulário e os arquivos anexados
   const handleSubmit = async () => {
     if (!isFormValid()) return;
 
-    // Prepare JSON to send
+    // Prepara o JSON para enviar
     const data = {
       files: files.map(file => ({
         file: file.base64,
@@ -126,7 +128,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
   return (
     <Box sx={{ padding: { xs: '20px', md: '40px' }, maxWidth: { xs: '100%', md: '1400px' }, margin: '0 auto' }}>
       <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
-        Upload e Gerenciamento de Materiais Visuais e Documentos
+        Gerenciamento de Materiais Visuais e Documentos
       </Typography>
 
       <TableContainer component={Paper}>
@@ -141,7 +143,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
           </TableHead>
           <TableBody>
             {files.map((file, index) => (
-              <TableRow key={index}>
+              <TableRow key={file.id}>
                 <TableCell>
                   <TextField
                     label="Título do Documento"
@@ -157,9 +159,9 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                     variant="contained"
                     component="label"
                     sx={{
-                      backgroundColor: file.name ? colors.green : colors.primary, // Azul antes de anexar, verde depois
+                      backgroundColor: file.name ? colors.green : colors.primary,
                       color: colors.white,
-                      "&:hover": { backgroundColor: file.name ? "#38A169" : "#4c6ef5" }, // Azul mais escuro no hover antes de anexar
+                      "&:hover": { backgroundColor: file.name ? "#38A169" : "#4c6ef5" },
                     }}
                   >
                     <UploadFile sx={{ marginRight: '8px' }} />
@@ -168,7 +170,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                       type="file"
                       hidden
                       accept="image/*,application/pdf"
-                      onChange={(e) => handleFileUpload(e, file.title)}
+                      onChange={(e) => handleFileUpload(e, file.id)}
                     />
                   </Button>
                 </TableCell>
@@ -178,7 +180,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                       aria-label="delete file"
                       size="small"
                       sx={{ color: colors.primary }}
-                      onClick={() => handleFileDelete(file.title)}
+                      onClick={() => handleFileDelete(file.id)}
                     >
                       <Delete />
                     </IconButton>
@@ -190,7 +192,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                       aria-label="delete item"
                       size="small"
                       sx={{ color: 'red' }}
-                      onClick={() => handleItemDelete(file.title)}
+                      onClick={() => handleItemDelete(file.id)}
                     >
                       <Delete />
                     </IconButton>
