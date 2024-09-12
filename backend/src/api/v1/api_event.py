@@ -48,7 +48,7 @@ def list_events():
         headers={'Content-Type': 'application/json'}
     )
 
-@event_bp.route('/organizator_detail/{event_id}', methods=['GET'], cors=cors_config)
+@event_bp.route('/organizer_detail/{event_id}', methods=['GET'], cors=cors_config)
 def get_event_detail(event_id):
     db = SessionLocal()
     event_service = EventService(EventRepository(db))
@@ -67,6 +67,21 @@ def get_event_detail(event_id):
         headers={'Content-Type': 'application/json'}
     )
 
-@event_bp.route('/organizator_detail/{event_id}/document_files', methods=['POST'], cors=cors_config)
-def upload_files():
-    pass
+@event_bp.route('/organizer_detail/{event_id}/upload_document_files', methods=['POST'], cors=cors_config)
+def upload_files(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    event_files = event_service.upload_event_files(
+        event_id, event_bp.current_request.json_body)
+    return event_files
+
+@event_bp.route('/organizer_detail/{event_id}/get_document_files', methods=['GET'], cors=cors_config)
+def get_files(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    
+    try:
+        event_files = event_service.get_event_files(event_id)
+        return event_files
+    except Exception as e:
+        return {"error": f"Erro ao obter arquivos: {str(e)}"}, 500

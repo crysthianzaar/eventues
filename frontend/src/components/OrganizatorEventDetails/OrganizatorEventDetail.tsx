@@ -77,7 +77,7 @@ const OrganizatorEventDetail: React.FC = () => {
     const fetchEventDetail = async () => {
       try {
         const response = await axios.get<EventDetail>(
-          `http://127.0.0.1:8000/organizator_detail/${event_id}`
+          `http://127.0.0.1:8000/organizer_detail/${event_id}`
         );
         setEventDetail(response.data);
       } catch (err) {

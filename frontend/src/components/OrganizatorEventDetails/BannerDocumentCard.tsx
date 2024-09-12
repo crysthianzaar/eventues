@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Button, IconButton, TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper, CircularProgress } from '@mui/material';
 import { UploadFile, Delete } from '@mui/icons-material';
 
 const colors = {
@@ -17,14 +17,13 @@ interface FileData {
   base64: string;
   title: string;
   required: boolean; // Arquivos obrigatórios como Banner e Regulamento
+  url?: string; // URL do arquivo já existente no S3
 }
 
 const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
-  const [files, setFiles] = useState<FileData[]>([
-    { id: '1', name: '', file: null, base64: '', title: 'Banner do Evento', required: true },
-    { id: '2', name: '', file: null, base64: '', title: 'Regulamento', required: true },
-  ]);
+  const [files, setFiles] = useState<FileData[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [loading, setLoading] = useState<boolean>(true); // Estado de carregamento
 
   // Função para converter arquivo para base64
   const convertToBase64 = (file: File): Promise<string> => {
@@ -34,6 +33,43 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
       reader.onload = () => resolve(reader.result as string);
       reader.onerror = (error) => reject(error);
     });
+  };
+
+  // Função para buscar arquivos já enviados ao carregar o componente
+  const fetchExistingFiles = async () => {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/organizer_detail/${eventId}/get_document_files`);
+      if (response.ok) {
+        const data = await response.json();
+
+        if (data.length === 0) {
+          // Se a lista estiver vazia, inicializa os arquivos obrigatórios
+          setFiles([
+            { id: '1', name: '', file: null, base64: '', title: 'Banner do Evento', required: true },
+            { id: '2', name: '', file: null, base64: '', title: 'Regulamento', required: true },
+          ]);
+        } else {
+          // Substituir os arquivos obrigatórios por aqueles obtidos do backend
+          const existingFiles = data.map((file: any) => ({
+            id: `${file.s3_key}`,  // IDs únicos
+            name: file.file_name,
+            file: null,  // Como o arquivo já está no S3, não temos o arquivo local
+            base64: '',  // Não precisamos da base64 para arquivos já enviados
+            title: file.file_name.split('.')[0].replace(/_/g, ' '), // Extrair o título com base no nome do arquivo
+            required: file.file_name.includes("Banner") || file.file_name.includes("Regulamento"),  // Determina se o arquivo é obrigatório
+            url: file.url,  // URL do arquivo existente no S3
+          }));
+
+          setFiles(existingFiles);
+        }
+      } else {
+        console.error('Falha ao buscar arquivos existentes');
+      }
+    } catch (error) {
+      console.error('Erro ao buscar arquivos existentes:', error);
+    } finally {
+      setLoading(false); // Desativar o estado de carregamento
+    }
   };
 
   // Lidar com o upload de arquivo para um documento específico
@@ -99,15 +135,13 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     if (!isFormValid()) return;
 
     // Prepara o JSON para enviar
-    const data = {
-      files: files.map(file => ({
-        file: file.base64,
-        title: file.title
-      }))
-    };
+    const data = files.map(file => ({
+      file: file.base64,
+      title: file.title
+    }));
 
     try {
-      const response = await fetch(`http://127.0.0.1:8000/organizator_detail/${eventId}/document_files`, {
+      const response = await fetch(`http://127.0.0.1:8000/organizer_detail/${eventId}/upload_document_files`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -125,122 +159,142 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     }
   };
 
+  useEffect(() => {
+    // Buscar arquivos existentes quando o componente for montado
+    fetchExistingFiles();
+  }, [eventId]);
+
   return (
     <Box sx={{ padding: { xs: '20px', md: '40px' }, maxWidth: { xs: '100%', md: '1400px' }, margin: '0 auto' }}>
       <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
         Gerenciamento de Materiais Visuais e Documentos
       </Typography>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Título do Documento</TableCell>
-              <TableCell>Arquivo</TableCell>
-              <TableCell>Ação sobre Arquivo</TableCell>
-              <TableCell>Excluir Item</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {files.map((file, index) => (
-              <TableRow key={file.id}>
-                <TableCell>
-                  <TextField
-                    label="Título do Documento"
-                    fullWidth
-                    required={file.required}
-                    value={file.title}
-                    onChange={(e) => handleTitleChange(index, e.target.value)}
-                    disabled={file.required} // Disable editing for required fields
-                  />
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="contained"
-                    component="label"
-                    sx={{
-                      backgroundColor: file.name ? colors.green : colors.primary,
-                      color: colors.white,
-                      "&:hover": { backgroundColor: file.name ? "#38A169" : "#4c6ef5" },
-                    }}
-                  >
-                    <UploadFile sx={{ marginRight: '8px' }} />
-                    {file.name ? file.name : 'Upload'}
-                    <input
-                      type="file"
-                      hidden
-                      accept="image/*,application/pdf"
-                      onChange={(e) => handleFileUpload(e, file.id)}
-                    />
-                  </Button>
-                </TableCell>
-                <TableCell>
-                  {file.name && (
-                    <IconButton
-                      aria-label="delete file"
-                      size="small"
-                      sx={{ color: colors.primary }}
-                      onClick={() => handleFileDelete(file.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  )}
-                </TableCell>
-                <TableCell>
-                  {!file.required && (
-                    <IconButton
-                      aria-label="delete item"
-                      size="small"
-                      sx={{ color: 'red' }}
-                      onClick={() => handleItemDelete(file.id)}
-                    >
-                      <Delete />
-                    </IconButton>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </TableContainer>
-
-      {errors.length > 0 && (
-        <Box sx={{ color: 'red', marginTop: '20px' }}>
-          {errors.map((error, index) => (
-            <Typography key={index} variant="body2">
-              {error}
-            </Typography>
-          ))}
+      {/* Exibe o componente de loading enquanto busca arquivos */}
+      {loading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px' }}>
+          <CircularProgress sx={{ color: colors.primary }} />
         </Box>
+      ) : (
+        <>
+          <TableContainer component={Paper}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Título do Documento</TableCell>
+                  <TableCell>Arquivo</TableCell>
+                  <TableCell>Ação sobre Arquivo</TableCell>
+                  <TableCell>Excluir Item</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {files.map((file, index) => (
+                  <TableRow key={file.id}>
+                    <TableCell>
+                      <TextField
+                        label="Título do Documento"
+                        fullWidth
+                        required={file.required}
+                        value={file.title}
+                        onChange={(e) => handleTitleChange(index, e.target.value)}
+                        disabled={file.required} // Disable editing for required fields
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        variant="contained"
+                        component="label"
+                        sx={{
+                          backgroundColor: file.name ? colors.green : colors.primary,
+                          color: colors.white,
+                          "&:hover": { backgroundColor: file.name ? "#38A169" : "#4c6ef5" },
+                        }}
+                      >
+                        <UploadFile sx={{ marginRight: '8px' }} />
+                        {file.url ? (
+                          <a href={file.url} target="_blank" rel="noopener noreferrer" style={{ color: 'white', textDecoration: 'none' }}>
+                            {file.name}
+                          </a>
+                        ) : (
+                          file.name || 'Anexar'
+                        )}
+                        <input
+                          type="file"
+                          hidden
+                          accept="image/*,application/pdf"
+                          onChange={(e) => handleFileUpload(e, file.id)}
+                        />
+                      </Button>
+                    </TableCell>
+                    <TableCell>
+                      {file.name && (
+                        <IconButton
+                          aria-label="delete file"
+                          size="small"
+                          sx={{ color: colors.primary }}
+                          onClick={() => handleFileDelete(file.id)}
+                        >
+                          <Delete />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {!file.required && (
+                        <IconButton
+                          aria-label="delete item"
+                          size="small"
+                          sx={{ color: 'red' }}
+                          onClick={() => handleItemDelete(file.id)}
+                        >
+                          <Delete />
+                        </IconButton>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+
+          {errors.length > 0 && (
+            <Box sx={{ color: 'red', marginTop: '20px' }}>
+              {errors.map((error, index) => (
+                <Typography key={index} variant="body2">
+                  {error}
+                </Typography>
+              ))}
+            </Box>
+          )}
+
+          <Button
+            variant="outlined"
+            onClick={addNewFile}
+            sx={{
+              marginTop: '20px',
+              color: colors.primary,
+              borderColor: colors.primary,
+              "&:hover": { backgroundColor: colors.grayLight, borderColor: colors.primary },
+            }}
+          >
+            Adicionar Novo Documento
+          </Button>
+
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+            <Button
+              variant="contained"
+              sx={{
+                backgroundColor: colors.green,
+                color: '#fff',
+                padding: '10px 20px',
+                "&:hover": { backgroundColor: "#38A169" },
+              }}
+              onClick={handleSubmit}
+            >
+              Salvar
+            </Button>
+          </Box>
+        </>
       )}
-
-      <Button
-        variant="outlined"
-        onClick={addNewFile}
-        sx={{
-          marginTop: '20px',
-          color: colors.primary,
-          borderColor: colors.primary,
-          "&:hover": { backgroundColor: colors.grayLight, borderColor: colors.primary },
-        }}
-      >
-        Adicionar Novo Documento
-      </Button>
-
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-        <Button
-          variant="contained"
-          sx={{
-            backgroundColor: colors.green,
-            color: '#fff',
-            padding: '10px 20px',
-            "&:hover": { backgroundColor: "#38A169" },
-          }}
-          onClick={handleSubmit}
-        >
-          Salvar
-        </Button>
-      </Box>
     </Box>
   );
 };
