@@ -15,27 +15,29 @@ class EventService:
     def get_event_by_id(self, event_id):
             return self.event_repository.get_event_by_id(event_id)
 
-    def upload_event_files(self, event_id, payload):
+    def upload_event_file(self, event_id, payload):
         s3 = S3Service('dev-event-files')
         try:
-            upload_files = s3.upload_file_from_payload(payload, event_id)
-            return upload_files
+            upload_file = s3.upload_file_from_payload(payload, event_id)
+            self.create_event_document(event_id, upload_file[-1])
+            return upload_file
         except Exception as e:
             raise Exception(f"Error uploading file: {str(e)}")
 
-    def get_event_files(self, event_id: str) -> list:
-        s3 = S3Service('dev-event-files')
-        try:
-            files = s3.list_files_for_event(event_id)
-            if not files:
-                return []  # Retorna uma lista vazia se nenhum arquivo for encontrado
-            return files
-        except Exception as e:
-            raise Exception(f"Error retrieving files: {str(e)}")
+    def get_event_documents(self, event_id: str) -> list:
+        documents = self.event_repository.get_event_documents(event_id)
+        return [doc.to_dict() for doc in documents]
     
     def delete_event_file(self, event_id: str, s3_key: str):
         s3 = S3Service('dev-event-files')
         try:
             s3.delete_file(s3_key)
+            self.delete_event_document(event_id, s3_key)
         except Exception as e:
             raise Exception(f"Erro ao deletar o arquivo: {str(e)}")
+
+    def create_event_document(self, event_id: str, document_data: dict):
+        return self.event_repository.create_event_document(event_id, document_data)
+
+    def delete_event_document(self, event_id: str, s3_key: str):
+        return self.event_repository.delete_event_document(event_id, s3_key)

@@ -71,7 +71,7 @@ def get_event_detail(event_id):
 def upload_files(event_id):
     db = SessionLocal()
     event_service = EventService(EventRepository(db))
-    event_files = event_service.upload_event_files(
+    event_files = event_service.upload_event_file(
         event_id, event_bp.current_request.json_body)
     return event_files
 
@@ -81,7 +81,7 @@ def get_files(event_id):
     event_service = EventService(EventRepository(db))
     
     try:
-        event_files = event_service.get_event_files(event_id)
+        event_files = event_service.get_event_documents(event_id)
         return event_files
     except Exception as e:
         return {"error": f"Erro ao obter arquivos: {str(e)}"}, 500

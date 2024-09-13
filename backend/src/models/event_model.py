@@ -1,5 +1,8 @@
 from dataclasses import asdict, dataclass
+import uuid
 from sqlalchemy import Column, DateTime, Integer, String, Time, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, time
 from src.models.base import Base
 
@@ -32,3 +35,24 @@ class EventModel(Base):
         event_dict['start_time'] = self.start_time.strftime('%H:%M:%S') if isinstance(self.start_time, time) else self.start_time
         event_dict['end_time'] = self.end_time.strftime('%H:%M:%S') if isinstance(self.end_time, time) else self.end_time
         return event_dict
+
+@dataclass
+class EventDocuments(Base):
+    __tablename__ = 'event_documents'
+
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    document_id: uuid.UUID = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
+    event_id: str = Column(String(36), ForeignKey('events.event_id'), nullable=False)
+    file_name: str = Column(String(255), nullable=False)
+    url: str = Column(String(255), nullable=False)
+    s3_key: str = Column(String(255), nullable=False)
+
+    event = relationship("EventModel", back_populates="documents")
+
+    def to_dict(self):
+        document_dict = asdict(self)
+        document_dict['document_id'] = str(self.document_id)
+        document_dict['event_id'] = str(self.event_id)
+        return document_dict
+
+EventModel.documents = relationship("EventDocuments", order_by=EventDocuments.id, back_populates="event")

@@ -74,44 +74,56 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
       const response = await fetch(
         `http://127.0.0.1:8000/organizer_detail/${eventId}/get_document_files`
       );
+      
+      let existingFiles: FileData[] = [];
+  
       if (response.ok) {
         const data = await response.json();
-
-        const existingFiles: FileData[] = data.map((file: any) => ({
-          id: `${file.s3_key}`,
-          name: file.file_name,
-          file: null,
-          base64: "", 
-          title: file.title || file.file_name.split(".")[0].replace(/_/g, " "),
-          required:
-            file.file_name.includes("Banner") ||
-            file.file_name.includes("Regulamento"),
-          url: file.url, 
-          s3_key: file.s3_key,
-        }));
-
-        const mandatoryTitles = ["Banner do Evento", "Regulamento"];
-
-        mandatoryTitles.forEach((mandatoryTitle) => {
-          const exists = existingFiles.some(
-            (file) => file.title === mandatoryTitle
-          );
-          if (!exists) {
-            existingFiles.push({
-              id: `mandatory-${mandatoryTitle}`,
-              name: "",
-              file: null,
-              base64: "",
-              title: mandatoryTitle,
-              required: true,
-            });
-          }
-        });
-
-        setFiles(existingFiles);
+        
+        if (data && data.length > 0) {
+          existingFiles = data.map((file: any) => ({
+            id: `${file.s3_key}`,
+            name: file.file_name,
+            file: null,
+            base64: "", 
+            title: file.title || file.file_name.split(".")[0].replace(/_/g, " "),
+            required: file.file_name.includes("Banner") || file.file_name.includes("Regulamento"),
+            url: file.url, 
+            s3_key: file.s3_key,
+          }));
+        } else {
+          // Adiciona os arquivos padrão se a resposta for null ou uma lista vazia
+          const mandatoryTitles = ["Banner do Evento", "Regulamento"];
+          existingFiles = mandatoryTitles.map(mandatoryTitle => ({
+            id: `mandatory-${mandatoryTitle}`,
+            name: "",
+            file: null,
+            base64: "",
+            title: mandatoryTitle,
+            required: true,
+          }));
+        }
       } else {
         console.error("Falha ao buscar arquivos existentes");
       }
+  
+      // Verifica se os arquivos obrigatórios estão presentes
+      const mandatoryTitles = ["Banner do Evento", "Regulamento"];
+      mandatoryTitles.forEach((mandatoryTitle) => {
+        const exists = existingFiles.some((file) => file.title === mandatoryTitle);
+        if (!exists) {
+          existingFiles.push({
+            id: `mandatory-${mandatoryTitle}`,
+            name: "",
+            file: null,
+            base64: "",
+            title: mandatoryTitle,
+            required: true,
+          });
+        }
+      });
+  
+      setFiles(existingFiles);
     } catch (error) {
       console.error("Erro ao buscar arquivos existentes:", error);
     } finally {
@@ -119,6 +131,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
       isFormValid();
     }
   };
+  
 
   const uploadFileToBackend = async (fileData: FileData) => {
     try {

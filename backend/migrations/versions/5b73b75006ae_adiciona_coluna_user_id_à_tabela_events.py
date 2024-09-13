@@ -10,8 +10,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # Criar chave estrangeira
-    op.create_foreign_key('fk_events_user_id', 'events', 'users', ['user_id'], ['uuid'])
+    pass
 
 
 def downgrade() -> None:

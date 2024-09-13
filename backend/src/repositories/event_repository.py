@@ -1,6 +1,6 @@
 
 from uuid import uuid4
-from src.models.event_model import EventModel
+from src.models.event_model import EventDocuments, EventModel
 
 
 class EventRepository:
@@ -20,3 +20,24 @@ class EventRepository:
 
     def get_event_by_id(self, event_id):
         return self.session.query(EventModel).filter_by(event_id=event_id).first()
+
+    def get_event_documents(self, event_id):
+        return self.session.query(EventDocuments).filter_by(event_id=event_id).all()
+
+    def create_event_document(self, event_id, document_data):
+        document = {}
+        document['document_id'] = uuid4()
+        document['event_id'] = event_id
+        document['s3_key'] = document_data['s3_key'].split('/')[-1]
+        document['file_name'] = document_data['file_name'].split('/')[-1]
+        document['url'] = document_data['url']
+        new_document = EventDocuments(**document)
+        self.session.add(new_document)
+        self.session.commit()
+        return new_document
+
+    def delete_event_document(self, event_id, s3_key):
+        document = self.session.query(EventDocuments).filter_by(event_id=event_id, s3_key=s3_key).first()
+        self.session.delete(document)
+        self.session.commit()
+        return document
