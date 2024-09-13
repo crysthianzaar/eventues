@@ -67,7 +67,7 @@ def get_event_detail(event_id):
         headers={'Content-Type': 'application/json'}
     )
 
-@event_bp.route('/organizer_detail/{event_id}/upload_document_files', methods=['POST'], cors=cors_config)
+@event_bp.route('/organizer_detail/{event_id}/upload_document_file', methods=['POST'], cors=cors_config)
 def upload_files(event_id):
     db = SessionLocal()
     event_service = EventService(EventRepository(db))
@@ -85,3 +85,19 @@ def get_files(event_id):
         return event_files
     except Exception as e:
         return {"error": f"Erro ao obter arquivos: {str(e)}"}, 500
+
+@event_bp.route('/organizer_detail/{event_id}/delete_document_file', methods=['POST'], cors=cors_config)
+def delete_file(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    payload = event_bp.current_request.json_body
+    
+    try:
+        s3_key = payload.get('s3_key')
+        if not s3_key:
+            return {"error": "Chave do arquivo não fornecida"}, 400
+
+        event_service.delete_event_file(event_id, s3_key)
+        return {"message": "Arquivo deletado com sucesso."}, 200
+    except Exception as e:
+        return {"error": f"Erro ao deletar arquivo: {str(e)}"}, 500

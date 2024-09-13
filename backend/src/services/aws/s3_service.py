@@ -37,39 +37,43 @@ class S3Service:
         except Exception as e:
             raise Exception(f"Erro ao listar arquivos do evento {event_id}: {str(e)}")
 
-    def upload_file_from_payload(self, payload: list, event_id: str) -> list:
+    def upload_file_from_payload(self, file: dict, event_id: str) -> list:
         uploaded_files = []
+        try:
+            content_type, base64_data = file['file'].split(';base64,')
+            file_data = base64.b64decode(base64_data)
+            key = f"{event_id}/{uuid.uuid4()}-{file['title'].replace(' ', '_')}"
 
-        for item in payload:
-            try:
-                content_type, base64_data = item['file'].split(';base64,')
-                file_data = base64.b64decode(base64_data)
-                key = f"{event_id}/{uuid.uuid4()}-{item['title'].replace(' ', '_')}"
+            self.s3.put_object(
+                Bucket=self.bucket_name,
+                Key=key,
+                Body=file_data,
+                ContentType=content_type.split(':')[1]
+            )
 
-                self.s3.put_object(
-                    Bucket=self.bucket_name,
-                    Key=key,
-                    Body=file_data,
-                    ContentType=content_type.split(':')[1]
-                )
+            # Gera a URL pública do arquivo
+            file_url = self.generate_file_url(key)
 
-                # Gera a URL pública do arquivo
-                file_url = self.generate_file_url(key)
+            # Adiciona as informações do arquivo ao resultado
+            uploaded_files.append({
+                "file_name": file['title'],
+                "s3_key": key,
+                "url": file_url,
+                "content_type": content_type.split(':')[1]
+            })
 
-                # Adiciona as informações do arquivo ao resultado
-                uploaded_files.append({
-                    "file_name": item['title'],
-                    "s3_key": key,
-                    "url": file_url,
-                    "content_type": content_type.split(':')[1]
-                })
-
-            except NoCredentialsError:
-                raise Exception("Credenciais AWS inválidas ou ausentes.")
-            except Exception as e:
-                raise Exception(f"Erro ao fazer upload do arquivo {item['title']}: {str(e)}")
+        except NoCredentialsError:
+            raise Exception("Credenciais AWS inválidas ou ausentes.")
 
         return uploaded_files
 
     def generate_file_url(self, key: str) -> str:
         return f"https://{self.bucket_name}.s3.amazonaws.com/{key}"
+
+    def delete_file(self, s3_key: str):
+        try:
+            self.s3.delete_object(Bucket=self.bucket_name, Key=s3_key)
+        except NoCredentialsError:
+            raise Exception("Credenciais AWS inválidas ou ausentes.")
+        except Exception as e:
+            raise Exception(f"Erro ao deletar arquivo do S3: {str(e)}")

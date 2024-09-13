@@ -32,3 +32,10 @@ class EventService:
             return files
         except Exception as e:
             raise Exception(f"Error retrieving files: {str(e)}")
+    
+    def delete_event_file(self, event_id: str, s3_key: str):
+        s3 = S3Service('dev-event-files')
+        try:
+            s3.delete_file(s3_key)
+        except Exception as e:
+            raise Exception(f"Erro ao deletar o arquivo: {str(e)}")
