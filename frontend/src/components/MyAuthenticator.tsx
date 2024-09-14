@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { Authenticator, useAuthenticator } from '@aws-amplify/ui-react';
 import { I18n } from '@aws-amplify/core';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import backgroundImage from '../assets/login.png';
 import '@aws-amplify/ui-react/styles.css';
 
@@ -47,12 +47,15 @@ I18n.setLanguage('pt-BR');
 const MyAuthenticator: React.FC = () => {
   const { user } = useAuthenticator();
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = location.state?.from || '/';
 
   useEffect(() => {
     if (user) {
-      navigate('/callback');
+      localStorage.setItem('from', from);
+      navigate('/callback', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, navigate, from]);
 
   return (
     <div style={{
@@ -63,7 +66,6 @@ const MyAuthenticator: React.FC = () => {
       backgroundImage: `url(${backgroundImage})`,
       backgroundSize: 'cover',
       backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
     }}>
       <Authenticator socialProviders={['google']} hideSignUp={false}>
         {({ signOut, user }) => (

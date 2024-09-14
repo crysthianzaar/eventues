@@ -198,7 +198,7 @@ export default function CreateEventStepper() {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Hora de início"
+                  label="Hora de início do evento"
                   type="time"
                   InputLabelProps={{ shrink: true }}
                   fullWidth
@@ -232,7 +232,7 @@ export default function CreateEventStepper() {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Hora de término"
+                  label="Hora de término do evento"
                   type="time"
                   InputLabelProps={{ shrink: true }}
                   fullWidth
