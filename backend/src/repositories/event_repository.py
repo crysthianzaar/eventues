@@ -1,6 +1,6 @@
 
 from uuid import uuid4
-from src.models.event_model import EventDocuments, EventModel
+from src.models.event_model import EventDocuments, EventModel, EventPolicy
 
 
 class EventRepository:
@@ -48,3 +48,17 @@ class EventRepository:
             setattr(event, key, value)
         self.session.commit()
         return event
+
+    def get_event_policy(self, event_id: str):
+        return self.session.query(EventPolicy).filter_by(event_id=event_id).first()
+
+    def create_policy(self, event_id: str, policy_data: dict):
+        policy_data['event_id'] = event_id
+        new_policy = EventPolicy(**policy_data)
+        self.session.add(new_policy)
+        self.session.commit()
+        return new_policy
+
+    def update_policy(self, policy: EventPolicy):
+        self.session.commit()
+        return policy

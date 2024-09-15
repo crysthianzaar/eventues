@@ -154,7 +154,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <PolicyIcon />,
       title: "Políticas",
-      component: <PolicyCard />,
+      component: <PolicyCard eventId={event_id!} />,
       description:
         "Configuração das políticas de cancelamento, reembolso, e termos de participação.",
     },
@@ -330,29 +330,29 @@ const OrganizatorEventDetail: React.FC = () => {
         <Stepper
           alternativeLabel
           sx={{
-        minWidth: isSmallScreen ? "600px" : "unset", // Definindo um mínimo para mobile
-        whiteSpace: "normal", // Permite que o texto quebre em múltiplas linhas
-        justifyContent: "center", // Centralizar os steps
-        marginBottom: "10px", // Garantir espaço inferior para o Stepper
+            minWidth: isSmallScreen ? "600px" : "unset", // Definindo um mínimo para mobile
+            whiteSpace: "normal", // Permite que o texto quebre em múltiplas linhas
+            justifyContent: "center", // Centralizar os steps
+            marginBottom: "10px", // Garantir espaço inferior para o Stepper
           }}
         >
           {steps.map((step, index) => (
-        <Step key={index}>
-          <StepLabel
-            StepIconComponent={StepIconComponent}
-            sx={{
-          "& .MuiStepLabel-label": {
-            display: "block", // Forçar o label a ser um bloco
-            fontSize: isSmallScreen ? "12px" : "14px", // Ajustar a fonte para telas menores
-            maxWidth: "160px", // Limita a largura do label para forçar a quebra de linha
-            textAlign: "center", // Centralizar o texto
-            whiteSpace: "normal", // Permitir quebra de linha
-          },
-            }}
-          >
-            {step.label}
-          </StepLabel>
-        </Step>
+            <Step key={index}>
+              <StepLabel
+                StepIconComponent={StepIconComponent}
+                sx={{
+                  "& .MuiStepLabel-label": {
+                    display: "block", // Forçar o label a ser um bloco
+                    fontSize: isSmallScreen ? "12px" : "14px", // Ajustar a fonte para telas menores
+                    maxWidth: "160px", // Limita a largura do label para forçar a quebra de linha
+                    textAlign: "center", // Centralizar o texto
+                    whiteSpace: "normal", // Permitir quebra de linha
+                  },
+                }}
+              >
+                {step.label}
+              </StepLabel>
+            </Step>
           ))}
         </Stepper>
 
@@ -362,9 +362,10 @@ const OrganizatorEventDetail: React.FC = () => {
           color="primary"
           disabled={!steps.every((step) => step.status)}
           sx={{
-        marginTop: "20px", // Sempre manter margem superior no mobile
-        width: isSmallScreen ? "100%" : "auto", // O botão ocupa 100% da tela no mobile
-        zIndex: 10,
+            alignItems: "center", // Centralizar os steps
+            marginTop: "20px", // Sempre manter margem superior no mobile
+            width: isSmallScreen ? "100%" : "auto", // O botão ocupa 100% da tela no mobile
+            zIndex: 10,
           }}
         >
           Publicar Evento

@@ -44,3 +44,17 @@ class EventService:
 
     def update_event_details(self, event_id, event_data):
         return self.event_repository.update_event_details(event_id, event_data)
+
+    def create_or_update_policy(self, event_id: str, policy_data: dict):
+        existing_policy = self.event_repository.get_event_policy(event_id)
+
+        if existing_policy:
+            for key, value in policy_data.items():
+                setattr(existing_policy, key, value)
+            return self.event_repository.update_policy(existing_policy)
+        else:
+            new_policy = self.event_repository.create_policy(event_id, policy_data)
+            return new_policy
+
+    def get_event_policy(self, event_id: str):
+        return self.event_repository.get_event_policy(event_id)

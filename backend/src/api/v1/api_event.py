@@ -113,3 +113,27 @@ def update_event_details(event_id):
         return {"message": "Detalhes do evento atualizados com sucesso."}, 200
     except Exception as e:
         return {"error": f"Erro ao atualizar evento: {str(e)}"}, 500
+
+@event_bp.route('/organizer_detail/{event_id}/policy', methods=['PATCH'], cors=cors_config)
+def create_or_update_policy(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    policy_data = event_bp.current_request.json_body
+    
+    try:
+        event_service.create_or_update_policy(event_id, policy_data)
+        return {"message": "Política do evento atualizada com sucesso."}, 200
+    except Exception as e:
+        db.rollback()
+        return {"error": f"Erro ao atualizar política do evento: {str(e)}"}, 500
+
+@event_bp.route('/organizer_detail/{event_id}/get_policy', methods=['GET'], cors=cors_config)
+def get_event_policy(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    
+    try:
+        policy = event_service.get_event_policy(event_id)
+        return policy.to_dict() if policy else {}
+    except Exception as e:
+        return {"error": f"Erro ao obter política: {str(e)}"}, 500

@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 import uuid
-from sqlalchemy import Column, DateTime, Integer, String, Text, Time, ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, Time, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, time
@@ -59,4 +59,44 @@ class EventDocuments(Base):
         document_dict['event_id'] = str(self.event_id)
         return document_dict
 
+@dataclass
+class EventPolicy(Base):
+    __tablename__ = 'event_policies'
+
+    id: int = Column(Integer, primary_key=True, autoincrement=True)
+    policy_id: uuid.UUID = Column(UUID(as_uuid=True), default=uuid.uuid4, unique=True, nullable=False)
+    event_id: str = Column(String(36), ForeignKey('events.event_id'), nullable=False)
+    event_visibility: bool = Column(Boolean, nullable=False, default=False)
+    participant_list_visibility: str = Column(String(50), nullable=False, default='organizador')
+    cpf_validation: bool = Column(Boolean, nullable=False, default=False)
+    allow_third_party_registration: bool = Column(Boolean, nullable=False, default=False)
+    has_age_limit: bool = Column(Boolean, nullable=False, default=False)
+    age_min: int = Column(Integer, nullable=True)
+    age_max: int = Column(Integer, nullable=True)
+    allow_transfer: bool = Column(Boolean, nullable=False, default=False)
+
+    event = relationship("EventModel", back_populates="policies")
+
+    def to_dict(self):
+        policy_dict = asdict(self)
+        policy_dict['policy_id'] = str(self.policy_id)
+        policy_dict['event_id'] = str(self.event_id)
+        return policy_dict
+
+    def from_dict(cls, policy_dict):
+        """Creates an EventPolicy instance from a dictionary."""
+        return cls(
+            policy_id=uuid.UUID(policy_dict.get('policy_id')),
+            event_id=policy_dict.get('event_id'),
+            event_visibility=policy_dict.get('event_visibility', False),
+            participant_list_visibility=policy_dict.get('participant_list_visibility', 'organizador'),
+            cpf_validation=policy_dict.get('cpf_validation', False),
+            allow_third_party_registration=policy_dict.get('allow_third_party_registration', False),
+            has_age_limit=policy_dict.get('has_age_limit', False),
+            age_min=policy_dict.get('age_min'),
+            age_max=policy_dict.get('age_max'),
+            allow_transfer=policy_dict.get('allow_transfer', False)
+        )
+
+EventModel.policies = relationship("EventPolicy", order_by=EventPolicy.id, back_populates="event")
 EventModel.documents = relationship("EventDocuments", order_by=EventDocuments.id, back_populates="event")
