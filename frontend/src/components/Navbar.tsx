@@ -1,41 +1,72 @@
 import React, { useState } from "react";
-import { AppBar, Toolbar, Button, Box, IconButton, Drawer, List, ListItemButton, ListItemText } from "@mui/material";
+import {
+  AppBar,
+  Toolbar,
+  Button,
+  Box,
+  IconButton,
+  Drawer,
+  List,
+  ListItemButton,
+  ListItemText,
+  Avatar,
+  Menu,
+  MenuItem,
+} from "@mui/material";
 import { Menu as MenuIcon } from "@mui/icons-material";
 import { useAuthenticator } from "@aws-amplify/ui-react";
-import { useNavigate } from "react-router-dom"; // Adicione o hook useNavigate
+import { useNavigate } from "react-router-dom";
 import logo from "../assets/logo.png";
+import { AuthUser } from "aws-amplify/auth";
 
 const Navbar: React.FC = () => {
-  const { signOut, user } = useAuthenticator();
+  const { signOut, user }: { signOut: () => void; user: AuthUser } = useAuthenticator();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const navigate = useNavigate(); // Inicialize o hook
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const navigate = useNavigate();
 
   const handleLogin = () => {
-    navigate("/login"); // Redireciona para a rota de login
+    navigate("/login");
   };
 
   const handleCreateEvent = () => {
-    navigate("/criar_evento"); // Redireciona para a rota de criação de eventos
+    navigate("/criar_evento");
   };
 
   const handleLogout = () => {
     signOut();
-    navigate("/"); // Redireciona para a home após logout
+    navigate("/");
   };
 
   const handleInicio = () => {
-    navigate("/"); // Redireciona para a home
+    navigate("/");
   };
 
   const handleMyEvents = () => {
-    navigate("/meus_eventos"); // Redireciona para a rota de "Meus Eventos"
+    navigate("/meus_eventos");
+  };
+
+  const handleAccountSettings = () => {
+    navigate("/minha_conta");
+  };
+
+  const handleProfileSettings = () => {
+    navigate("/configurar_perfil");
   };
 
   const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
-    if (event.type === 'keydown' && ((event as React.KeyboardEvent).key === 'Tab' || (event as React.KeyboardEvent).key === 'Shift')) {
+    if (event.type === "keydown" && ((event as React.KeyboardEvent).key === "Tab" || (event as React.KeyboardEvent).key === "Shift")) {
       return;
     }
     setDrawerOpen(open);
+  };
+
+  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
   };
 
   const menuItems = (
@@ -50,9 +81,6 @@ const Navbar: React.FC = () => {
           <ListItemText primary="Início" />
         </ListItemButton>
         <ListItemButton>
-          <ListItemText primary="Explorar Eventos" />
-        </ListItemButton>
-        <ListItemButton>
           <ListItemText primary="Portal do Organizador" />
         </ListItemButton>
         <ListItemButton>
@@ -61,18 +89,14 @@ const Navbar: React.FC = () => {
         <ListItemButton>
           <ListItemText primary="Fale Conosco" />
         </ListItemButton>
-        {user ? (
-          <ListItemButton onClick={handleLogout}>
-            <ListItemText primary="Sair" />
-          </ListItemButton>
-        ) : (
+        <ListItemButton onClick={handleCreateEvent}>
+          <ListItemText primary="Criar Evento" />
+        </ListItemButton>
+        {!user && (
           <ListItemButton onClick={handleLogin}>
             <ListItemText primary="Entrar" />
           </ListItemButton>
         )}
-        <ListItemButton onClick={handleCreateEvent}>
-          <ListItemText primary="Criar Evento" />
-        </ListItemButton>
       </List>
     </Box>
   );
@@ -88,10 +112,10 @@ const Navbar: React.FC = () => {
       >
         <Toolbar sx={{ justifyContent: "space-between", position: "relative" }}>
           {/* Icone do Menu na Esquerda */}
-          <Box sx={{ display: { xs: 'flex', md: 'none' }, alignItems: 'center' }}>
+          <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}>
             <IconButton
               edge="start"
-              sx={{ color: '#000000' }}  // Define a cor do ícone
+              sx={{ color: "#000000" }} // Define a cor do ícone
               aria-label="menu"
               onClick={toggleDrawer(true)}
             >
@@ -106,30 +130,46 @@ const Navbar: React.FC = () => {
             alt="Eventues Logo"
             sx={{
               height: "50px",
-              margin: { xs: '0 auto', md: '0' },  // Centraliza em xs, alinha à esquerda em md e acima
-              position: { xs: 'absolute', md: 'relative' },  // Em xs, fica absoluto para centralizar
-              left: { xs: '50%', md: 'unset' },
-              transform: { xs: 'translateX(-50%)', md: 'none' },  // Ajusta a posição para centralizar
+              margin: { xs: "0 auto", md: "0" }, // Centraliza em xs, alinha à esquerda em md e acima
+              position: { xs: "absolute", md: "relative" }, // Em xs, fica absoluto para centralizar
+              left: { xs: "50%", md: "unset" },
+              transform: { xs: "translateX(-50%)", md: "none" }, // Ajusta a posição para centralizar
             }}
           />
 
           {/* Navbar Completa em Telas Médias e Maiores */}
-          <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: "20px", marginLeft: 'auto' }}>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }} onClick={handleInicio}>
+          <Box sx={{ display: { xs: "none", md: "flex" }, gap: "20px", marginLeft: "auto" }}>
+            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }} onClick={handleInicio}>
               Início
             </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }}>
-              Explorar Eventos
-            </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }}>
+            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}>
               Portal do Organizador
             </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }} onClick={handleMyEvents}>
+            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }} onClick={handleMyEvents}>
               Meus Eventos
             </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: '1rem' }}>
+            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}>
               Fale Conosco
             </Button>
+
+            {/* Criar Evento antes de Entrar/Sair */}
+            <Button
+              variant="contained"
+              sx={{
+                borderRadius: "30px",
+                backgroundColor: "#68D391",
+                color: "white",
+                textTransform: "none",
+                fontSize: "1rem",
+                width: "140px", // Define largura fixa
+                minWidth: "140px", // Impede que o botão diminua
+              }}
+              onClick={handleCreateEvent}
+            >
+              Criar Evento
+            </Button>
+
+            {/* Botão de Entrar/Minha Conta com Avatar */}
             {user ? (
               <Button
                 variant="outlined"
@@ -138,11 +178,18 @@ const Navbar: React.FC = () => {
                   color: "#5A67D8",
                   borderColor: "#5A67D8",
                   textTransform: "none",
-                  fontSize: '1rem'
+                  fontSize: "1rem",
+                  display: "flex",
+                  alignItems: "center",
                 }}
-                onClick={handleLogout}
+                onClick={handleMenuClick}
               >
-                Sair
+                Perfil
+                <Avatar
+                  alt={user?.username ?? "Usuário"}
+                  src="https://w7.pngwing.com/pngs/505/761/png-transparent-login-computer-icons-avatar-icon-monochrome-black-silhouette.png"
+                  sx={{ width: 20, height: 20, marginLeft: "10px" }} // Avatar pequeno ao lado do texto
+                />
               </Button>
             ) : (
               <Button
@@ -152,26 +199,27 @@ const Navbar: React.FC = () => {
                   color: "#5A67D8",
                   borderColor: "#5A67D8",
                   textTransform: "none",
-                  fontSize: '1rem'
+                  fontSize: "1rem",
                 }}
                 onClick={handleLogin}
               >
                 Entrar
               </Button>
             )}
-            <Button
-              variant="contained"
-              sx={{
-                borderRadius: "30px",
-                backgroundColor: "#68D391",
-                color: "white",
-                textTransform: "none",
-                fontSize: '1rem'
-              }}
-              onClick={handleCreateEvent} // Chama a função para redirecionar para criação de eventos
-            >
-              Criar Evento
-            </Button>
+
+            {/* Menu de opções do usuário logado */}
+            {user && (
+              <Menu
+                anchorEl={anchorEl}
+                open={Boolean(anchorEl)}
+                onClose={handleMenuClose}
+                keepMounted
+              >
+                <MenuItem onClick={handleAccountSettings}>Minha Conta</MenuItem>
+                <MenuItem onClick={handleProfileSettings}>Configurar Perfil</MenuItem>
+                <MenuItem onClick={handleLogout}>Sair</MenuItem>
+              </Menu>
+            )}
           </Box>
         </Toolbar>
       </AppBar>

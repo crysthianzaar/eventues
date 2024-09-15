@@ -6,6 +6,11 @@ import {
   Typography,
   Tooltip,
   useMediaQuery,
+  Button,
+  Stepper,
+  Step,
+  StepLabel,
+  StepIconProps,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -17,6 +22,7 @@ import DiscountIcon from "@mui/icons-material/LocalOffer";
 import FormIcon from "@mui/icons-material/Assignment";
 import PeopleIcon from "@mui/icons-material/People";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ErrorIcon from "@mui/icons-material/Error";
 import LockIcon from "@mui/icons-material/Lock";
 import PolicyIcon from "@mui/icons-material/Policy";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
@@ -41,9 +47,10 @@ import banner_template from "../../assets/banner_template.png";
 const colors = {
   primary: "#5A67D8",
   green: "#48BB78",
-  red: "#F56565",
+  yellowDark: "#F6AD55",
   grayDark: "#2D3748",
-  grayLight: "#CBD5E0",
+  grayLight: "#8E959C",
+  red: "#F56565",
   white: "#FFFFFF",
   backgroundCardExpanded: "#EBF4FF",
   footerBackground: "#2D3748",
@@ -63,14 +70,34 @@ interface EventDetail {
   event_status: string;
 }
 
+// Array de etapas com status concluído ou não
+const steps = [
+  { label: "Informações essenciais inseridas", status: true },
+  { label: "Detalhes do evento preenchidos", status: false },
+  { label: "Banner e documentos carregados", status: true },
+  { label: "Políticas definidas", status: false },
+  { label: "Categorias e Valores configurados", status: false },
+  { label: "Evento pronto para publicação", status: false },
+];
+
+// Função que retorna os ícones personalizados de acordo com o status de cada etapa
+const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
+  const stepIndex = Number(icon) - 1;
+  const stepStatus = steps[stepIndex].status;
+
+  return stepStatus ? (
+    <CheckCircleIcon sx={{ color: colors.green }} />
+  ) : (
+    <ErrorIcon sx={{ color: colors.yellowDark }} />
+  );
+};
+
 const OrganizatorEventDetail: React.FC = () => {
   const { event_id } = useParams<{ event_id: string }>();
   const [eventDetail, setEventDetail] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expandedCard, setExpandedCard] = useState<number | null>(0);
-
-  // Responsividade: verifica se a tela é pequena
   const isSmallScreen = useMediaQuery("(max-width: 600px)");
 
   useEffect(() => {
@@ -111,18 +138,18 @@ const OrganizatorEventDetail: React.FC = () => {
         "Visão geral do evento, status atual, principais métricas e ações rápidas.",
     },
     {
-      icon: <ImageIcon />,
-      title: "Banner e Documentos",
-      component: <BannerDocumentCard eventId={event_id!} />,
-      description:
-        "Upload e gerenciamento de materiais visuais e documentos importantes.",
-    },
-    {
       icon: <InfoIcon />,
       title: "Detalhes do Evento",
       component: <InformationCard />,
       description:
         "Informações completas sobre o evento (nome, local, data, descrição).",
+    },
+    {
+      icon: <ImageIcon />,
+      title: "Banner e Documentos",
+      component: <BannerDocumentCard eventId={event_id!} />,
+      description:
+        "Upload e gerenciamento de materiais visuais e documentos importantes.",
     },
     {
       icon: <PolicyIcon />,
@@ -138,6 +165,13 @@ const OrganizatorEventDetail: React.FC = () => {
       description: "Definição de categorias de inscrição e respectivos preços.",
     },
     {
+      icon: <FormIcon />,
+      title: "Formulário de Inscrição",
+      component: <FormCard />,
+      description:
+        "Personalização do formulário que os participantes devem preencher ao se inscrever.",
+    },
+    {
       icon: <TicketIcon />,
       title: "Ingressos/Inscrições",
       component: <TicketsCard />,
@@ -150,13 +184,6 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <CouponsCard />,
       description:
         "Criação e gerenciamento de cupons de desconto para participantes.",
-    },
-    {
-      icon: <FormIcon />,
-      title: "Formulário de Inscrição",
-      component: <FormCard />,
-      description:
-        "Personalização do formulário que os participantes devem preencher ao se inscrever.",
     },
     {
       icon: <PeopleIcon />,
@@ -260,7 +287,7 @@ const OrganizatorEventDetail: React.FC = () => {
             </Box>
 
             <Typography
-              variant={isSmallScreen ? "h5" : "h3"} // Tamanho do texto ajustado para telas pequenas
+              variant={isSmallScreen ? "h5" : "h3"}
               sx={{
                 fontWeight: "bold",
                 textTransform: "uppercase",
@@ -277,6 +304,31 @@ const OrganizatorEventDetail: React.FC = () => {
             </Box>
           </Box>
         )}
+      </Box>
+
+      {/* Stepper para indicar o progresso da publicação */}
+      <Box
+        sx={{ marginTop: "20px", width: "100%", display: "flex", alignItems: "center" }}
+      >
+        <Stepper alternativeLabel>
+          {steps.map((step, index) => (
+            <Step key={index}>
+              <StepLabel StepIconComponent={StepIconComponent}>
+                {step.label}
+              </StepLabel>
+            </Step>
+          ))}
+        </Stepper>
+
+        {/* Botão de publicação, desativado se o último passo não for cumprido */}
+        <Button
+          variant="contained"
+          color="primary"
+          disabled={!steps.every((step) => step.status)}
+          sx={{ marginLeft: "20px" }}
+        >
+          Publicar Evento
+        </Button>
       </Box>
 
       <Box
@@ -353,9 +405,9 @@ const OrganizatorEventDetail: React.FC = () => {
               flexBasis: "80%", // Em telas grandes, o conteúdo ocupa o espaço lateral
               padding: "20px",
               backgroundColor: colors.white,
-              borderRadius: "15px", // Borda arredondada
-              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)", // Sombra suave
-              transition: "all 0.3s ease-in-out", // Suavização da transição
+              borderRadius: "15px",
+              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+              transition: "all 0.3s ease-in-out",
             }}
           >
             {cards[expandedCard].component}
