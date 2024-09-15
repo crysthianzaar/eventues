@@ -1,6 +1,6 @@
 from dataclasses import asdict, dataclass
 import uuid
-from sqlalchemy import Column, DateTime, Integer, String, Time, ForeignKey
+from sqlalchemy import Column, DateTime, Integer, String, Text, Time, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, time
@@ -25,9 +25,11 @@ class EventModel(Base):
     city: str = Column(String(100), nullable=False)
     address: str = Column(String(255), nullable=False)
     address_complement: str = Column(String(255))
+    address_detail: str = Column(String(255))
     organization_name: str = Column(String(255), nullable=False) 
     organization_contact: str = Column(String(255), nullable=False)
     event_status: str = Column(String(255))
+    event_description: str = Column(Text, nullable=True)
 
     def to_dict(self):
         """Converts the EventModel instance to a dictionary with serializable types."""

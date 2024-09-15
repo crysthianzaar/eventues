@@ -45,6 +45,7 @@ interface EventDetail {
   event_status: string;
   event_type: string;
   event_category: string;
+  event_description?: string; // Adicionado o campo event_description
 }
 
 interface Estado {
@@ -84,7 +85,7 @@ const InformationCard: React.FC = () => {
     organizationContact: '',
     eventType: '',
     eventStatus: '',
-    eventDescription: initialDescriptionTemplate,
+    eventDescription: initialDescriptionTemplate, // Adicionado o campo eventDescription
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
@@ -114,7 +115,7 @@ const InformationCard: React.FC = () => {
           organizationContact: data.organization_contact,
           eventType: data.event_type,
           eventStatus: data.event_status,
-          eventDescription: initialDescriptionTemplate,
+          eventDescription: data.event_description || initialDescriptionTemplate, // Se o campo for nulo, usa o template
         });
       } catch (err) {
         setError("Erro ao carregar detalhes do evento.");
@@ -131,7 +132,7 @@ const InformationCard: React.FC = () => {
         setEstados(response.data as Estado[]);
       })
       .catch(error => console.error('Erro ao carregar estados:', error));
-  }, [event_id, key]); // Recarregar quando 'key' mudar
+  }, [event_id, key]);
 
   const validateForm = (): boolean => {
     const newErrors: string[] = [];
@@ -175,11 +176,11 @@ const InformationCard: React.FC = () => {
           organization_contact: formData.organizationContact,
           event_type: formData.eventType,
           event_status: formData.eventStatus,
+          event_description: formData.eventDescription, // Adicionado para enviar a descrição do evento
         });
 
-        // Forçar a re-renderização atualizando o estado `key`
         setSubmitting(false);
-        setKey(prevKey => prevKey + 1); // Muda o estado para recarregar o componente
+        setKey(prevKey => prevKey + 1);
 
         // Scroll para o topo
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -215,7 +216,6 @@ const InformationCard: React.FC = () => {
   return (
     <Box sx={{ padding: { xs: '20px', md: '40px' }, maxWidth: { xs: '100%', md: '1400px' }, margin: '0 auto' }}>
       <Grid container spacing={6}>
-        {/* Informações Básicas */}
         <Grid item xs={12} md={6}>
           <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
             Informações Básicas
@@ -308,7 +308,6 @@ const InformationCard: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Onde o evento vai acontecer */}
         <Grid item xs={12}>
           <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
             Onde o evento vai acontecer?
@@ -364,8 +363,8 @@ const InformationCard: React.FC = () => {
                 label="Nome do Local"
                 fullWidth
                 required
-                name="addressComplement"
-                value={formData.addressComplement}
+                name="addressDetail"
+                value={formData.addressDetail}
                 onChange={handleInputChange}
                 error={!!errors.find((error) => error.includes('Nome do local'))}
                 helperText={errors.find((error) => error.includes('Nome do local'))}
@@ -375,8 +374,8 @@ const InformationCard: React.FC = () => {
               <TextField
                 label="Complemento (opcional)"
                 fullWidth
-                name="addressDetail"
-                value={formData.addressDetail}
+                name="addressComplement"
+                value={formData.addressComplement}
                 onChange={handleInputChange}
                 autoComplete="off"
               />
@@ -384,7 +383,6 @@ const InformationCard: React.FC = () => {
           </Grid>
         </Grid>
 
-        {/* Descrição do Evento */}
         <Grid item xs={12}>
           <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
             Descrição do Evento
@@ -400,7 +398,6 @@ const InformationCard: React.FC = () => {
         </Grid>
       </Grid>
 
-      {/* Botão Salvar */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
         <Button
           variant="contained"
