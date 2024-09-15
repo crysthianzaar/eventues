@@ -41,3 +41,6 @@ class EventService:
 
     def delete_event_document(self, event_id: str, s3_key: str):
         return self.event_repository.delete_event_document(event_id, s3_key)
+
+    def update_event_details(self, event_id, event_data):
+        return self.event_repository.update_event_details(event_id, event_data)

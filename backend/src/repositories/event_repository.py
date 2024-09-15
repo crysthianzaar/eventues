@@ -41,3 +41,10 @@ class EventRepository:
         self.session.delete(document)
         self.session.commit()
         return document
+
+    def update_event_details(self, event_id, event_data):
+        event = self.session.query(EventModel).filter_by(event_id=event_id).first()
+        for key, value in event_data.items():
+            setattr(event, key, value)
+        self.session.commit()
+        return event

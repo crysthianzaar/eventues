@@ -101,3 +101,15 @@ def delete_file(event_id):
         return {"message": "Arquivo deletado com sucesso."}, 200
     except Exception as e:
         return {"error": f"Erro ao deletar arquivo: {str(e)}"}, 500
+
+@event_bp.route('/organizer_detail/{event_id}/details', methods=['PATCH'], cors=cors_config)
+def update_event_details(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    event_data = event_bp.current_request.json_body
+    
+    try:
+        updated_event = event_service.update_event_details(event_id, event_data)
+        return {"message": "Detalhes do evento atualizados com sucesso."}, 200
+    except Exception as e:
+        return {"error": f"Erro ao atualizar evento: {str(e)}"}, 500

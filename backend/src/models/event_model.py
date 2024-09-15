@@ -23,6 +23,8 @@ class EventModel(Base):
     event_category: str = Column(String(100), nullable=False)
     state: str = Column(String(100), nullable=False)
     city: str = Column(String(100), nullable=False)
+    address: str = Column(String(255), nullable=False)
+    address_complement: str = Column(String(255))
     organization_name: str = Column(String(255), nullable=False) 
     organization_contact: str = Column(String(255), nullable=False)
     event_status: str = Column(String(255))

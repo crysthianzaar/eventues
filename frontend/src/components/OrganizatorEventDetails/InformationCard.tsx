@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Grid, Button } from '@mui/material';
+import { Box, Typography, TextField, Grid, Button, MenuItem, CircularProgress } from '@mui/material';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import axios from 'axios';
@@ -17,7 +17,7 @@ const modules = {
   toolbar: [
     [{ header: [1, 2, false] }],
     ['bold', 'italic', 'underline'],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
     [{ 'align': [] }],
     [{ 'color': [] }],
     ['link', 'image'],
@@ -38,7 +38,7 @@ interface EventDetail {
   state: string;
   city: string;
   address: string;
-  venue_name: string;
+  address_complement: string;
   address_detail: string;
   organization_name: string;
   organization_contact: string;
@@ -47,7 +47,12 @@ interface EventDetail {
   event_category: string;
 }
 
-// Template base para o editor
+interface Estado {
+  id: number;
+  sigla: string;
+  nome: string;
+}
+
 const initialDescriptionTemplate = `
 <h2>Informações do Evento</h2>
 <li><b>Introdução:</b> Fale um pouco sobre o que é o seu evento</li>
@@ -73,7 +78,7 @@ const InformationCard: React.FC = () => {
     state: '',
     city: '',
     address: '',
-    venueName: '',
+    addressComplement: '',
     addressDetail: '',
     organizationName: '',
     organizationContact: '',
@@ -81,9 +86,12 @@ const InformationCard: React.FC = () => {
     eventStatus: '',
     eventDescription: initialDescriptionTemplate,
   });
-
+  const [errors, setErrors] = useState<string[]>([]);
+  const [estados, setEstados] = useState<Estado[]>([]);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [key, setKey] = useState(0); // Estado para forçar a renderização
 
   useEffect(() => {
     const fetchEventDetail = async () => {
@@ -100,13 +108,13 @@ const InformationCard: React.FC = () => {
           state: data.state,
           city: data.city,
           address: data.address,
-          venueName: data.venue_name,
+          addressComplement: data.address_complement,
           addressDetail: data.address_detail,
           organizationName: data.organization_name,
           organizationContact: data.organization_contact,
           eventType: data.event_type,
           eventStatus: data.event_status,
-          eventDescription: initialDescriptionTemplate, // Pode adaptar para a descrição existente
+          eventDescription: initialDescriptionTemplate,
         });
       } catch (err) {
         setError("Erro ao carregar detalhes do evento.");
@@ -116,7 +124,76 @@ const InformationCard: React.FC = () => {
     };
 
     fetchEventDetail();
-  }, [event_id]);
+
+    // Carregar estados do IBGE
+    axios.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
+      .then(response => {
+        setEstados(response.data as Estado[]);
+      })
+      .catch(error => console.error('Erro ao carregar estados:', error));
+  }, [event_id, key]); // Recarregar quando 'key' mudar
+
+  const validateForm = (): boolean => {
+    const newErrors: string[] = [];
+
+    if (!formData.eventName) newErrors.push('Nome do evento é obrigatório.');
+    if (!formData.eventCategory) newErrors.push('Categoria do evento é obrigatória.');
+    if (!formData.startDate) newErrors.push('Data de início é obrigatória.');
+    if (!formData.startTime) newErrors.push('Hora de início é obrigatória.');
+    if (!formData.endDate) newErrors.push('Data de término é obrigatória.');
+    if (!formData.endTime) newErrors.push('Hora de término é obrigatória.');
+    if (!formData.state) newErrors.push('Estado é obrigatório.');
+    if (!formData.city) newErrors.push('Cidade é obrigatória.');
+    if (!formData.address) newErrors.push('Endereço é obrigatório.');
+    if (!formData.addressComplement) newErrors.push('Nome do local é obrigatório.');
+    if (!formData.organizationName) newErrors.push('Nome do organizador é obrigatório.');
+    if (!formData.organizationContact) newErrors.push('Contato do organizador é obrigatório.');
+
+    setErrors(newErrors);
+
+    return newErrors.length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (validateForm()) {
+      setSubmitting(true);
+
+      try {
+        await axios.patch(`http://127.0.0.1:8000/organizer_detail/${event_id}/details`, {
+          name: formData.eventName,
+          category: formData.eventCategory,
+          start_date: formData.startDate,
+          start_time: formData.startTime,
+          end_date: formData.endDate,
+          end_time: formData.endTime,
+          state: formData.state,
+          city: formData.city,
+          address: formData.address,
+          address_complement: formData.addressComplement,
+          address_detail: formData.addressDetail,
+          organization_name: formData.organizationName,
+          organization_contact: formData.organizationContact,
+          event_type: formData.eventType,
+          event_status: formData.eventStatus,
+        });
+
+        // Forçar a re-renderização atualizando o estado `key`
+        setSubmitting(false);
+        setKey(prevKey => prevKey + 1); // Muda o estado para recarregar o componente
+
+        // Scroll para o topo
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } catch (err) {
+        setSubmitting(false);
+        console.error("Erro ao enviar formulário:", err);
+      }
+    }
+  };
+
+  const handleEstadoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const estadoSigla = e.target.value;
+    setFormData({ ...formData, state: estadoSigla });
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -152,6 +229,8 @@ const InformationCard: React.FC = () => {
             onChange={handleInputChange}
             sx={{ marginBottom: '20px' }}
             autoComplete="off"
+            error={!!errors.find((error) => error.includes('Nome do evento'))}
+            helperText={errors.find((error) => error.includes('Nome do evento'))}
           />
           <TextField
             label="Categoria do Evento"
@@ -162,6 +241,8 @@ const InformationCard: React.FC = () => {
             onChange={handleInputChange}
             sx={{ marginBottom: '20px' }}
             autoComplete="off"
+            error={!!errors.find((error) => error.includes('Categoria do evento'))}
+            helperText={errors.find((error) => error.includes('Categoria do evento'))}
           />
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
@@ -175,6 +256,8 @@ const InformationCard: React.FC = () => {
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 autoComplete="off"
+                error={!!errors.find((error) => error.includes('Data de início'))}
+                helperText={errors.find((error) => error.includes('Data de início'))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -188,6 +271,8 @@ const InformationCard: React.FC = () => {
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 autoComplete="off"
+                error={!!errors.find((error) => error.includes('Hora de início'))}
+                helperText={errors.find((error) => error.includes('Hora de início'))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -201,6 +286,8 @@ const InformationCard: React.FC = () => {
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 autoComplete="off"
+                error={!!errors.find((error) => error.includes('Data de término'))}
+                helperText={errors.find((error) => error.includes('Data de término'))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -214,6 +301,8 @@ const InformationCard: React.FC = () => {
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 autoComplete="off"
+                error={!!errors.find((error) => error.includes('Hora de término'))}
+                helperText={errors.find((error) => error.includes('Hora de término'))}
               />
             </Grid>
           </Grid>
@@ -227,14 +316,23 @@ const InformationCard: React.FC = () => {
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
               <TextField
+                select
                 label="Estado"
                 fullWidth
                 required
                 name="state"
                 value={formData.state}
-                onChange={handleInputChange}
+                onChange={handleEstadoChange}
                 autoComplete="off"
-              />
+                error={!!errors.find((error) => error.includes('Estado'))}
+                helperText={errors.find((error) => error.includes('Estado'))}
+              >
+                {estados.map((estado) => (
+                  <MenuItem key={estado.id} value={estado.sigla}>
+                    {estado.nome}
+                  </MenuItem>
+                ))}
+              </TextField>
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -245,6 +343,8 @@ const InformationCard: React.FC = () => {
                 value={formData.city}
                 onChange={handleInputChange}
                 autoComplete="off"
+                error={!!errors.find((error) => error.includes('Cidade'))}
+                helperText={errors.find((error) => error.includes('Cidade'))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -255,7 +355,8 @@ const InformationCard: React.FC = () => {
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
-                autoComplete="off"
+                error={!!errors.find((error) => error.includes('Endereço'))}
+                helperText={errors.find((error) => error.includes('Endereço'))}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -263,10 +364,11 @@ const InformationCard: React.FC = () => {
                 label="Nome do Local"
                 fullWidth
                 required
-                name="venueName"
-                value={formData.venueName}
+                name="addressComplement"
+                value={formData.addressComplement}
                 onChange={handleInputChange}
-                autoComplete="off"
+                error={!!errors.find((error) => error.includes('Nome do local'))}
+                helperText={errors.find((error) => error.includes('Nome do local'))}
               />
             </Grid>
             <Grid item xs={12}>
@@ -302,14 +404,16 @@ const InformationCard: React.FC = () => {
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
         <Button
           variant="contained"
+          onClick={handleSubmit}
           sx={{
             backgroundColor: colors.green,
             color: '#fff',
             padding: '10px 20px',
             "&:hover": { backgroundColor: "#38A169" },
           }}
+          disabled={submitting}
         >
-          Salvar
+          {submitting ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : 'Salvar'}
         </Button>
       </Box>
     </Box>
