@@ -43,6 +43,7 @@ import CheckInCard from "./CheckInCard";
 import FinanceCard from "./FinanceCard";
 import AccessLevelsCard from "./AccessLevelsCard";
 import banner_template from "../../assets/banner_template.png";
+import PolicyCard from "./PolicyCard";
 
 const colors = {
   primary: "#5A67D8",
@@ -70,17 +71,16 @@ interface EventDetail {
   event_status: string;
 }
 
-// Array de etapas com status concluído ou não
 const steps = [
   { label: "Informações essenciais inseridas", status: true },
   { label: "Detalhes do evento preenchidos", status: false },
   { label: "Banner e documentos carregados", status: true },
   { label: "Políticas definidas", status: false },
   { label: "Categorias e Valores configurados", status: false },
+  { label: "Formulário de Inscrição configurados", status: false },
   { label: "Evento pronto para publicação", status: false },
 ];
 
-// Função que retorna os ícones personalizados de acordo com o status de cada etapa
 const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
   const stepIndex = Number(icon) - 1;
   const stepStatus = steps[stepIndex].status;
@@ -154,7 +154,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <PolicyIcon />,
       title: "Políticas",
-      component: <CouponsCard />,
+      component: <PolicyCard />,
       description:
         "Configuração das políticas de cancelamento, reembolso, e termos de participação.",
     },
@@ -252,16 +252,16 @@ const OrganizatorEventDetail: React.FC = () => {
         sx={{
           position: "relative",
           width: "100%",
-          height: isSmallScreen ? "150px" : "200px", // Ajuste de tamanho para mobile
-          backgroundImage: `url(${banner_template})`, // Usando a imagem do logo como fundo
-          backgroundSize: "cover", // Para cobrir todo o espaço do banner
-          backgroundPosition: "center", // Centraliza a imagem
+          height: isSmallScreen ? "150px" : "200px",
+          backgroundImage: `url(${banner_template})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
           display: "flex",
           justifyContent: "center",
           alignItems: "center",
           borderRadius: "20px",
           overflow: "hidden",
-          boxShadow: "0 4px 12px rgba(1, 1, 1, 1)", // Sombra para profundidade
+          boxShadow: "0 4px 12px rgba(1, 1, 1, 1)",
         }}
       >
         {eventDetail && (
@@ -296,7 +296,13 @@ const OrganizatorEventDetail: React.FC = () => {
             >
               {eventDetail.name}
             </Typography>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
               <LocationOnIcon sx={{ marginRight: "8px" }} />
               <Typography variant={isSmallScreen ? "body1" : "h6"}>
                 {eventDetail.city}, {eventDetail.state}
@@ -306,26 +312,60 @@ const OrganizatorEventDetail: React.FC = () => {
         )}
       </Box>
 
-      {/* Stepper para indicar o progresso da publicação */}
+      {/* Stepper com Scroll Horizontal em Mobile */}
       <Box
-        sx={{ marginTop: "20px", width: "100%", display: "flex", alignItems: "center" }}
+        sx={{
+          marginTop: "20px",
+          padding: isSmallScreen ? "0 20px" : "0", // Adicionando padding nas laterais no mobile para garantir espaço
+          width: "100%",
+          display: "flex",
+          flexDirection: isSmallScreen ? "column" : "row", // Em telas pequenas, exibir como coluna
+          alignItems: isSmallScreen ? "unset" : "center",
+          justifyContent: isSmallScreen ? "unset" : "center", // Centraliza o conteúdo apenas em telas grandes
+          overflowX: isSmallScreen ? "scroll" : "unset", // Scroll no mobile
+          whiteSpace: isSmallScreen ? "nowrap" : "normal", // Impede quebra de linha no mobile
+          gap: isSmallScreen ? "20px" : "unset", // Espaço entre os elementos em mobile
+        }}
       >
-        <Stepper alternativeLabel>
+        <Stepper
+          alternativeLabel
+          sx={{
+        minWidth: isSmallScreen ? "600px" : "unset", // Definindo um mínimo para mobile
+        whiteSpace: "normal", // Permite que o texto quebre em múltiplas linhas
+        justifyContent: "center", // Centralizar os steps
+        marginBottom: "10px", // Garantir espaço inferior para o Stepper
+          }}
+        >
           {steps.map((step, index) => (
-            <Step key={index}>
-              <StepLabel StepIconComponent={StepIconComponent}>
-                {step.label}
-              </StepLabel>
-            </Step>
+        <Step key={index}>
+          <StepLabel
+            StepIconComponent={StepIconComponent}
+            sx={{
+          "& .MuiStepLabel-label": {
+            display: "block", // Forçar o label a ser um bloco
+            fontSize: isSmallScreen ? "12px" : "14px", // Ajustar a fonte para telas menores
+            maxWidth: "160px", // Limita a largura do label para forçar a quebra de linha
+            textAlign: "center", // Centralizar o texto
+            whiteSpace: "normal", // Permitir quebra de linha
+          },
+            }}
+          >
+            {step.label}
+          </StepLabel>
+        </Step>
           ))}
         </Stepper>
 
-        {/* Botão de publicação, desativado se o último passo não for cumprido */}
+        {/* Botão de Publicação */}
         <Button
           variant="contained"
           color="primary"
           disabled={!steps.every((step) => step.status)}
-          sx={{ marginLeft: "20px" }}
+          sx={{
+        marginTop: "20px", // Sempre manter margem superior no mobile
+        width: isSmallScreen ? "100%" : "auto", // O botão ocupa 100% da tela no mobile
+        zIndex: 10,
+          }}
         >
           Publicar Evento
         </Button>
@@ -334,7 +374,7 @@ const OrganizatorEventDetail: React.FC = () => {
       <Box
         sx={{
           display: "flex",
-          flexDirection: isSmallScreen ? "column" : "row", // Em telas pequenas, as seções ficam empilhadas
+          flexDirection: isSmallScreen ? "column" : "row",
           flexGrow: 1,
           padding: "15px",
         }}
@@ -342,7 +382,7 @@ const OrganizatorEventDetail: React.FC = () => {
         {/* Sidebar com as seções */}
         <Box
           sx={{
-            flexBasis: isSmallScreen ? "100%" : "20%", // Sidebar ocupa toda a largura em telas pequenas
+            flexBasis: isSmallScreen ? "100%" : "20%",
             padding: "10px",
           }}
         >
@@ -380,7 +420,6 @@ const OrganizatorEventDetail: React.FC = () => {
                 </Card>
               </Tooltip>
 
-              {/* Exibir o conteúdo logo abaixo do card em telas pequenas */}
               {isSmallScreen && expandedCard === index && (
                 <Box
                   sx={{
@@ -402,7 +441,7 @@ const OrganizatorEventDetail: React.FC = () => {
         {!isSmallScreen && expandedCard !== null && (
           <Box
             sx={{
-              flexBasis: "80%", // Em telas grandes, o conteúdo ocupa o espaço lateral
+              flexBasis: "80%",
               padding: "20px",
               backgroundColor: colors.white,
               borderRadius: "15px",
