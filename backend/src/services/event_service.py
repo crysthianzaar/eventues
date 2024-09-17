@@ -8,12 +8,40 @@ class EventService:
 
     def create_event(self, event_data):
         return self.event_repository.create_event(event_data)
-    
+
     def get_events_by_user(self, user_id: str):
         return self.event_repository.get_events_by_user(user_id)
 
     def get_event_by_id(self, event_id):
-            return self.event_repository.get_event_by_id(event_id)
+        event = self.event_repository.get_event_by_id(event_id)
+        if not event:
+            return None
+        
+        details_filled = all([
+            event["name"], event["category"], event["start_date"], event["start_time"], 
+            event["end_date"], event["end_time"], event["event_type"], event["event_category"], 
+            event["state"], event["city"], event["address"], event["organization_name"], event["organization_contact"]
+        ])
+        
+        documents_exist = self.event_repository.has_event_documents(event_id)
+        policies_exist = self.event_repository.has_event_policies(event_id)
+        has_category_and_values = self.event_repository.has_category_and_values(event_id)
+        form = self.event_repository.has_event_form(event_id)
+        event_ready = all([details_filled, documents_exist, policies_exist, has_category_and_values, form])
+
+        stepper = {
+            "inf_basic": True,
+            "event_details": details_filled,
+            "documents": documents_exist,
+            "policies": policies_exist,
+            "category_and_values": has_category_and_values,
+            "form": form,
+            "event_ready": event_ready
+        }
+
+        # Incluir o stepper no dicionário de retorno do evento
+        event["stepper"] = stepper
+        return event
 
     def upload_event_file(self, event_id, payload):
         s3 = S3Service('dev-event-files')

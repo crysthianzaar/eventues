@@ -1,4 +1,3 @@
-
 from uuid import uuid4
 from src.models.event_model import EventDocuments, EventModel, EventPolicy
 
@@ -19,7 +18,20 @@ class EventRepository:
         return self.session.query(EventModel).filter_by(user_id=user_id).all()
 
     def get_event_by_id(self, event_id):
-        return self.session.query(EventModel).filter_by(event_id=event_id).first()
+        event = self.session.query(EventModel).filter_by(event_id=event_id).first()
+        return event.to_dict() if event else None
+
+    def has_event_documents(self, event_id):
+        return self.session.query(EventDocuments).filter_by(event_id=event_id).count() > 0
+
+    def has_event_policies(self, event_id):
+        return self.session.query(EventPolicy).filter_by(event_id=event_id).count() > 0
+
+    def has_category_and_values(self, event_id):
+        return False
+
+    def has_event_form(self, event_id):
+        return False
 
     def get_event_documents(self, event_id):
         return self.session.query(EventDocuments).filter_by(event_id=event_id).all()

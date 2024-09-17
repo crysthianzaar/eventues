@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { Box, CircularProgress, Typography, Card, CardContent, Grid } from "@mui/material";
+import { Box, CircularProgress, Typography, Card, CardContent, Grid, Button } from "@mui/material";
 import { useNavigate } from "react-router-dom"; // Importando o hook de navegação
+import EventIcon from "@mui/icons-material/Event"; // Ícone de evento para melhorar o design visual
 import axios from "axios";
 
 interface Event {
@@ -125,9 +126,27 @@ const MyEvents: React.FC = () => {
             </Grid>
           ))
         ) : (
-          <Typography variant="body1" sx={{ color: colors.grayDark }}>
-            Você ainda não criou nenhum evento.
-          </Typography>
+          <Grid container justifyContent="center" alignItems="center" sx={{ minHeight: "60vh" }}>
+            <Grid item xs={12} sm={8} md={6}>
+              <Box sx={{ textAlign: "center", padding: "20px", backgroundColor: colors.white, borderRadius: "12px", boxShadow: "0 4px 20px rgba(0, 0, 0, 0.1)" }}>
+                <EventIcon sx={{ fontSize: "80px", color: colors.grayLight }} />
+                <Typography variant="h6" sx={{ color: colors.grayDark, fontWeight: "bold", marginTop: "20px" }}>
+                  Você ainda não criou nenhum evento.
+                </Typography>
+                <Typography variant="body1" sx={{ color: colors.grayLight, marginTop: "10px" }}>
+                  Que tal criar seu primeiro evento agora mesmo?
+                </Typography>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  sx={{ marginTop: "20px", backgroundColor: colors.green, color: "#FFF", fontWeight: "bold" }}
+                  onClick={() => navigate("/criar_evento")}
+                >
+                  Criar Evento
+                </Button>
+              </Box>
+            </Grid>
+          </Grid>
         )}
       </Grid>
     </Box>

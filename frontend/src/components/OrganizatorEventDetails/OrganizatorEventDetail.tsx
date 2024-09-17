@@ -69,28 +69,16 @@ interface EventDetail {
   views: number;
   visibility: string;
   event_status: string;
+  stepper: {
+    inf_basic: boolean;
+    event_details: boolean;
+    documents: boolean;
+    policies: boolean;
+    category_and_values: boolean;
+    form: boolean;
+    event_ready: boolean;
+  };
 }
-
-const steps = [
-  { label: "Informações essenciais inseridas", status: true },
-  { label: "Detalhes do evento preenchidos", status: false },
-  { label: "Banner e documentos carregados", status: true },
-  { label: "Políticas definidas", status: false },
-  { label: "Categorias e Valores configurados", status: false },
-  { label: "Formulário de Inscrição configurados", status: false },
-  { label: "Evento pronto para publicação", status: false },
-];
-
-const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
-  const stepIndex = Number(icon) - 1;
-  const stepStatus = steps[stepIndex].status;
-
-  return stepStatus ? (
-    <CheckCircleIcon sx={{ color: colors.green }} />
-  ) : (
-    <ErrorIcon sx={{ color: colors.yellowDark }} />
-  );
-};
 
 const OrganizatorEventDetail: React.FC = () => {
   const { event_id } = useParams<{ event_id: string }>();
@@ -99,6 +87,18 @@ const OrganizatorEventDetail: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [expandedCard, setExpandedCard] = useState<number | null>(0);
   const isSmallScreen = useMediaQuery("(max-width: 600px)");
+
+  const steps = eventDetail
+    ? [
+        { label: "Informações essenciais inseridas", status: eventDetail.stepper.inf_basic },
+        { label: "Detalhes do evento preenchidos", status: eventDetail.stepper.event_details },
+        { label: "Banner e documentos carregados", status: eventDetail.stepper.documents },
+        { label: "Políticas definidas", status: eventDetail.stepper.policies },
+        { label: "Categorias e Valores configurados", status: eventDetail.stepper.category_and_values },
+        { label: "Formulário de Inscrição configurados", status: eventDetail.stepper.form },
+        { label: "Evento pronto para publicação", status: eventDetail.stepper.event_ready },
+      ]
+    : [];
 
   useEffect(() => {
     const fetchEventDetail = async () => {
@@ -129,6 +129,26 @@ const OrganizatorEventDetail: React.FC = () => {
     setExpandedCard(expandedCard === cardIndex ? null : cardIndex);
   };
 
+  const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
+    const stepIndex = Number(icon) - 1;
+    const stepStatus = steps[stepIndex].status;
+
+    return stepStatus ? (
+      <CheckCircleIcon sx={{ color: colors.green }} />
+    ) : (
+      <ErrorIcon sx={{ color: colors.yellowDark }} />
+    );
+  };
+
+  const getStatusIcon = (status: boolean | null) => {
+    if (status === null) return null;
+    return status ? (
+      <CheckCircleIcon sx={{ color: colors.green }} />
+    ) : (
+      <ErrorIcon sx={{ color: colors.yellowDark }} />
+    );
+  };
+
   const cards = [
     {
       icon: <DashboardIcon />,
@@ -136,6 +156,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <SummaryCard eventDetail={eventDetail} />,
       description:
         "Visão geral do evento, status atual, principais métricas e ações rápidas.",
+      status: eventDetail?.stepper.inf_basic,
     },
     {
       icon: <InfoIcon />,
@@ -143,6 +164,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <InformationCard />,
       description:
         "Informações completas sobre o evento (nome, local, data, descrição).",
+      status: eventDetail?.stepper.event_details,
     },
     {
       icon: <ImageIcon />,
@@ -150,6 +172,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <BannerDocumentCard eventId={event_id!} />,
       description:
         "Upload e gerenciamento de materiais visuais e documentos importantes.",
+      status: eventDetail?.stepper.documents,
     },
     {
       icon: <PolicyIcon />,
@@ -157,12 +180,14 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <PolicyCard eventId={event_id!} />,
       description:
         "Configuração das políticas de cancelamento, reembolso, e termos de participação.",
+      status: eventDetail?.stepper.policies,
     },
     {
       icon: <SportsIcon />,
       title: "Categorias e Valores",
       component: <CouponsCard />,
       description: "Definição de categorias de inscrição e respectivos preços.",
+      status: eventDetail?.stepper.category_and_values,
     },
     {
       icon: <FormIcon />,
@@ -170,6 +195,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <FormCard />,
       description:
         "Personalização do formulário que os participantes devem preencher ao se inscrever.",
+      status: eventDetail?.stepper.form,
     },
     {
       icon: <TicketIcon />,
@@ -177,6 +203,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <TicketsCard />,
       description:
         "Gerenciamento de ingressos ou inscrições, controle de disponibilidade e venda.",
+      status: null,
     },
     {
       icon: <DiscountIcon />,
@@ -184,6 +211,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <CouponsCard />,
       description:
         "Criação e gerenciamento de cupons de desconto para participantes.",
+      status: null,
     },
     {
       icon: <PeopleIcon />,
@@ -191,6 +219,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <ParticipantsCard />,
       description:
         "Listagem de todos os inscritos, com filtros e opções de exportação.",
+      status: null,
     },
     {
       icon: <CheckCircleIcon />,
@@ -198,6 +227,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <CheckInCard />,
       description:
         "Ferramenta para fazer o check-in dos participantes no dia do evento.",
+      status: null,
     },
     {
       icon: <AttachMoneyIcon />,
@@ -205,6 +235,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <FinanceCard />,
       description:
         "Resumo financeiro do evento, incluindo taxas pagas, receitas geradas e pagamento de comissões.",
+      status: null,
     },
     {
       icon: <BarChartIcon />,
@@ -212,6 +243,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <FinanceCard />,
       description:
         "Dados de performance, como número de visualizações do evento, taxa de conversão, e relatórios detalhados em tempo real.",
+      status: null,
     },
     {
       icon: <NotificationsIcon />,
@@ -219,6 +251,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <FinanceCard />,
       description:
         "Ferramenta de comunicação para enviar e-mails ou notificações para os participantes.",
+      status: null,
     },
     {
       icon: <CalendarTodayIcon />,
@@ -226,6 +259,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <FinanceCard />,
       description:
         "Ferramenta para gerenciar datas e horários importantes do evento, como largadas ou palestras.",
+      status: null,
     },
     {
       icon: <LockIcon />,
@@ -233,6 +267,7 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <AccessLevelsCard />,
       description:
         "Configuração dos níveis de acesso para organizadores e colaboradores.",
+      status: null,
     },
   ];
 
@@ -316,24 +351,24 @@ const OrganizatorEventDetail: React.FC = () => {
       <Box
         sx={{
           marginTop: "20px",
-          padding: isSmallScreen ? "0 20px" : "0", // Adicionando padding nas laterais no mobile para garantir espaço
+          padding: isSmallScreen ? "0 20px" : "0",
           width: "100%",
           display: "flex",
-          flexDirection: isSmallScreen ? "column" : "row", // Em telas pequenas, exibir como coluna
+          flexDirection: isSmallScreen ? "column" : "row",
           alignItems: isSmallScreen ? "unset" : "center",
-          justifyContent: isSmallScreen ? "unset" : "center", // Centraliza o conteúdo apenas em telas grandes
-          overflowX: isSmallScreen ? "scroll" : "unset", // Scroll no mobile
-          whiteSpace: isSmallScreen ? "nowrap" : "normal", // Impede quebra de linha no mobile
-          gap: isSmallScreen ? "20px" : "unset", // Espaço entre os elementos em mobile
+          justifyContent: isSmallScreen ? "unset" : "center",
+          overflowX: isSmallScreen ? "scroll" : "unset",
+          whiteSpace: isSmallScreen ? "nowrap" : "normal",
+          gap: isSmallScreen ? "20px" : "unset",
         }}
       >
         <Stepper
           alternativeLabel
           sx={{
-            minWidth: isSmallScreen ? "600px" : "unset", // Definindo um mínimo para mobile
-            whiteSpace: "normal", // Permite que o texto quebre em múltiplas linhas
-            justifyContent: "center", // Centralizar os steps
-            marginBottom: "10px", // Garantir espaço inferior para o Stepper
+            minWidth: isSmallScreen ? "600px" : "unset",
+            whiteSpace: "normal",
+            justifyContent: "center",
+            marginBottom: "10px",
           }}
         >
           {steps.map((step, index) => (
@@ -342,11 +377,11 @@ const OrganizatorEventDetail: React.FC = () => {
                 StepIconComponent={StepIconComponent}
                 sx={{
                   "& .MuiStepLabel-label": {
-                    display: "block", // Forçar o label a ser um bloco
-                    fontSize: isSmallScreen ? "12px" : "14px", // Ajustar a fonte para telas menores
-                    maxWidth: "160px", // Limita a largura do label para forçar a quebra de linha
-                    textAlign: "center", // Centralizar o texto
-                    whiteSpace: "normal", // Permitir quebra de linha
+                    display: "block",
+                    fontSize: isSmallScreen ? "12px" : "14px",
+                    maxWidth: "160px",
+                    textAlign: "center",
+                    whiteSpace: "normal",
                   },
                 }}
               >
@@ -362,10 +397,10 @@ const OrganizatorEventDetail: React.FC = () => {
           color="primary"
           disabled={!steps.every((step) => step.status)}
           sx={{
-            alignItems: "center", // Centralizar os steps
-            marginTop: "20px", // Sempre manter margem superior no mobile
-            width: isSmallScreen ? "100%" : "auto", // O botão ocupa 100% da tela no mobile
-            zIndex: 10,
+            display: "block",
+            fontSize: isSmallScreen ? "12px" : "14px",
+            textAlign: "center",
+            whiteSpace: "normal",
           }}
         >
           Publicar Evento
@@ -406,17 +441,27 @@ const OrganizatorEventDetail: React.FC = () => {
                   }}
                   onClick={() => handleExpand(index)}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
-                    {card.icon}
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        marginLeft: "8px",
-                        fontWeight: expandedCard === index ? "bold" : "normal",
-                      }}
-                    >
-                      {card.title}
-                    </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      width: "100%", // Faz o ícone ocupar o espaço correto
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
+                      {card.icon}
+                      <Typography
+                        variant="h6"
+                        sx={{
+                          marginLeft: "8px",
+                          fontWeight: expandedCard === index ? "bold" : "normal",
+                        }}
+                      >
+                        {card.title}
+                      </Typography>
+                    </Box>
+                    {getStatusIcon(card.status !== undefined ? card.status : null)}
                   </Box>
                 </Card>
               </Tooltip>

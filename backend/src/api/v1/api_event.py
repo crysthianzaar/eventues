@@ -62,7 +62,7 @@ def get_event_detail(event_id):
         )
 
     return Response(
-        body=json.dumps(event_detail.to_dict()),
+        body=json.dumps(event_detail),
         status_code=200,
         headers={'Content-Type': 'application/json'}
     )

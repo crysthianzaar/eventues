@@ -11,6 +11,7 @@ const colors = {
   grayDark: "#2D3748",
   grayLight: "#F7FAFC",
   white: "#FFFFFF",
+  red: "#E53E3E",
 };
 
 const modules = {
@@ -146,7 +147,7 @@ const InformationCard: React.FC = () => {
     if (!formData.state) newErrors.push('Estado é obrigatório.');
     if (!formData.city) newErrors.push('Cidade é obrigatória.');
     if (!formData.address) newErrors.push('Endereço é obrigatório.');
-    if (!formData.addressComplement) newErrors.push('Nome do local é obrigatório.');
+    if (!formData.addressDetail) newErrors.push('Nome do local é obrigatório.');
     if (!formData.organizationName) newErrors.push('Nome do organizador é obrigatório.');
     if (!formData.organizationContact) newErrors.push('Contato do organizador é obrigatório.');
 
@@ -220,6 +221,9 @@ const InformationCard: React.FC = () => {
           <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
             Informações Básicas
           </Typography>
+          <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '20px' }}>
+        <span style={{ color: colors.red }}>*</span> As informações podem ser editadas a qualquer momento.
+      </Typography>
           <TextField
             label="Nome do Evento"
             fullWidth

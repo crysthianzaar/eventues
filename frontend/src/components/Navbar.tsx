@@ -81,13 +81,13 @@ const Navbar: React.FC = () => {
           <ListItemText primary="Início" />
         </ListItemButton>
         <ListItemButton>
-          <ListItemText primary="Portal do Organizador" />
+          <ListItemText primary="Seja Organizador" />
         </ListItemButton>
         <ListItemButton>
           <ListItemText primary="Meus Eventos" />
         </ListItemButton>
         <ListItemButton>
-          <ListItemText primary="Fale Conosco" />
+          <ListItemText primary="Contato" />
         </ListItemButton>
         <ListItemButton onClick={handleCreateEvent}>
           <ListItemText primary="Criar Evento" />
@@ -143,13 +143,13 @@ const Navbar: React.FC = () => {
               Início
             </Button>
             <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}>
-              Portal do Organizador
+              Seja Organizador
             </Button>
             <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }} onClick={handleMyEvents}>
               Meus Eventos
             </Button>
             <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}>
-              Fale Conosco
+              Contato
             </Button>
 
             {/* Criar Evento antes de Entrar/Sair */}
