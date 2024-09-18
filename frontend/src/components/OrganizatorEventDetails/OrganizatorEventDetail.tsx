@@ -185,7 +185,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <SportsIcon />,
       title: "Categorias e Valores",
-      component: <CouponsCard />,
+      component: <TicketsCard />,
       description: "Definição de categorias de inscrição e respectivos preços.",
       status: eventDetail?.stepper.category_and_values,
     },
