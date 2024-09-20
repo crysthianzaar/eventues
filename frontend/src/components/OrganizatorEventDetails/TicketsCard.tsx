@@ -28,8 +28,9 @@ import {
   TableContainer,
 } from '@mui/material';
 import { Add, Edit, Delete, ExpandMore } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles'; // Add this line to import the useTheme hook
-import axios from 'axios'; // Importando o Axios
+import { useTheme } from '@mui/material/styles';
+import axios from 'axios';
+import { v4 as uuidv4 } from 'uuid'; // Importando o gerador de UUID
 
 const colors = {
   primary: '#5A67D8',
@@ -41,14 +42,15 @@ const colors = {
   priceConfigBg: '#E2E8F0', // Light green for price configurations
 };
 
+// Interfaces atualizadas
 interface Batch {
   id: string;
   name: string;
   type: 'temporal' | 'quantity';
-  startDate?: string;
-  endDate?: string;
-  startQuantity?: number;
-  endQuantity?: number;
+  start_date?: string;
+  end_date?: string;
+  start_quantity?: number;
+  end_quantity?: number;
   price: number;
 }
 
@@ -56,6 +58,7 @@ interface Subcategoria {
   id: string;
   name: string;
   description?: string;
+  category_id?: string; // Adicionado para mapear a categoria
 }
 
 interface categoria {
@@ -69,14 +72,18 @@ interface PriceConfiguration {
   id: string;
   name: string;
   type: 'standard' | 'batch';
-  appliesTo: 'global' | 'categoria' | 'subcategoria';
-  categoriaIds?: string[];
-  subcategoriaIds?: string[];
+  applies_to: 'global' | 'categoria' | 'subcategoria';
+  categories?: string[];
+  subcategories?: string[];
   price?: number;
-  batchConfigs?: Batch[];
+  batch_configs?: Batch[];
 }
 
-const TicketsCard: React.FC = () => {
+interface TicketsCardProps {
+  eventId: string; // Definindo a prop eventId
+}
+
+const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
   const [categories, setCategories] = useState<categoria[]>([]);
   const [priceConfigurations, setPriceConfigurations] = useState<PriceConfiguration[]>([]);
 
@@ -86,20 +93,21 @@ const TicketsCard: React.FC = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const theme = useTheme();
-  // State variables for categoria
+
+  // State variables para categoria
   const [opencategoriaModal, setOpencategoriaModal] = useState(false);
   const [categoriaName, setcategoriaName] = useState('');
   const [categoriaDescription, setcategoriaDescription] = useState('');
   const [editingcategoriaIndex, setEditingcategoriaIndex] = useState<number | null>(null);
 
-  // State variables for Subcategoria
+  // State variables para Subcategoria
   const [openSubcategoriaModal, setOpenSubcategoriaModal] = useState(false);
   const [currentcategoriaIndex, setCurrentcategoriaIndex] = useState<number | null>(null);
   const [subcategoriaName, setSubcategoriaName] = useState('');
   const [subcategoriaDescription, setSubcategoriaDescription] = useState('');
   const [editingSubcategoriaIndex, setEditingSubcategoriaIndex] = useState<number | null>(null);
 
-  // State variables for Pricing Configurations
+  // State variables para Configurações de Preços
   const [openPriceConfigModal, setOpenPriceConfigModal] = useState(false);
   const [editingPriceConfigIndex, setEditingPriceConfigIndex] = useState<number | null>(null);
   const [priceConfigType, setPriceConfigType] = useState<'standard' | 'batch'>('standard');
@@ -130,10 +138,10 @@ const TicketsCard: React.FC = () => {
     setCategories(updatedCategories);
     // Remove categoria IDs das configurações de preços
     const updatedPriceConfigs = priceConfigurations.map((config) => {
-      if (config.appliesTo === 'categoria' && config.categoriaIds) {
+      if (config.applies_to === 'categoria' && config.categories) {
         return {
           ...config,
-          categoriaIds: config.categoriaIds.filter((id) => id !== categoriaIdToDelete),
+          categories: config.categories.filter((id) => id !== categoriaIdToDelete),
         };
       }
       return config;
@@ -150,7 +158,7 @@ const TicketsCard: React.FC = () => {
 
   const handleSavecategoria = () => {
     const newcategoria: categoria = {
-      id: Date.now().toString(),
+      id: uuidv4(), // Gerando UUID
       name: categoriaName,
       description: categoriaDescription,
       subcategories:
@@ -191,10 +199,10 @@ const TicketsCard: React.FC = () => {
     setCategories(updatedCategories);
     // Remove subcategoria IDs das configurações de preços
     const updatedPriceConfigs = priceConfigurations.map((config) => {
-      if (config.appliesTo === 'subcategoria' && config.subcategoriaIds) {
+      if (config.applies_to === 'subcategoria' && config.subcategories) {
         return {
           ...config,
-          subcategoriaIds: config.subcategoriaIds.filter((id) => id !== subcategoriaIdToDelete),
+          subcategories: config.subcategories.filter((id) => id !== subcategoriaIdToDelete),
         };
       }
       return config;
@@ -213,7 +221,7 @@ const TicketsCard: React.FC = () => {
   const handleSaveSubcategoria = () => {
     if (currentcategoriaIndex !== null) {
       const newSubcategoria: Subcategoria = {
-        id: Date.now().toString(),
+        id: uuidv4(), // Gerando UUID
         name: subcategoriaName,
         description: subcategoriaDescription,
       };
@@ -248,9 +256,9 @@ const TicketsCard: React.FC = () => {
   const generatePriceConfigName = (config: PriceConfiguration): string => {
     const typeLabel = config.type === 'standard' ? 'Padrão' : 'Lote';
     const appliesToLabel =
-      config.appliesTo === 'global'
+      config.applies_to === 'global'
         ? 'Global'
-        : config.appliesTo === 'categoria'
+        : config.applies_to === 'categoria'
         ? 'Categoria'
         : 'Subcategoria';
     if (config.type === 'standard' && config.price !== undefined) {
@@ -265,14 +273,14 @@ const TicketsCard: React.FC = () => {
 
     // Gera o nome automaticamente
     const newConfig: PriceConfiguration = {
-      id: Date.now().toString(),
+      id: uuidv4(), // Gerando UUID
       name: '', // Será preenchido depois
       type: priceConfigType,
-      appliesTo: priceConfigAppliesTo,
-      categoriaIds: priceConfigAppliesTo === 'categoria' ? selectedCategories : undefined,
-      subcategoriaIds: priceConfigAppliesTo === 'subcategoria' ? selectedSubcategories : undefined,
+      applies_to: priceConfigAppliesTo,
+      categories: priceConfigAppliesTo === 'categoria' ? selectedCategories : undefined,
+      subcategories: priceConfigAppliesTo === 'subcategoria' ? selectedSubcategories : undefined,
       price: priceConfigType === 'standard' ? (price !== null ? price : undefined) : undefined,
-      batchConfigs: priceConfigType === 'batch' ? batchConfigs : undefined,
+      batch_configs: priceConfigType === 'batch' ? batchConfigs : undefined,
     };
 
     // Gera o nome baseado nas informações
@@ -291,11 +299,11 @@ const TicketsCard: React.FC = () => {
   const handleEditPriceConfig = (index: number) => {
     const configToEdit = priceConfigurations[index];
     setPriceConfigType(configToEdit.type);
-    setPriceConfigAppliesTo(configToEdit.appliesTo);
-    setSelectedCategories(configToEdit.categoriaIds || []);
-    setSelectedSubcategories(configToEdit.subcategoriaIds || []);
+    setPriceConfigAppliesTo(configToEdit.applies_to);
+    setSelectedCategories(configToEdit.categories || []);
+    setSelectedSubcategories(configToEdit.subcategories || []);
     setPrice(configToEdit.price || null);
-    setBatchConfigs(configToEdit.batchConfigs || []);
+    setBatchConfigs(configToEdit.batch_configs || []);
     setEditingPriceConfigIndex(index);
     setOpenPriceConfigModal(true);
   };
@@ -307,14 +315,14 @@ const TicketsCard: React.FC = () => {
 
   // Função para determinar o preço efetivo
   const getEffectivePrice = (subcategoria: Subcategoria, categoria: categoria): number | null => {
-    // 1. Check for active batches starting from the most specific level
-    // a) Subcategoria level batches
+    // 1. Verificar lotes ativos começando do nível mais específico
+    // a) Lotes no nível de subcategoria
     for (const config of priceConfigurations.filter((pc) => pc.type === 'batch')) {
       if (
-        config.appliesTo === 'subcategoria' &&
-        config.subcategoriaIds?.includes(subcategoria.id)
+        config.applies_to === 'subcategoria' &&
+        config.subcategories?.includes(subcategoria.id)
       ) {
-        for (const batch of config.batchConfigs || []) {
+        for (const batch of config.batch_configs || []) {
           if (isBatchActive(batch)) {
             return batch.price;
           }
@@ -322,10 +330,10 @@ const TicketsCard: React.FC = () => {
       }
     }
 
-    // b) categoria level batches
+    // b) Lotes no nível de categoria
     for (const config of priceConfigurations.filter((pc) => pc.type === 'batch')) {
-      if (config.appliesTo === 'categoria' && config.categoriaIds?.includes(categoria.id)) {
-        for (const batch of config.batchConfigs || []) {
+      if (config.applies_to === 'categoria' && config.categories?.includes(categoria.id)) {
+        for (const batch of config.batch_configs || []) {
           if (isBatchActive(batch)) {
             return batch.price;
           }
@@ -333,10 +341,10 @@ const TicketsCard: React.FC = () => {
       }
     }
 
-    // c) Global batches
+    // c) Lotes Globais
     for (const config of priceConfigurations.filter((pc) => pc.type === 'batch')) {
-      if (config.appliesTo === 'global') {
-        for (const batch of config.batchConfigs || []) {
+      if (config.applies_to === 'global') {
+        for (const batch of config.batch_configs || []) {
           if (isBatchActive(batch)) {
             return batch.price;
           }
@@ -344,49 +352,49 @@ const TicketsCard: React.FC = () => {
       }
     }
 
-    // 2. No active batches found, check fixed prices starting from the most specific level
-    // a) Subcategoria price
+    // 2. Sem lotes ativos encontrados, verificar preços fixos começando do nível mais específico
+    // a) Preço da subcategoria
     for (const config of priceConfigurations.filter((pc) => pc.type === 'standard')) {
       if (
-        config.appliesTo === 'subcategoria' &&
-        config.subcategoriaIds?.includes(subcategoria.id) &&
+        config.applies_to === 'subcategoria' &&
+        config.subcategories?.includes(subcategoria.id) &&
         config.price !== undefined
       ) {
         return config.price;
       }
     }
 
-    // b) categoria price
+    // b) Preço da categoria
     for (const config of priceConfigurations.filter((pc) => pc.type === 'standard')) {
       if (
-        config.appliesTo === 'categoria' &&
-        config.categoriaIds?.includes(categoria.id) &&
+        config.applies_to === 'categoria' &&
+        config.categories?.includes(categoria.id) &&
         config.price !== undefined
       ) {
         return config.price;
       }
     }
 
-    // c) Global price
+    // c) Preço Global
     const globalConfig = priceConfigurations.find(
-      (pc) => pc.type === 'standard' && pc.appliesTo === 'global' && pc.price !== undefined
+      (pc) => pc.type === 'standard' && pc.applies_to === 'global' && pc.price !== undefined
     );
     if (globalConfig) {
       return globalConfig.price!;
     }
 
-    // Price not defined
+    // Preço não definido
     return null;
   };
 
   const isBatchActive = (batch: Batch): boolean => {
     const currentDate = new Date();
     if (batch.type === 'temporal') {
-      const startDate = new Date(batch.startDate || '');
-      const endDate = new Date(batch.endDate || '');
+      const startDate = new Date(batch.start_date || '');
+      const endDate = new Date(batch.end_date || '');
       return currentDate >= startDate && currentDate <= endDate;
     } else if (batch.type === 'quantity') {
-      // Placeholder logic para lotes por quantidade
+      // Lógica de placeholder para lotes por quantidade
       return false;
     }
     return false;
@@ -402,11 +410,11 @@ const TicketsCard: React.FC = () => {
   useEffect(() => {
     if (priceConfigType === 'batch' && batchConfigs.length === 0) {
       const defaultBatch: Batch = {
-        id: Date.now().toString(),
+        id: uuidv4(), // Gerando UUID
         name: '',
         type: 'temporal',
-        startDate: '',
-        endDate: '',
+        start_date: '',
+        end_date: '',
         price: 0,
       };
       setBatchConfigs([defaultBatch]);
@@ -437,13 +445,13 @@ const TicketsCard: React.FC = () => {
       }
 
       if (config.type === 'batch') {
-        if (!config.batchConfigs || config.batchConfigs.length === 0) {
+        if (!config.batch_configs || config.batch_configs.length === 0) {
           setSaveError(`A configuração "${config.name}" deve ter pelo menos um lote.`);
           setIsSaving(false);
           return;
         }
 
-        for (const batch of config.batchConfigs) {
+        for (const batch of config.batch_configs) {
           if (!batch.name) {
             setSaveError(`Todos os lotes na configuração "${config.name}" devem ter um nome.`);
             setIsSaving(false);
@@ -455,13 +463,13 @@ const TicketsCard: React.FC = () => {
             return;
           }
           if (batch.type === 'temporal') {
-            if (!batch.startDate || !batch.endDate) {
+            if (!batch.start_date || !batch.end_date) {
               setSaveError(`Todos os lotes temporais na configuração "${config.name}" devem ter datas de início e fim.`);
               setIsSaving(false);
               return;
             }
-            const start = new Date(batch.startDate);
-            const end = new Date(batch.endDate);
+            const start = new Date(batch.start_date);
+            const end = new Date(batch.end_date);
             if (start >= end) {
               setSaveError(`A data de início do lote "${batch.name}" deve ser anterior à data de fim.`);
               setIsSaving(false);
@@ -473,7 +481,7 @@ const TicketsCard: React.FC = () => {
       }
     }
 
-    // Estruturando os dados conforme as interfaces
+    // Estruturando os dados conforme as interfaces e o backend
     const dataToSend = {
       categories: categories.map((cat) => ({
         id: cat.id,
@@ -483,32 +491,32 @@ const TicketsCard: React.FC = () => {
           id: subcat.id,
           name: subcat.name,
           description: subcat.description,
+          category_id: cat.id, // Adiciona o ID da categoria
         })),
       })),
-      priceConfigurations: priceConfigurations.map((config) => ({
+      price_configurations: priceConfigurations.map((config) => ({
         id: config.id,
         name: config.name,
         type: config.type,
-        appliesTo: config.appliesTo,
-        categoriaIds: config.appliesTo === 'categoria' ? config.categoriaIds : undefined,
-        subcategoriaIds: config.appliesTo === 'subcategoria' ? config.subcategoriaIds : undefined,
+        applies_to: config.applies_to, // snake_case
+        categories: config.applies_to === 'categoria' ? config.categories : undefined,
+        subcategories: config.applies_to === 'subcategoria' ? config.subcategories : undefined,
         price: config.type === 'standard' ? config.price : undefined,
-        batchConfigs: config.type === 'batch' ? config.batchConfigs?.map((batch) => ({
+        batch_configs: config.type === 'batch' ? config.batch_configs?.map((batch) => ({
           id: batch.id,
           name: batch.name,
           type: batch.type,
-          startDate: batch.type === 'temporal' ? batch.startDate : undefined,
-          endDate: batch.type === 'temporal' ? batch.endDate : undefined,
-          startQuantity: batch.type === 'quantity' ? batch.startQuantity : undefined,
-          endQuantity: batch.type === 'quantity' ? batch.endQuantity : undefined,
+          start_date: batch.type === 'temporal' ? batch.start_date : undefined,
+          end_date: batch.type === 'temporal' ? batch.end_date : undefined,
+          start_quantity: batch.type === 'quantity' ? batch.start_quantity : undefined,
+          end_quantity: batch.type === 'quantity' ? batch.end_quantity : undefined,
           price: batch.price,
         })) : undefined,
       })),
     };
 
     try {
-      // Enviando os dados para o backend
-      const response = await axios.post('https://seu-backend.com/api/tickets', dataToSend);
+      const response = await axios.post(`http://127.0.0.1:8000/organizer_detail/${eventId}/categories`, dataToSend);
 
       if (response.status === 200 || response.status === 201) {
         setSaveSuccess(true);
@@ -836,24 +844,24 @@ const TicketsCard: React.FC = () => {
                     </Typography>
                     <Typography variant="body1">
                       <strong>Aplicado a:</strong>{' '}
-                      {config.appliesTo.charAt(0).toUpperCase() + config.appliesTo.slice(1)}
+                      {config.applies_to.charAt(0).toUpperCase() + config.applies_to.slice(1)}
                     </Typography>
                     {/* Display linked categories or subcategories */}
-                    {(config.appliesTo === 'categoria' && config.categoriaIds?.length) && (
+                    {(config.applies_to === 'categoria' && config.categories?.length) && (
                       <Box sx={{ marginTop: 1 }}>
                         <Typography variant="body1">
                           <strong>Categorias Vinculadas:</strong>
                         </Typography>
                         <ul>
                           {categories
-                            .filter((cat) => config.categoriaIds?.includes(cat.id))
+                            .filter((cat) => config.categories?.includes(cat.id))
                             .map((cat) => (
                               <li key={cat.id}>{cat.name}</li>
                             ))}
                         </ul>
                       </Box>
                     )}
-                    {(config.appliesTo === 'subcategoria' && config.subcategoriaIds?.length) && (
+                    {(config.applies_to === 'subcategoria' && config.subcategories?.length) && (
                       <Box sx={{ marginTop: 1 }}>
                         <Typography variant="body1">
                           <strong>Subcategorias Vinculadas:</strong>
@@ -861,7 +869,7 @@ const TicketsCard: React.FC = () => {
                         <ul>
                           {categories
                             .flatMap((cat) => cat.subcategories)
-                            .filter((sub) => config.subcategoriaIds?.includes(sub.id))
+                            .filter((sub) => config.subcategories?.includes(sub.id))
                             .map((sub) => (
                               <li key={sub.id}>{sub.name}</li>
                             ))}
@@ -874,7 +882,7 @@ const TicketsCard: React.FC = () => {
                         <strong>Preço:</strong> R$ {config.price.toFixed(2)}
                       </Typography>
                     )}
-                    {config.type === 'batch' && config.batchConfigs && config.batchConfigs.length > 0 && (
+                    {config.type === 'batch' && config.batch_configs && config.batch_configs.length > 0 && (
                       <Box sx={{ marginTop: 2 }}>
                         <Typography variant="body1" gutterBottom>
                           <strong>Configurações de Lote:</strong>
@@ -891,18 +899,18 @@ const TicketsCard: React.FC = () => {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {config.batchConfigs.map((batch) => (
+                              {config.batch_configs.map((batch) => (
                                 <TableRow key={batch.id}>
                                   <TableCell>{batch.name}</TableCell>
                                   <TableCell>{batch.type === 'temporal' ? 'Temporal' : 'Por Quantidade'}</TableCell>
                                   <TableCell>
-                                    {batch.type === 'temporal' && batch.startDate
-                                      ? new Date(batch.startDate).toLocaleDateString()
+                                    {batch.type === 'temporal' && batch.start_date
+                                      ? new Date(batch.start_date).toLocaleDateString()
                                       : '-'}
                                   </TableCell>
                                   <TableCell>
-                                    {batch.type === 'temporal' && batch.endDate
-                                      ? new Date(batch.endDate).toLocaleDateString()
+                                    {batch.type === 'temporal' && batch.end_date
+                                      ? new Date(batch.end_date).toLocaleDateString()
                                       : '-'}
                                   </TableCell>
                                   <TableCell>R$ {batch.price.toFixed(2)}</TableCell>
@@ -1070,7 +1078,7 @@ const TicketsCard: React.FC = () => {
         </Box>
       </Modal>
 
-      {/* Modal for Price Configuration */}
+      {/* Modal para Configuração de Preços */}
       <Modal open={openPriceConfigModal} onClose={handleClosePriceConfigModal}>
         <Box
           sx={{
@@ -1253,10 +1261,10 @@ const TicketsCard: React.FC = () => {
                             {batch.type === 'temporal' ? (
                               <TextField
                                 type="date"
-                                value={batch.startDate || ''}
+                                value={batch.start_date || ''}
                                 onChange={(e) => {
                                   const updatedBatches = [...batchConfigs];
-                                  updatedBatches[index].startDate = e.target.value;
+                                  updatedBatches[index].start_date = e.target.value;
                                   setBatchConfigs(updatedBatches);
                                 }}
                                 InputLabelProps={{
@@ -1272,10 +1280,10 @@ const TicketsCard: React.FC = () => {
                             {batch.type === 'temporal' ? (
                               <TextField
                                 type="date"
-                                value={batch.endDate || ''}
+                                value={batch.end_date || ''}
                                 onChange={(e) => {
                                   const updatedBatches = [...batchConfigs];
-                                  updatedBatches[index].endDate = e.target.value;
+                                  updatedBatches[index].end_date = e.target.value;
                                   setBatchConfigs(updatedBatches);
                                 }}
                                 InputLabelProps={{
@@ -1321,11 +1329,11 @@ const TicketsCard: React.FC = () => {
                 variant="outlined"
                 onClick={() => {
                   const newBatch: Batch = {
-                    id: Date.now().toString(),
+                    id: uuidv4(), // Gerando UUID
                     name: '',
                     type: 'temporal',
-                    startDate: '',
-                    endDate: '',
+                    start_date: '',
+                    end_date: '',
                     price: 0,
                   };
                   setBatchConfigs([...batchConfigs, newBatch]);

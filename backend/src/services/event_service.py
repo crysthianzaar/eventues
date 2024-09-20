@@ -9,6 +9,12 @@ class EventService:
     def create_event(self, event_data):
         return self.event_repository.create_event(event_data)
 
+    def get_category_and_values_by_event_id(self, event_id: str, category_and_values: dict):
+        return self.event_repository.get_category_and_values_by_event_id(event_id, category_and_values)
+
+    def get_category_and_values(self, event_id: str):
+        return self.event_repository.get_category_and_values(event_id)
+
     def get_events_by_user(self, user_id: str):
         return self.event_repository.get_events_by_user(user_id)
 

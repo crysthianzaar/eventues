@@ -185,7 +185,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <SportsIcon />,
       title: "Categorias e Valores",
-      component: <TicketsCard />,
+      component: <TicketsCard eventId={event_id!} />,
       description: "Definição de categorias de inscrição e respectivos preços.",
       status: eventDetail?.stepper.category_and_values,
     },
@@ -200,7 +200,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <TicketIcon />,
       title: "Ingressos/Inscrições",
-      component: <TicketsCard />,
+      component: <TicketsCard eventId={event_id!} />,
       description:
         "Gerenciamento de ingressos ou inscrições, controle de disponibilidade e venda.",
       status: null,

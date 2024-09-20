@@ -1,10 +1,64 @@
+# src/models/models.py
+
 from dataclasses import asdict, dataclass
+from enum import Enum as PyEnum
 import uuid
-from sqlalchemy import Boolean, Column, DateTime, Integer, String, Text, Time, ForeignKey
+from typing import List, Optional
+
+from sqlalchemy import (
+    Boolean,
+    Column,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
+    Text,
+    Time,
+    Enum
+)
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
 from datetime import datetime, time
 from src.models.base import Base
+
+
+class PriceType(PyEnum):
+    STANDARD = "standard"
+    BATCH = "batch"
+
+
+class AppliesTo(PyEnum):
+    GLOBAL = "global"
+    CATEGORIA = "categoria"
+    SUBCATEGORIA = "subcategoria"
+
+
+class BatchType(PyEnum):
+    TEMPORAL = "temporal"
+    QUANTITY = "quantity"
+
+
+# ### Tabelas de Associação ###
+
+price_configuration_categories = Table(
+    'price_configuration_categories',
+    Base.metadata,
+    Column('price_configuration_id', String(36), ForeignKey('price_configurations.id'), primary_key=True),
+    Column('category_id', String(36), ForeignKey('categories.id'), primary_key=True)
+)
+
+price_configuration_subcategories = Table(
+    'price_configuration_subcategories',
+    Base.metadata,
+    Column('price_configuration_id', String(36), ForeignKey('price_configurations.id'), primary_key=True),
+    Column('subcategory_id', String(36), ForeignKey('subcategories.id'), primary_key=True)
+)
+
+
+# ### Modelos ###
 
 @dataclass
 class EventModel(Base):
@@ -100,3 +154,93 @@ class EventPolicy(Base):
 
 EventModel.policies = relationship("EventPolicy", order_by=EventPolicy.id, back_populates="event")
 EventModel.documents = relationship("EventDocuments", order_by=EventDocuments.id, back_populates="event")
+
+
+@dataclass
+class Category(Base):
+    __tablename__ = 'categories'
+
+    id: str = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    event_id: str = Column(String(36), ForeignKey('events.event_id'), nullable=False)  # Campo de associação
+    name: str = Column(String(255), nullable=False, unique=True)
+    description: Optional[str] = Column(Text, nullable=True)
+
+    def to_dict(self):
+        """Converte a instância de Category para um dicionário."""
+        return {
+            "id": self.id,
+            "event_id": self.event_id,
+            "name": self.name,
+            "description": self.description,
+        }
+
+
+@dataclass
+class Subcategory(Base):
+    __tablename__ = 'subcategories'
+
+    id: str = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name: str = Column(String(255), nullable=False)
+    description: Optional[str] = Column(Text, nullable=True)
+    category_id: str = Column(String(36), ForeignKey('categories.id'), nullable=False)
+
+    def to_dict(self):
+        """Converte a instância de Subcategory para um dicionário."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "category_id": self.category_id
+        }
+
+
+@dataclass
+class PriceConfiguration(Base):
+    __tablename__ = 'price_configurations'
+
+    id: str = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    event_id: str = Column(String(36), ForeignKey('events.event_id'), nullable=False)  # Campo de associação
+    name: str = Column(String(255), nullable=False)
+    type: PriceType = Column(Enum(PriceType), nullable=False)
+    applies_to: AppliesTo = Column(Enum(AppliesTo), nullable=False)
+    price: Optional[float] = Column(Float, nullable=True)
+
+    def to_dict(self):
+        """Converte a instância de PriceConfiguration para um dicionário com tipos serializáveis."""
+        return {
+            "id": self.id,
+            "event_id": self.event_id,
+            "name": self.name,
+            "type": self.type.value,
+            "applies_to": self.applies_to.value,
+            "price": self.price,
+        }
+
+
+@dataclass
+class BatchConfig(Base):
+    __tablename__ = 'batch_configs'
+
+    id: str = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    name: str = Column(String(255), nullable=False)
+    type: BatchType = Column(Enum(BatchType), nullable=False)
+    start_date: Optional[Date] = Column(Date, nullable=True)
+    end_date: Optional[Date] = Column(Date, nullable=True)
+    start_quantity: Optional[int] = Column(Integer, nullable=True)
+    end_quantity: Optional[int] = Column(Integer, nullable=True)
+    price: float = Column(Float, nullable=False)
+    price_configuration_id: str = Column(String(36), ForeignKey('price_configurations.id'), nullable=False)
+
+    def to_dict(self):
+        """Converte a instância de BatchConfig para um dicionário."""
+        return {
+            "id": self.id,
+            "name": self.name,
+            "type": self.type.value,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "end_date": self.end_date.isoformat() if self.end_date else None,
+            "start_quantity": self.start_quantity,
+            "end_quantity": self.end_quantity,
+            "price": self.price,
+            "price_configuration_id": self.price_configuration_id
+        }

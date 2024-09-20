@@ -137,3 +137,35 @@ def get_event_policy(event_id):
         return policy.to_dict() if policy else {}
     except Exception as e:
         return {"error": f"Erro ao obter política: {str(e)}"}, 500
+
+
+@event_bp.route('/organizer_detail/{event_id}/categories', methods=['POST'], cors=cors_config)
+def create_event(event_id):
+    db = SessionLocal()
+    event_data = event_bp.current_request.json_body
+    event_service = EventService(EventRepository(db))
+    try:
+        new_event = event_service.create_category_and_values(event_id, event_data)
+        return Response(
+            body=new_event,
+            status_code=201,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        db.rollback()
+        return Response(
+            body={"error": f"Erro ao criar evento: {str(e)}"},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+
+@event_bp.route('/organizer_detail/{event_id}/get_categories', methods=['POST'], cors=cors_config)
+def get_categories(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    try:
+        categories = event_service.get_category_and_values_by_event_id(event_id)
+        return categories
+    except Exception as e:
+        return {"error": f"Erro ao obter categorias: {str(e)}"}, 500
