@@ -2,7 +2,7 @@
 
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import joinedload
+from sqlalchemy.sql import text
 from src.models.event_model import (
     AppliesTo,
     BatchConfig,
@@ -15,7 +15,7 @@ from src.models.event_model import (
     PriceType,
     Subcategory
 )
-from typing import Optional, Dict, Any
+from typing import List, Optional, Dict, Any
 
 
 class EventRepository:
@@ -43,116 +43,173 @@ class EventRepository:
         """
         try:
             # Verifica se o evento existe
-            event = self.session.query(EventModel).filter_by(event_id=event_id).first()
+            event_check_query = text("""
+                SELECT event_id FROM events WHERE event_id = :event_id
+            """)
+            event = self.session.execute(event_check_query, {'event_id': event_id}).fetchone()
             if not event:
                 raise ValueError(f"Evento com ID {event_id} não encontrado.")
 
             # 1. Processar Categorias e Subcategorias
             for cat in category_and_values.get('categories', []):
                 # Verifica se a categoria já existe pelo 'id' e 'event_id'
-                category = self.session.query(Category).filter_by(id=cat['id'], event_id=event_id).first()
-                if category:
+                category_check_query = text("""
+                    SELECT id FROM categories WHERE id = :id AND event_id = :event_id
+                """)
+                category_exists = self.session.execute(category_check_query, {'id': cat['id'], 'event_id': event_id}).fetchone()
+
+                if category_exists:
                     # Atualiza os detalhes da categoria existente
-                    category.name = cat['name']
-                    category.description = cat.get('description', category.description)
+                    update_category_query = text("""
+                        UPDATE categories SET name = :name, description = :description WHERE id = :id AND event_id = :event_id
+                    """)
+                    self.session.execute(update_category_query, {
+                        'name': cat['name'],
+                        'description': cat.get('description', ''),
+                        'id': cat['id'],
+                        'event_id': event_id
+                    })
                 else:
-                    # Cria uma nova categoria vinculada ao evento
-                    category = Category(
-                        id=cat['id'],
-                        event_id=event_id,  # Vincula ao evento
-                        name=cat['name'],
-                        description=cat.get('description', '')
-                    )
-                    self.session.add(category)
+                    # Insere uma nova categoria
+                    insert_category_query = text("""
+                        INSERT INTO categories (id, event_id, name, description) 
+                        VALUES (:id, :event_id, :name, :description)
+                    """)
+                    self.session.execute(insert_category_query, {
+                        'id': cat['id'],
+                        'event_id': event_id,
+                        'name': cat['name'],
+                        'description': cat.get('description', '')
+                    })
 
                 # Processa Subcategorias
                 for subcat in cat.get('subcategories', []):
                     # Verifica se a subcategoria já existe pelo 'id' e 'category_id'
-                    subcategory = self.session.query(Subcategory).filter_by(id=subcat['id'], category_id=cat['id']).first()
-                    if subcategory:
+                    subcategory_check_query = text("""
+                        SELECT id FROM subcategories WHERE id = :id AND category_id = :category_id
+                    """)
+                    subcategory_exists = self.session.execute(subcategory_check_query, {'id': subcat['id'], 'category_id': cat['id']}).fetchone()
+
+                    if subcategory_exists:
                         # Atualiza os detalhes da subcategoria existente
-                        subcategory.name = subcat['name']
-                        subcategory.description = subcat.get('description', subcategory.description)
-                        subcategory.category_id = cat['id']
+                        update_subcategory_query = text("""
+                            UPDATE subcategories SET name = :name, description = :description WHERE id = :id AND category_id = :category_id
+                        """)
+                        self.session.execute(update_subcategory_query, {
+                            'name': subcat['name'],
+                            'description': subcat.get('description', ''),
+                            'id': subcat['id'],
+                            'category_id': cat['id']
+                        })
                     else:
-                        # Cria uma nova subcategoria vinculada à categoria
-                        subcategory = Subcategory(
-                            id=subcat['id'],
-                            name=subcat['name'],
-                            description=subcat.get('description', ''),
-                            category_id=cat['id']
-                        )
-                        self.session.add(subcategory)
+                        # Insere uma nova subcategoria
+                        insert_subcategory_query = text("""
+                            INSERT INTO subcategories (id, name, description, category_id) 
+                            VALUES (:id, :name, :description, :category_id)
+                        """)
+                        self.session.execute(insert_subcategory_query, {
+                            'id': subcat['id'],
+                            'name': subcat['name'],
+                            'description': subcat.get('description', ''),
+                            'category_id': cat['id']
+                        })
 
             # 2. Processar Configurações de Preço
             for price_config in category_and_values.get('price_configurations', []):
                 # Verifica se a configuração de preço já existe pelo 'id' e 'event_id'
-                config = self.session.query(PriceConfiguration).filter_by(id=price_config['id'], event_id=event_id).first()
-                if config:
+                price_config_check_query = text("""
+                    SELECT id FROM price_configurations WHERE id = :id AND event_id = :event_id
+                """)
+                price_config_exists = self.session.execute(price_config_check_query, {'id': price_config['id'], 'event_id': event_id}).fetchone()
+
+                if price_config_exists:
                     # Atualiza os detalhes da configuração existente
-                    config.name = price_config['name']
-                    config.type = PriceType(price_config['type'])
-                    config.applies_to = AppliesTo(price_config['applies_to'])
-                    config.price = price_config.get('price')
-
-                    # Atualiza as associações com categorias ou subcategorias
-                    if price_config['applies_to'] == 'categoria':
-                        # Limpa associações existentes
-                        config.categories = []
-                        for cat_id in price_config.get('categories', []):
-                            category = self.session.query(Category).filter_by(id=cat_id, event_id=event_id).first()
-                            if category:
-                                config.categories.append(category)
-                    elif price_config['applies_to'] == 'subcategoria':
-                        # Limpa associações existentes
-                        config.subcategories = []
-                        for subcat_id in price_config.get('subcategories', []):
-                            subcategory = self.session.query(Subcategory).filter_by(id=subcat_id).first()
-                            if subcategory and subcategory.category.event_id == event_id:
-                                config.subcategories.append(subcategory)
+                    update_price_config_query = text("""
+                        UPDATE price_configurations 
+                        SET name = :name, type = :type, applies_to = :applies_to, price = :price 
+                        WHERE id = :id AND event_id = :event_id
+                    """)
+                    self.session.execute(update_price_config_query, {
+                        'name': price_config['name'],
+                        'type': price_config['type'],
+                        'applies_to': price_config['applies_to'],
+                        'price': price_config.get('price'),
+                        'id': price_config['id'],
+                        'event_id': event_id
+                    })
                 else:
-                    # Cria uma nova configuração de preço vinculada ao evento
-                    config = PriceConfiguration(
-                        id=price_config['id'],
-                        event_id=event_id,  # Vincula ao evento
-                        name=price_config['name'],
-                        type=PriceType(price_config['type']),
-                        applies_to=AppliesTo(price_config['applies_to']),
-                        price=price_config.get('price')
-                    )
-                    self.session.add(config)
+                    # Insere uma nova configuração de preço
+                    insert_price_config_query = text("""
+                        INSERT INTO price_configurations (id, event_id, name, type, applies_to, price) 
+                        VALUES (:id, :event_id, :name, :type, :applies_to, :price)
+                    """)
+                    self.session.execute(insert_price_config_query, {
+                        'id': price_config['id'],
+                        'event_id': event_id,
+                        'name': price_config['name'],
+                        'type': price_config['type'],
+                        'applies_to': price_config['applies_to'],
+                        'price': price_config.get('price')
+                    })
 
-                    # Associa categorias ou subcategorias
-                    if price_config['applies_to'] == 'categoria':
-                        for cat_id in price_config.get('categories', []):
-                            category = self.session.query(Category).filter_by(id=cat_id, event_id=event_id).first()
-                            if category:
-                                config.categories.append(category)
-                    elif price_config['applies_to'] == 'subcategoria':
-                        for subcat_id in price_config.get('subcategories', []):
-                            subcategory = self.session.query(Subcategory).filter_by(id=subcat_id).first()
-                            if subcategory and subcategory.category.event_id == event_id:
-                                config.subcategories.append(subcategory)
+                # Limpar associações anteriores e inserir novas associações
+                if price_config['applies_to'] == 'categoria':
+                    # Remove associações antigas
+                    self.session.execute(text("""
+                        DELETE FROM price_configuration_categories WHERE price_configuration_id = :price_configuration_id
+                    """), {'price_configuration_id': price_config['id']})
+
+                    # Inserir novas associações
+                    for cat_id in price_config.get('categories', []):
+                        insert_category_assoc_query = text("""
+                            INSERT INTO price_configuration_categories (price_configuration_id, category_id) 
+                            VALUES (:price_configuration_id, :category_id)
+                        """)
+                        self.session.execute(insert_category_assoc_query, {
+                            'price_configuration_id': price_config['id'],
+                            'category_id': cat_id
+                        })
+                elif price_config['applies_to'] == 'subcategoria':
+                    # Remove associações antigas
+                    self.session.execute(text("""
+                        DELETE FROM price_configuration_subcategories WHERE price_configuration_id = :price_configuration_id
+                    """), {'price_configuration_id': price_config['id']})
+
+                    # Inserir novas associações
+                    for subcat_id in price_config.get('subcategories', []):
+                        insert_subcategory_assoc_query = text("""
+                            INSERT INTO price_configuration_subcategories (price_configuration_id, subcategory_id) 
+                            VALUES (:price_configuration_id, :subcategory_id)
+                        """)
+                        self.session.execute(insert_subcategory_assoc_query, {
+                            'price_configuration_id': price_config['id'],
+                            'subcategory_id': subcat_id
+                        })
 
                 # 3. Processar Configurações de Lote (Batch Configs)
                 if price_config['type'] == 'batch':
                     # Remove configurações de lote existentes para esta configuração de preço
-                    self.session.query(BatchConfig).filter_by(price_configuration_id=price_config['id']).delete()
+                    self.session.execute(text("""
+                        DELETE FROM batch_configs WHERE price_configuration_id = :price_configuration_id
+                    """), {'price_configuration_id': price_config['id']})
 
                     # Adiciona novas configurações de lote
                     for batch in price_config.get('batch_configs', []):
-                        batch_config = BatchConfig(
-                            id=batch['id'],
-                            name=batch['name'],
-                            type=BatchType(batch['type']),
-                            start_date=batch.get('start_date'),
-                            end_date=batch.get('end_date'),
-                            start_quantity=batch.get('start_quantity'),
-                            end_quantity=batch.get('end_quantity'),
-                            price=batch['price'],
-                            price_configuration_id=price_config['id']
-                        )
-                        self.session.add(batch_config)
+                        insert_batch_config_query = text("""
+                            INSERT INTO batch_configs (id, name, type, start_date, end_date, start_quantity, end_quantity, price, price_configuration_id) 
+                            VALUES (:id, :name, :type, :start_date, :end_date, :start_quantity, :end_quantity, :price, :price_configuration_id)
+                        """)
+                        self.session.execute(insert_batch_config_query, {
+                            'id': batch['id'],
+                            'name': batch['name'],
+                            'type': batch['type'],
+                            'start_date': batch.get('start_date'),
+                            'end_date': batch.get('end_date'),
+                            'start_quantity': batch.get('start_quantity'),
+                            'end_quantity': batch.get('end_quantity'),
+                            'price': batch['price'],
+                            'price_configuration_id': price_config['id']
+                        })
 
             # 4. Commit da Transação
             self.session.commit()
@@ -175,70 +232,156 @@ class EventRepository:
             dict ou None: Estrutura contendo categorias, subcategorias e configurações de preço, ou None se o evento não existir.
         """
         try:
-            # Carrega o evento com relacionamentos
-            event = self.session.query(EventModel).options(
-                joinedload(EventModel.categories)
-                .joinedload(Category.subcategories),
-                joinedload(EventModel.price_configurations)
-                .joinedload(PriceConfiguration.batch_configs)
-            ).filter_by(event_id=event_id).first()
+            # Primeira query: categorias e subcategorias
+            category_query = text("""
+                SELECT
+                    c.id as category_id,
+                    c.name as category_name,
+                    c.description as category_description,
+                    s.id as subcategory_id,
+                    s.name as subcategory_name,
+                    s.description as subcategory_description
+                FROM categories c
+                LEFT JOIN subcategories s ON s.category_id = c.id
+                WHERE c.event_id = :event_id
+            """)
 
-            if not event:
-                return None
+            category_result = self.session.execute(category_query, {'event_id': event_id}).mappings().fetchall()
 
-            # Estrutura para armazenar os dados
-            result = {
-                "categories": [],
-                "price_configurations": []
+            if not category_result:
+                return {"categories": [], "price_configurations": []}
+
+            categories = {}
+
+            for row in category_result:
+                # Processar categorias
+                category_id = row['category_id']
+                if category_id not in categories:
+                    categories[category_id] = {
+                        "id": category_id,
+                        "name": row['category_name'],
+                        "description": row['category_description'],
+                        "subcategories": []
+                    }
+
+                # Processar subcategorias
+                if row['subcategory_id']:
+                    categories[category_id]["subcategories"].append({
+                        "id": row['subcategory_id'],
+                        "name": row['subcategory_name'],
+                        "description": row['subcategory_description'],
+                        "category_id": category_id
+                    })
+
+            # Segunda query: configurações de preço e suas associações
+            price_config_query = text("""
+                SELECT
+                    pc.id as price_config_id,
+                    pc.name as price_config_name,
+                    pc.type as price_config_type,
+                    pc.applies_to as price_config_applies_to,
+                    pc.price as price_config_price
+                FROM price_configurations pc
+                WHERE pc.event_id = :event_id
+            """)
+
+            price_config_result = self.session.execute(price_config_query, {'event_id': event_id}).mappings().fetchall()
+
+            price_configurations = {}
+
+            for row in price_config_result:
+                price_config_id = row['price_config_id']
+                if price_config_id not in price_configurations:
+                    price_configurations[price_config_id] = {
+                        "id": price_config_id,
+                        "name": row['price_config_name'],
+                        "type": row['price_config_type'].lower(),
+                        "applies_to": row['price_config_applies_to'].lower(),
+                        "price": row['price_config_price'],
+                        "categories": [],  # Inicializa a lista de categorias
+                        "subcategories": [],  # Inicializa a lista de subcategorias
+                        "batch_configs": []  # Inicializa a lista de batch_configs para tipo "batch"
+                    }
+
+            # Terceira query: categorias associadas às configurações de preço
+            category_assoc_query = text("""
+                SELECT
+                    pcc.price_configuration_id,
+                    c.id as category_id
+                FROM price_configuration_categories pcc
+                JOIN categories c ON c.id = pcc.category_id
+                WHERE c.event_id = :event_id
+            """)
+
+            category_assoc_result = self.session.execute(category_assoc_query, {'event_id': event_id}).mappings().fetchall()
+
+            for row in category_assoc_result:
+                price_config_id = row['price_configuration_id']
+                if price_config_id in price_configurations:
+                    price_configurations[price_config_id]["categories"].append(row['category_id'])
+
+            # Quarta query: subcategorias associadas às configurações de preço
+            subcategory_assoc_query = text("""
+                SELECT
+                    pcs.price_configuration_id,
+                    s.id as subcategory_id
+                FROM price_configuration_subcategories pcs
+                JOIN subcategories s ON s.id = pcs.subcategory_id
+                WHERE s.category_id IN (
+                    SELECT id FROM categories WHERE event_id = :event_id
+                )
+            """)
+
+            subcategory_assoc_result = self.session.execute(subcategory_assoc_query, {'event_id': event_id}).mappings().fetchall()
+
+            for row in subcategory_assoc_result:
+                price_config_id = row['price_configuration_id']
+                if price_config_id in price_configurations:
+                    price_configurations[price_config_id]["subcategories"].append(row['subcategory_id'])
+
+            # Quinta query: configurações de lote (batch_configs) associadas às configurações de preço
+            batch_config_query = text("""
+                SELECT
+                    b.id as batch_id,
+                    b.name as batch_name,
+                    b.type as batch_type,
+                    b.start_date as batch_start_date,
+                    b.end_date as batch_end_date,
+                    b.start_quantity as batch_start_quantity,
+                    b.end_quantity as batch_end_quantity,
+                    b.price as batch_price,
+                    b.price_configuration_id
+                FROM batch_configs b
+                WHERE b.price_configuration_id IN (
+                    SELECT id FROM price_configurations WHERE event_id = :event_id
+                )
+            """)
+
+            batch_config_result = self.session.execute(batch_config_query, {'event_id': event_id}).mappings().fetchall()
+
+            for row in batch_config_result:
+                price_config_id = row['price_configuration_id']
+                if price_config_id in price_configurations and price_configurations[price_config_id]['type'] == 'batch':
+                    price_configurations[price_config_id]["batch_configs"].append({
+                        "id": row['batch_id'],
+                        "name": row['batch_name'],
+                        "type": row['batch_type'].lower(),
+                        "start_date": row['batch_start_date'].isoformat() if row['batch_start_date'] else None,
+                        "end_date": row['batch_end_date'].isoformat() if row['batch_end_date'] else None,
+                        "start_quantity": row['batch_start_quantity'],
+                        "end_quantity": row['batch_end_quantity'],
+                        "price": row['batch_price']
+                    })
+
+            return {
+                "categories": list(categories.values()),
+                "price_configurations": list(price_configurations.values())
             }
 
-            # Processa Categorias e Subcategorias
-            for category in event.categories:
-                cat_dict = {
-                    "id": category.id,
-                    "name": category.name,
-                    "description": category.description,
-                    "subcategories": []
-                }
-                for subcat in category.subcategories:
-                    subcat_dict = {
-                        "id": subcat.id,
-                        "name": subcat.name,
-                        "description": subcat.description,
-                        "category_id": subcat.category_id
-                    }
-                    cat_dict["subcategories"].append(subcat_dict)
-                result["categories"].append(cat_dict)
-
-            # Processa Configurações de Preço
-            for price_config in event.price_configurations:
-                pc_dict = {
-                    "id": price_config.id,
-                    "name": price_config.name,
-                    "type": price_config.type.value,
-                    "applies_to": price_config.applies_to.value,
-                    "price": price_config.price,
-                    "categories": [cat.id for cat in price_config.categories],
-                    "subcategories": [subcat.id for subcat in price_config.subcategories],
-                    "batch_configs": []
-                }
-                for batch in price_config.batch_configs:
-                    batch_dict = {
-                        "id": batch.id,
-                        "name": batch.name,
-                        "type": batch.type.value,
-                        "start_date": batch.start_date.isoformat() if batch.start_date else None,
-                        "end_date": batch.end_date.isoformat() if batch.end_date else None,
-                        "start_quantity": batch.start_quantity,
-                        "end_quantity": batch.end_quantity,
-                        "price": batch.price
-                    }
-                    pc_dict["batch_configs"].append(batch_dict)
-                result["price_configurations"].append(pc_dict)
-
-            return result
         except SQLAlchemyError as e:
+            # Log do erro, se necessário
             raise e
+
 
     def get_events_by_user(self, user_id: str):
         return self.session.query(EventModel).filter_by(user_id=user_id).all()

@@ -160,7 +160,7 @@ def create_event(event_id):
         )
 
 
-@event_bp.route('/organizer_detail/{event_id}/get_categories', methods=['POST'], cors=cors_config)
+@event_bp.route('/organizer_detail/{event_id}/get_categories', methods=['GET'], cors=cors_config)
 def get_categories(event_id):
     db = SessionLocal()
     event_service = EventService(EventRepository(db))
