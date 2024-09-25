@@ -1,11 +1,11 @@
 import React, { ReactNode } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import Navbar from "./Navbar";
-import Hero from "./Hero";
-import Filters from "./Filters";
-import Events from "./Events";
+import Navbar from "./GeneralComponents/Navbar";
+import Hero from "./GeneralComponents/Hero";
+import Filters from "./GeneralComponents/Filters";
+import Events from "./GeneralComponents/Events";
 import FAQ from "./FAQ";
-import Footer from "./Footer";
+import Footer from "./GeneralComponents/Footer";
 import MyAuthenticator from "./MyAuthenticator";
 import { Authenticator } from "@aws-amplify/ui-react";
 import Callback from "./Callback";

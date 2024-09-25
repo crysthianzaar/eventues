@@ -16,11 +16,12 @@ import {
 import { Menu as MenuIcon } from "@mui/icons-material";
 import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useNavigate } from "react-router-dom";
-import logo from "../assets/logo.png";
+import logo from "../../assets/logo.png";
 import { AuthUser } from "aws-amplify/auth";
 
 const Navbar: React.FC = () => {
-  const { signOut, user }: { signOut: () => void; user: AuthUser } = useAuthenticator();
+  const { signOut, user }: { signOut: () => void; user: AuthUser } =
+    useAuthenticator();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
@@ -54,12 +55,17 @@ const Navbar: React.FC = () => {
     navigate("/configurar_perfil");
   };
 
-  const toggleDrawer = (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
-    if (event.type === "keydown" && ((event as React.KeyboardEvent).key === "Tab" || (event as React.KeyboardEvent).key === "Shift")) {
-      return;
-    }
-    setDrawerOpen(open);
-  };
+  const toggleDrawer =
+    (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
+      if (
+        event.type === "keydown" &&
+        ((event as React.KeyboardEvent).key === "Tab" ||
+          (event as React.KeyboardEvent).key === "Shift")
+      ) {
+        return;
+      }
+      setDrawerOpen(open);
+    };
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -83,7 +89,7 @@ const Navbar: React.FC = () => {
         <ListItemButton>
           <ListItemText primary="Seja Organizador" />
         </ListItemButton>
-        <ListItemButton>
+        <ListItemButton onClick={handleMyEvents}>
           <ListItemText primary="Meus Eventos" />
         </ListItemButton>
         <ListItemButton>
@@ -111,8 +117,10 @@ const Navbar: React.FC = () => {
         }}
       >
         <Toolbar sx={{ justifyContent: "space-between", position: "relative" }}>
-          {/* Icone do Menu na Esquerda */}
-          <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}>
+          {/* Ícone do Menu na Esquerda */}
+          <Box
+            sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}
+          >
             <IconButton
               edge="start"
               sx={{ color: "#000000" }} // Define a cor do ícone
@@ -123,32 +131,50 @@ const Navbar: React.FC = () => {
             </IconButton>
           </Box>
 
-          {/* Logo com centralização condicional */}
+          {/* Logo com centralização condicional e redirecionamento */}
           <Box
             component="img"
             src={logo}
             alt="Eventues Logo"
+            onClick={handleInicio} // Adiciona o manipulador de clique
             sx={{
               height: "50px",
               margin: { xs: "0 auto", md: "0" }, // Centraliza em xs, alinha à esquerda em md e acima
               position: { xs: "absolute", md: "relative" }, // Em xs, fica absoluto para centralizar
               left: { xs: "50%", md: "unset" },
               transform: { xs: "translateX(-50%)", md: "none" }, // Ajusta a posição para centralizar
+              cursor: "pointer", // Altera o cursor para indicar que é clicável
             }}
           />
 
           {/* Navbar Completa em Telas Médias e Maiores */}
-          <Box sx={{ display: { xs: "none", md: "flex" }, gap: "20px", marginLeft: "auto" }}>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }} onClick={handleInicio}>
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              gap: "20px",
+              marginLeft: "auto",
+            }}
+          >
+            <Button
+              sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}
+              onClick={handleInicio}
+            >
               Início
             </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}>
+            <Button
+              sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}
+            >
               Seja Organizador
             </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }} onClick={handleMyEvents}>
+            <Button
+              sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}
+              onClick={handleMyEvents}
+            >
               Meus Eventos
             </Button>
-            <Button sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}>
+            <Button
+              sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}
+            >
               Contato
             </Button>
 
@@ -216,7 +242,9 @@ const Navbar: React.FC = () => {
                 keepMounted
               >
                 <MenuItem onClick={handleAccountSettings}>Minha Conta</MenuItem>
-                <MenuItem onClick={handleProfileSettings}>Configurar Perfil</MenuItem>
+                <MenuItem onClick={handleProfileSettings}>
+                  Configurar Perfil
+                </MenuItem>
                 <MenuItem onClick={handleLogout}>Sair</MenuItem>
               </Menu>
             )}
