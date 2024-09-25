@@ -27,20 +27,37 @@ interface EventResponse {
 
 const steps = ['Detalhes do Evento', 'Tipo de Evento', 'Localização e Contato'];
 
+const modalidades = [
+  { label: 'Artes Marciais' },
+  { label: 'Badminton' },
+  { label: 'Caminhada' },
+  { label: 'Canoagem' },
+  { label: 'Ciclismo' },
+  { label: 'Corrida de Rua' },
+  { label: 'Escalada Esportiva' },
+  { label: 'Mountain Bike' },
+  { label: 'Natação' },
+  { label: 'Skate' },
+  { label: 'Surf' },
+  { label: 'Tênis' },
+  { label: 'Tiro com Arco' },
+  { label: 'Triatlo' },
+  { label: 'Vôlei de Praia' },
+  { label: 'Outro' },
+];
+
 export default function CreateEventStepper() {
   const [activeStep, setActiveStep] = React.useState(0);
   const [submitted, setSubmitted] = React.useState(false); 
   const [isSubmitting, setIsSubmitting] = React.useState(false); 
   const [errors, setErrors] = React.useState<string[]>([]);
-  const router = useNavigate();
+  const navigate = useNavigate();
 
   const [formValues, setFormValues] = React.useState({
     nomeEvento: '',
     categoria: '',
     dataInicio: '',
-    horaInicio: '',
     dataTermino: '',
-    horaTermino: '',
     event_type: '',
     estado: '',
     cidade: '',
@@ -61,7 +78,7 @@ export default function CreateEventStepper() {
 
   const handleEstadoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
-    setFormValues({ ...formValues, estado: value });
+    setFormValues({ ...formValues, estado: value, cidade: '' }); // Limpa a cidade ao mudar o estado
     
     axios.get(`https://servicodados.ibge.gov.br/api/v1/localidades/estados/${value}/municipios`)
       .then(response => {
@@ -70,20 +87,59 @@ export default function CreateEventStepper() {
       .catch(error => console.error('Erro ao carregar cidades:', error));
   };
 
+  const validateStep = (step: number): boolean => {
+    const newErrors: string[] = [];
+
+    if (step === 0) {
+      // Validação da Etapa 0: Detalhes do Evento
+      if (!formValues.nomeEvento) newErrors.push('Nome do evento é obrigatório.');
+      if (!formValues.dataInicio) newErrors.push('Data de início é obrigatória.');
+      if (!formValues.dataTermino) newErrors.push('Data de término é obrigatória.');
+
+      if (formValues.dataInicio && formValues.dataTermino) {
+        const startDate = new Date(formValues.dataInicio);
+        const endDate = new Date(formValues.dataTermino);
+        if (endDate < startDate) {
+          newErrors.push('A data de término não pode ser anterior à data de início.');
+        }
+      }
+    } else if (step === 1) {
+      // Validação da Etapa 1: Tipo de Evento
+      if (!formValues.event_type) newErrors.push('Tipo de evento é obrigatório.');
+      if (!formValues.categoria) newErrors.push('Categoria é obrigatória.');
+    } else if (step === 2) {
+      // Validação da Etapa 2: Localização e Contato
+      if (!formValues.estado) newErrors.push('Estado é obrigatório.');
+      if (!formValues.cidade) newErrors.push('Cidade é obrigatória.');
+      if (!formValues.nomeOrganizador) newErrors.push('Nome do organizador é obrigatório.');
+      if (!formValues.telefone) newErrors.push('Telefone é obrigatório.');
+    }
+
+    setErrors(newErrors);
+    return newErrors.length === 0;
+  };
+
   const validateForm = (): boolean => {
     const newErrors: string[] = [];
 
     if (!formValues.nomeEvento) newErrors.push('Nome do evento é obrigatório.');
     if (!formValues.categoria) newErrors.push('Categoria é obrigatória.');
     if (!formValues.dataInicio) newErrors.push('Data de início é obrigatória.');
-    if (!formValues.horaInicio) newErrors.push('Hora de início é obrigatória.');
     if (!formValues.dataTermino) newErrors.push('Data de término é obrigatória.');
-    if (!formValues.horaTermino) newErrors.push('Hora de término é obrigatória.');
     if (!formValues.estado) newErrors.push('Estado é obrigatório.');
     if (!formValues.cidade) newErrors.push('Cidade é obrigatória.');
     if (!formValues.nomeOrganizador) newErrors.push('Nome do organizador é obrigatório.');
     if (!formValues.telefone) newErrors.push('Telefone é obrigatório.');
     if (!formValues.event_type) newErrors.push('Tipo de evento é obrigatório.');
+
+    // Validação das datas
+    if (formValues.dataInicio && formValues.dataTermino) {
+      const startDate = new Date(formValues.dataInicio);
+      const endDate = new Date(formValues.dataTermino);
+      if (endDate < startDate) {
+        newErrors.push('A data de término não pode ser anterior à data de início.');
+      }
+    }
 
     setErrors(newErrors);
 
@@ -93,44 +149,42 @@ export default function CreateEventStepper() {
   const handleSubmit = () => {
     if (validateForm()) {
       setIsSubmitting(true);
-  
+
       const userId = localStorage.getItem('user_id');
-  
+
       if (!userId) {
         setErrors(['Erro: Usuário não autenticado.']);
         setIsSubmitting(false);
         return;
       }
-  
+
       const payload = {
         name: formValues.nomeEvento,
         category: formValues.categoria,
-        start_date: `${formValues.dataInicio}T${formValues.horaInicio}:00`,
-        start_time: formValues.horaInicio,
-        end_date: `${formValues.dataTermino}T${formValues.horaTermino}:00`,
-        end_time: formValues.horaTermino,
+        start_date: formValues.dataInicio,
+        end_date: formValues.dataTermino,
         event_type: formValues.event_type,
         event_category: formValues.categoria,
         state: formValues.estado,
         city: formValues.cidade,
         organization_name: formValues.nomeOrganizador,
         organization_contact: formValues.telefone,
-        user_id: userId?.replace(/-/g, '')
+        user_id: userId.replace(/-/g, '')
       };
-  
+
       axios.post<EventResponse>('http://127.0.0.1:8000/events', payload)
       .then(response => {
         const eventId = response.data.event_id;
         setSubmitted(true);
-        router(`/event_detail/${eventId}`);
+        navigate(`/event_detail/${eventId}`);
       })
       .catch(error => {
         console.error('Erro ao criar evento:', error);
         setIsSubmitting(false);
+        setErrors(['Erro ao criar o evento. Por favor, tente novamente.']);
       });
     }
   };
-  
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -141,7 +195,9 @@ export default function CreateEventStepper() {
   };
 
   const handleNext = () => {
-    setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    if (validateStep(activeStep)) {
+      setActiveStep((prevActiveStep) => prevActiveStep + 1);
+    }
   };
 
   const handleBack = () => {
@@ -154,15 +210,14 @@ export default function CreateEventStepper() {
       nomeEvento: '',
       categoria: '',
       dataInicio: '',
-      horaInicio: '',
       dataTermino: '',
-      horaTermino: '',
       event_type: '',
       estado: '',
       cidade: '',
       nomeOrganizador: '',
       telefone: ''
     });
+    setErrors([]);
   };
 
   const getStepContent = (step: number) => {
@@ -198,22 +253,6 @@ export default function CreateEventStepper() {
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Hora de início do evento"
-                  type="time"
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                  required
-                  name="horaInicio"
-                  value={formValues.horaInicio}
-                  onChange={handleChange}
-                  error={!!errors.find((error) => error.includes('Hora de início'))}
-                  helperText={errors.find((error) => error.includes('Hora de início'))}
-                />
-              </Grid>
-            </Grid>
-            <Grid container spacing={0}>
-              <Grid item xs={12} sm={6}>
-                <TextField
                   label="Data de término"
                   type="date"
                   InputLabelProps={{ shrink: true }}
@@ -228,26 +267,6 @@ export default function CreateEventStepper() {
                   }}
                   error={!!errors.find((error) => error.includes('Data de término'))}
                   helperText={errors.find((error) => error.includes('Data de término'))}
-                />
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <TextField
-                  label="Hora de término do evento"
-                  type="time"
-                  InputLabelProps={{ shrink: true }}
-                  fullWidth
-                  required
-                  name="horaTermino"
-                  value={formValues.horaTermino}
-                  onChange={handleChange}
-                  // Definindo o valor mínimo como a hora de início se a data for a mesma
-                  InputProps={{
-                    inputProps: { 
-                      min: formValues.dataInicio === formValues.dataTermino ? formValues.horaInicio : undefined 
-                    }
-                  }}
-                  error={!!errors.find((error) => error.includes('Hora de término'))}
-                  helperText={errors.find((error) => error.includes('Hora de término'))}
                 />
               </Grid>
             </Grid>
@@ -272,7 +291,7 @@ export default function CreateEventStepper() {
               <MenuItem value="virtual">Virtual</MenuItem>
               <MenuItem value="hibrido">Híbrido</MenuItem>
             </TextField>
-  
+
             <TextField
               select
               label="Categoria do evento"
@@ -285,9 +304,11 @@ export default function CreateEventStepper() {
               error={!!errors.find((error) => error.includes('Categoria'))}
               helperText={errors.find((error) => error.includes('Categoria'))}
             >
-              <MenuItem value="Ciclismo">Ciclismo</MenuItem>
-              <MenuItem value="Corrida">Corrida</MenuItem>
-              <MenuItem value="Workshop">Workshop</MenuItem>
+              {modalidades.map((modalidade, index) => (
+                <MenuItem key={index} value={modalidade.label}>
+                  {modalidade.label}
+                </MenuItem>
+              ))}
             </TextField>
           </Stack>
         );
@@ -324,6 +345,7 @@ export default function CreateEventStepper() {
                   value={formValues.cidade}
                   onChange={handleChange}
                   disabled={!formValues.estado}
+                  autoComplete="off" // Desativa o autocomplete para a cidade
                   error={!!errors.find((error) => error.includes('Cidade'))}
                   helperText={errors.find((error) => error.includes('Cidade'))}
                 >
@@ -335,7 +357,7 @@ export default function CreateEventStepper() {
                 </TextField>
               </Grid>
             </Grid>
-  
+
             <TextField
               label="Nome do organizador"
               variant="outlined"
@@ -344,6 +366,7 @@ export default function CreateEventStepper() {
               name="nomeOrganizador"
               value={formValues.nomeOrganizador}
               onChange={handleChange}
+              autoComplete="off" // Desativa o autocomplete para o nome do organizador
               error={!!errors.find((error) => error.includes('Nome do organizador'))}
               helperText={errors.find((error) => error.includes('Nome do organizador'))}
             />
@@ -355,6 +378,7 @@ export default function CreateEventStepper() {
               name="telefone"
               value={formValues.telefone}
               onChange={handleChange}
+              autoComplete="off" // Desativa o autocomplete para o telefone
               error={!!errors.find((error) => error.includes('Telefone'))}
               helperText={errors.find((error) => error.includes('Telefone'))}
             />

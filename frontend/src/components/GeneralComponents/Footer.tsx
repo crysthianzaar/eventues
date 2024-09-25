@@ -1,5 +1,6 @@
 import React from 'react';
-import { Box, Typography, Link } from '@mui/material';
+import { Box, Typography } from '@mui/material';
+import { Link } from 'react-router-dom';
 
 const Footer: React.FC = () => {
   return (
@@ -9,16 +10,16 @@ const Footer: React.FC = () => {
         color: 'white', 
         textAlign: 'center', 
         padding: '2rem 0', 
-        position: 'relative', // Certifica-se de que o footer fica posicionado corretamente
+        position: 'relative',
         bottom: 0,
-        width: '100%', // Garante que o footer ocupe toda a largura da tela
+        width: '100%',
       }}
     >
       <Typography variant="body2">&copy; 2024 Eventues. Todos os direitos reservados.</Typography>
-      <Link href="#" color="inherit" sx={{ display: 'block', mt: 1 }}>
+      <Link to="/terms-of-service" style={{ color: 'inherit', display: 'block', marginTop: '1rem', textDecoration: 'none' }}>
         Termos de Serviço
       </Link>
-      <Link href="#" color="inherit" sx={{ display: 'block', mt: 1 }}>
+      <Link to="/privacy-policy" style={{ color: 'inherit', display: 'block', marginTop: '1rem', textDecoration: 'none' }}>
         Política de Privacidade
       </Link>
     </Box>

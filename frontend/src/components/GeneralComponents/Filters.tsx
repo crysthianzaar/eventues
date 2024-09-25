@@ -48,6 +48,7 @@ const modalidades = [
   { label: 'Tiro com Arco' },
   { label: 'Triatlo' },
   { label: 'Vôlei de Praia' },
+  { label: 'Outro' },
 ];
 
 const Filters: React.FC = () => {

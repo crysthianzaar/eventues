@@ -24,7 +24,7 @@ class EventRepository:
 
     def create_event(self, event_data):
         event_data['event_id'] = uuid4()
-        event_data['event_status'] = 'rascunho'
+        event_data['event_status'] = 'Rascunho'
         new_event = EventModel(**event_data)
         self.session.add(new_event)
         self.session.commit()
@@ -379,7 +379,6 @@ class EventRepository:
             }
 
         except SQLAlchemyError as e:
-            # Log do erro, se necessário
             raise e
 
 
@@ -396,7 +395,9 @@ class EventRepository:
         return self.session.query(EventPolicy).filter_by(event_id=event_id).count() > 0
 
     def has_category_and_values(self, event_id):
-        return False
+        has_categories = self.session.query(Category).filter_by(event_id=event_id).count() > 0
+        has_price_configurations = self.session.query(PriceConfiguration).filter_by(event_id=event_id).count() > 0
+        return has_categories and has_price_configurations
 
     def has_event_form(self, event_id):
         return False
