@@ -1,3 +1,4 @@
+from typing import Any, Dict, List
 from src.repositories.event_repository import EventRepository
 from src.services.aws.s3_service import S3Service
 
@@ -95,3 +96,11 @@ class EventService:
 
     def get_event_policy(self, event_id: str):
         return self.event_repository.get_event_policy(event_id)
+
+    def create_or_update_form(self, event_id: str, form_fields_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        form_fields = self.event_repository.create_or_update_form(event_id, form_fields_data)
+        return [field.to_dict() for field in form_fields]
+
+    def get_form(self, event_id: str) -> List[Dict[str, Any]]:
+        form_fields = self.event_repository.get_form(event_id)
+        return [field.to_dict() for field in form_fields]

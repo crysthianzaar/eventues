@@ -169,3 +169,43 @@ def get_categories(event_id):
         return categories
     except Exception as e:
         return {"error": f"Erro ao obter categorias: {str(e)}"}, 500
+
+
+@event_bp.route('/organizer_detail/{event_id}/create_form', methods=['POST'], cors=cors_config)
+def create_form(event_id):
+    db = SessionLocal()
+    form_fields_data = event_bp.current_request.json_body.get('form_fields', [])
+    event_service = EventService(EventRepository(db))
+    try:
+        new_form_fields = event_service.create_or_update_form(event_id, form_fields_data)
+        return Response(
+            body=new_form_fields,
+            status_code=201,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        db.rollback()
+        return Response(
+            body={"error": f"Erro ao criar formulário: {str(e)}"},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+
+@event_bp.route('/organizer_detail/{event_id}/get_form', methods=['GET'], cors=cors_config)
+def get_form(event_id):
+    db = SessionLocal()
+    event_service = EventService(EventRepository(db))
+    try:
+        form = event_service.get_form(event_id)
+        return Response(
+            body=json.dumps(form),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body={"error": f"Erro ao obter formulário: {str(e)}"},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )

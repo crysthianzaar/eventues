@@ -1,5 +1,6 @@
 # src/repositories/event_repository.py
 
+import json
 from uuid import uuid4
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql import text
@@ -11,6 +12,7 @@ from src.models.event_model import (
     EventDocuments,
     EventModel,
     EventPolicy,
+    FormField,
     PriceConfiguration,
     PriceType,
     Subcategory
@@ -400,7 +402,7 @@ class EventRepository:
         return has_categories and has_price_configurations
 
     def has_event_form(self, event_id):
-        return False
+        return self.session.query(FormField).filter_by(event_id=event_id).count() > 0
 
     def get_event_documents(self, event_id):
         return self.session.query(EventDocuments).filter_by(event_id=event_id).all()
@@ -443,3 +445,45 @@ class EventRepository:
     def update_policy(self, policy: EventPolicy):
         self.session.commit()
         return policy
+
+    def create_or_update_form(self, event_id: str, form_fields_data: List[Dict[str, Any]]) -> List[FormField]:
+        form_fields = []
+        existing_fields = self.session.query(FormField).filter_by(event_id=event_id).all()
+        incoming_field_ids = set()
+        
+        for field_data in form_fields_data:
+            field_id = field_data.get('id', str(uuid4()))
+            incoming_field_ids.add(field_id)
+            field = self.session.query(FormField).filter_by(id=field_id, event_id=event_id).first()
+            
+            if field:
+                field.label = field_data['label']
+                field.type = field_data['type']
+                field.required = field_data.get('required', False)
+                field.include = field_data.get('include', True)
+                field.order = field_data.get('order', 0)
+                field.options = json.dumps(field_data.get('options', [])) if field_data.get('options') else None
+            else:
+                field = FormField(
+                    id=field_id,
+                    event_id=event_id,
+                    label=field_data['label'],
+                    type=field_data['type'],
+                    required=field_data.get('required', False),
+                    include=field_data.get('include', True),
+                    order=field_data.get('order', 0),
+                    options=json.dumps(field_data.get('options', [])) if field_data.get('options') else None
+                )
+                self.session.add(field)
+            form_fields.append(field)
+        
+        fields_to_delete = [field for field in existing_fields if field.id not in incoming_field_ids]
+        
+        for field in fields_to_delete:
+            self.session.delete(field)
+        
+        self.session.commit()
+        return form_fields
+
+    def get_form(self, event_id: str) -> List[FormField]:
+        return self.session.query(FormField).filter_by(event_id=event_id).order_by(FormField.order).all()

@@ -2,6 +2,7 @@
 
 from dataclasses import asdict, dataclass
 from enum import Enum as PyEnum
+import json
 import uuid
 from typing import List, Optional
 
@@ -244,3 +245,37 @@ class BatchConfig(Base):
             "price": self.price,
             "price_configuration_id": self.price_configuration_id
         }
+
+@dataclass
+class FormField(Base):
+    __tablename__ = 'form_fields'
+
+    id: str = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()))
+    event_id: str = Column(String(36), ForeignKey('events.event_id'), nullable=False)
+    label: str = Column(String(255), nullable=False)
+    type: str = Column(String(50), nullable=False)
+    required: bool = Column(Boolean, default=False)
+    include: bool = Column(Boolean, default=True)
+    order: int = Column(Integer, default=0)
+    options: Optional[str] = Column(Text, nullable=True)
+
+    event = relationship("EventModel", back_populates="form_fields")
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "label": self.label,
+            "type": self.type,
+            "required": self.required,
+            "include": self.include,
+            "order": self.order,
+            "options": json.loads(self.options) if self.options else []
+        }
+
+# Atualização do relacionamento em EventModel
+EventModel.form_fields = relationship(
+    "FormField",
+    order_by=FormField.order,
+    back_populates="event",
+    cascade="all, delete-orphan"
+)

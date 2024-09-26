@@ -192,7 +192,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <FormIcon />,
       title: "Formulário de Inscrição",
-      component: <FormCard />,
+      component: <FormCard eventId={event_id!}/>,
       description:
         "Personalização do formulário que os participantes devem preencher ao se inscrever.",
       status: eventDetail?.stepper.form,
