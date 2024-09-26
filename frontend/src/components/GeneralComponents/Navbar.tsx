@@ -55,6 +55,10 @@ const Navbar: React.FC = () => {
     navigate("/configurar_perfil");
   };
 
+  const handleOrganizerPage = () => {
+    navigate("/seja_organizador");
+  };
+
   const toggleDrawer =
     (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
       if (
@@ -86,7 +90,7 @@ const Navbar: React.FC = () => {
         <ListItemButton onClick={handleInicio}>
           <ListItemText primary="Início" />
         </ListItemButton>
-        <ListItemButton>
+        <ListItemButton onClick={handleOrganizerPage}>
           <ListItemText primary="Seja Organizador" />
         </ListItemButton>
         <ListItemButton onClick={handleMyEvents}>
@@ -163,6 +167,7 @@ const Navbar: React.FC = () => {
             </Button>
             <Button
               sx={{ color: "#2D3748", textTransform: "none", fontSize: "1rem" }}
+              onClick={handleOrganizerPage}
             >
               Seja Organizador
             </Button>

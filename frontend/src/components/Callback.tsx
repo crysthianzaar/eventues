@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchAuthSession, signOut } from 'aws-amplify/auth';
 import axios from 'axios';
-import LoadingOverlay from './LoadingOverlay ';
+import LoadingOverlay from './LoadingOverlay';
 
 interface AuthResponse {
   status: string;

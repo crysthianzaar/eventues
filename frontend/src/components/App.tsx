@@ -16,6 +16,7 @@ import MyEvents from "./MyEvents";
 import OrganizatorEventDetail from "./OrganizatorEventDetails/OrganizatorEventDetail";
 import TermsOfService from "./GeneralComponents/TermsOfService";
 import PrivacyPolicy from "./GeneralComponents/PrivacyPolicy";
+import WhyChooseEventues from "./WhyChooseEventues";
 
 // Defina a interface para as props que o LayoutWithNavbar irá receber
 interface LayoutWithNavbarProps {
@@ -58,6 +59,7 @@ const App: React.FC = () => {
             <Route path="/login" element={<MyAuthenticator />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+            <Route path="/seja_organizador" element={<WhyChooseEventues />} />
             <Route path="/callback" element={<Callback />} />
             <Route path="/criar_evento" element={<ProtectedRoute element={<CreateEvent />} />} />
             <Route path="/meus_eventos" element={<ProtectedRoute element={<MyEvents />} />} />

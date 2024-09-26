@@ -16,7 +16,7 @@ import {
 } from "@mui/material";
 import { UploadFile, Delete } from "@mui/icons-material";
 import loadingGif from "../../assets/aquecendo.gif";
-import LoadingOverlay from "../LoadingOverlay ";
+import LoadingOverlay from "../LoadingOverlay";
 
 const colors = {
   primary: "#5A67D8",
