@@ -1,6 +1,7 @@
 import React, { ReactNode } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./GeneralComponents/Navbar";
+import NavbarBlog from "./Blog/NavbarBlog"; // Importa o NavbarBlog específico para o blog
 import Hero from "./GeneralComponents/Hero";
 import Filters from "./GeneralComponents/Filters";
 import Events from "./GeneralComponents/Events";
@@ -17,6 +18,7 @@ import OrganizatorEventDetail from "./OrganizatorEventDetails/OrganizatorEventDe
 import TermsOfService from "./GeneralComponents/TermsOfService";
 import PrivacyPolicy from "./GeneralComponents/PrivacyPolicy";
 import WhyChooseEventues from "./WhyChooseEventues";
+import EventuesConnect from "./Blog/EventuesConnect";
 
 // Defina a interface para as props que o LayoutWithNavbar irá receber
 interface LayoutWithNavbarProps {
@@ -25,12 +27,13 @@ interface LayoutWithNavbarProps {
 
 const LayoutWithNavbar: React.FC<LayoutWithNavbarProps> = ({ children }) => {
   const location = useLocation();
-
-  const hideNavbar = location.pathname.startsWith("/not_nav");
+  const isBlogRoute = location.pathname.startsWith("/blog");
 
   return (
     <>
-      {!hideNavbar && <Navbar />}
+      {!isBlogRoute && <Navbar />}
+      {isBlogRoute && <NavbarBlog />}
+      
       <Box sx={{ flexGrow: 1, minHeight: 'calc(100vh - 120px)' }}>
         {children}
       </Box>
@@ -60,6 +63,7 @@ const App: React.FC = () => {
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/seja_organizador" element={<WhyChooseEventues />} />
+            <Route path="/blog" element={<EventuesConnect />} />
             <Route path="/callback" element={<Callback />} />
             <Route path="/criar_evento" element={<ProtectedRoute element={<CreateEvent />} />} />
             <Route path="/meus_eventos" element={<ProtectedRoute element={<MyEvents />} />} />

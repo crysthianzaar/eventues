@@ -1,4 +1,4 @@
-// src/components/Navbar.tsx
+// src/components/NavbarBlog.tsx
 import React, { useState } from "react";
 import {
   AppBar,
@@ -11,122 +11,73 @@ import {
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  Menu,
-  MenuItem,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
   Home as HomeIcon,
-  PersonAdd as PersonAddIcon,
-  Event as EventIcon,
   ContactMail as ContactMailIcon,
   Article as ArticleIcon,
-  AddCircleOutline as AddCircleOutlineIcon,
-  Login as LoginIcon,
-  AccountCircle as AccountCircleIcon,
 } from "@mui/icons-material";
-import { useAuthenticator } from "@aws-amplify/ui-react";
 import { useNavigate } from "react-router-dom";
-import logo from "../../assets/logo.png";
-import { AuthUser } from "aws-amplify/auth";
+import logo from "../../assets/blog-logo.png";
 
-// Definição dos itens do menu com rótulo, ícone e ação de navegação
 interface MenuItemProps {
   label: string;
   path?: string;
   icon: React.ReactElement;
   action?: () => void;
   variant?: "contained" | "outlined" | "text"; // Tipo de botão
-  color?: "primary" | "secondary" | "success" | "error" | "info" | "warning"; // Cor do botão
+  color?: "primary" | "secondary" | "success" | "error" | "info" | "warning" | "inherit"; 
 }
 
-const Navbar: React.FC = () => {
-  const { signOut, user }: { signOut: () => void; user: AuthUser } =
-    useAuthenticator();
+const NavbarBlog: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const navigate = useNavigate();
 
   // Handlers de navegação
-  const handleLogin = () => {
-    navigate("/login");
-  };
-
-  const handleCreateEvent = () => {
-    navigate("/criar_evento");
-  };
-
-  const handleLogout = () => {
-    signOut();
-    navigate("/");
-  };
-
-  const handleInicio = () => {
-    navigate("/");
-  };
-
-  const handleMyEvents = () => {
-    navigate("/meus_eventos");
-  };
-
-  const handleBlog = () => {
+  const handleHome = () => {
     navigate("/blog");
   };
 
-  const handleAccountSettings = () => {
-    navigate("/minha_conta");
-    handleMenuClose();
+  const handleEventuesHome = () => {
+    navigate("/");
   };
 
-  const handleProfileSettings = () => {
-    navigate("/configurar_perfil");
-    handleMenuClose();
+  const handleContact = () => {
+    navigate("/blog/contact");
   };
 
-  const handleOrganizerPage = () => {
-    navigate("/seja_organizador");
+  const handleBlogHome = () => {
+    navigate("/blog");
   };
 
   // Definição dos itens do menu
   const menuItems: MenuItemProps[] = [
     {
-      label: "Início",
+      label: "Blog Home",
+      path: "/blog",
+      icon: <ArticleIcon />,
+      action: () => handleBlogHome(),
+      variant: "text",
+      color: "inherit",
+    },
+    {
+      label: "Eventues Home",
       path: "/",
       icon: <HomeIcon />,
-      action: () => handleInicio(),
-    },
-    {
-      label: "Seja Organizador",
-      path: "/seja_organizador",
-      icon: <PersonAddIcon />,
-      action: () => handleOrganizerPage(),
-    },
-    {
-      label: "Meus Eventos",
-      path: "/meus_eventos",
-      icon: <EventIcon />,
-      action: () => handleMyEvents(),
+      action: () => handleEventuesHome(),
+      variant: "text",
+      color: "inherit",
     },
     {
       label: "Contato",
-      path: "/contato",
+      path: "/blog/contact",
       icon: <ContactMailIcon />,
-      action: () => navigate("/contato"),
-    },
-    {
-      label: "Blog",
-      path: "/blog",
-      icon: <ArticleIcon />,
-      action: () => handleBlog(),
-    },
-    {
-      label: "Criar Evento",
-      path: "/criar_evento",
-      icon: <AddCircleOutlineIcon />,
-      action: () => handleCreateEvent(),
-      variant: "contained", // Botão preenchido
-      color: "success", // Cor verde
-    },
+      action: () => handleContact(),
+      variant: "text",
+      color: "inherit",
+    }
   ];
 
   // Handlers para o Drawer
@@ -142,7 +93,7 @@ const Navbar: React.FC = () => {
       setDrawerOpen(open);
     };
 
-  // Handlers para o Menu de Perfil
+  // Handlers para o Menu de Perfil (opcional, se necessário)
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
   };
@@ -157,7 +108,6 @@ const Navbar: React.FC = () => {
       sx={{
         width: 250,
         padding: 2,
-        // Reverter para fundo branco
         backgroundColor: "#ffffff", // Fundo branco
         height: "100%", // Garante que o fundo cubra toda a altura
         color: "#000000", // Texto preto por padrão
@@ -205,7 +155,8 @@ const Navbar: React.FC = () => {
             />
           </ListItemButton>
         ))}
-        {/* Adicionar item de login se o usuário não estiver logado */}
+        {/* Adicionar item de login ou perfil se necessário */}
+        {/* Por exemplo:
         {!user && (
           <ListItemButton onClick={handleLogin} sx={{ color: "#000000" }}>
             <ListItemIcon sx={{ color: "#000000" }}>
@@ -214,6 +165,7 @@ const Navbar: React.FC = () => {
             <ListItemText primary="Entrar" />
           </ListItemButton>
         )}
+        */}
       </List>
     </Box>
   );
@@ -223,8 +175,10 @@ const Navbar: React.FC = () => {
       <AppBar
         position="static"
         sx={{
-          backgroundColor: "#ffffff",
-          borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
+          backgroundColor: "#5A67D8", // Cor de fundo similar ao Navbar.tsx
+          boxShadow: "0px 4px 6px rgba(0, 0, 0, 0.1)", // Sombra sutil
+          borderBottom: "1px solid #e2e8f0", // Borda inferior
+          transition: "box-shadow 0.3s ease-in-out, border-bottom 0.3s ease-in-out",
         }}
       >
         <Toolbar
@@ -234,7 +188,7 @@ const Navbar: React.FC = () => {
             alignItems: "center",
             position: "relative",
             paddingX: { xs: 2, md: 10 },
-            height: "64px",
+            height: "64px", // Altura padrão do AppBar
           }}
         >
           {/* Esquerda: Ícone do Menu no Mobile */}
@@ -252,8 +206,8 @@ const Navbar: React.FC = () => {
           <Box
             component="img"
             src={logo}
-            alt="Eventues Logo"
-            onClick={handleInicio}
+            alt="Eventues Blog Logo"
+            onClick={handleBlogHome}
             sx={{
               height: "50px",
               cursor: "pointer",
@@ -286,18 +240,20 @@ const Navbar: React.FC = () => {
                   borderRadius: "20px", // Bordas mais arredondadas
                   textTransform: "none",
                   fontSize: "1rem",
-                  color: item.variant === "contained" ? "#fff" : "#2D3748", // Texto branco se contido
+                  color: item.variant === "contained" ? "#fff" : "#ffffff", // Texto branco se contido, ou branco por padrão
                   backgroundColor:
-                    item.variant === "contained" ? "#68D391" : "transparent", // Verde um pouco mais escuro para contido
-                  ":hover": item.variant === "contained" ? {
-                    transform: "scale(1.05)",
-                    backgroundColor: "#4CAF50", // Verde mais escuro no hover
-                    color: "#fff",
-                  } : {
-                    transform: "scale(1.05)",
-                    backgroundColor: "#e2e8f0", // Cinza claro no hover
-                    color: "#2D3748",
-                  },
+                    item.variant === "contained" ? "#68D391" : "transparent", // Verde para contido
+                  ":hover": item.variant === "contained"
+                    ? {
+                        transform: "scale(1.05)",
+                        backgroundColor: "#4CAF50", // Verde mais escuro no hover
+                        color: "#fff",
+                      }
+                    : {
+                        transform: "scale(1.05)",
+                        backgroundColor: "#e2e8f0", // Cinza claro no hover
+                        color: "#ffffff",
+                      },
                   transition: "transform 0.2s",
                 }}
                 onClick={item.action}
@@ -306,7 +262,8 @@ const Navbar: React.FC = () => {
               </Button>
             ))}
 
-            {/* Botão de Entrar ou Perfil */}
+            {/* Botão de Perfil ou Login (opcional, se necessário) */}
+            {/* Por exemplo:
             {user ? (
               <>
                 <Button
@@ -335,11 +292,11 @@ const Navbar: React.FC = () => {
                   onClose={handleMenuClose}
                   keepMounted
                 >
-                  <MenuItem onClick={handleAccountSettings}>Minha Conta</MenuItem>
-                  <MenuItem onClick={handleProfileSettings}>
-                    Configurar Perfil
+                  <MenuItem onClick={() => navigate("/profile")}>Minha Conta</MenuItem>
+                  <MenuItem onClick={() => navigate("/settings")}>
+                    Configurações
                   </MenuItem>
-                  <MenuItem onClick={handleLogout}>Sair</MenuItem>
+                  <MenuItem onClick={() => signOut()}>Sair</MenuItem>
                 </Menu>
               </>
             ) : (
@@ -357,11 +314,12 @@ const Navbar: React.FC = () => {
                     backgroundColor: "rgba(90, 55, 216, 0.1)",
                   },
                 }}
-                onClick={handleLogin}
+                onClick={() => navigate("/login")}
               >
                 Entrar
               </Button>
             )}
+            */}
           </Box>
         </Toolbar>
       </AppBar>
@@ -374,4 +332,4 @@ const Navbar: React.FC = () => {
   );
 };
 
-export default Navbar;
+export default NavbarBlog;
