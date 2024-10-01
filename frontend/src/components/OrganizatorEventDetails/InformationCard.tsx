@@ -1,19 +1,79 @@
+// src/components/InformationCard.jsx
+
 import React, { useState, useEffect } from 'react';
-import { Box, Typography, TextField, Grid, Button, MenuItem, CircularProgress } from '@mui/material';
+import {
+  Box,
+  Typography,
+  TextField,
+  Grid,
+  Button,
+  MenuItem,
+  CircularProgress,
+  Snackbar,
+  Alert,
+} from '@mui/material';
+import SaveIcon from '@mui/icons-material/Save';
+import { styled } from '@mui/system';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import axios from 'axios';
 import { useParams } from 'react-router-dom';
 
+// Define the color palette
 const colors = {
-  primary: "#5A67D8",
-  green: "#48BB78",
-  grayDark: "#2D3748",
+  primary: "#5A67D8",      // Blue
+  secondary: "#68D391",    // Green
+  lightBlue: "#63B3ED",    // Light Blue
   grayLight: "#F7FAFC",
+  grayDark: "#2D3748",
   white: "#FFFFFF",
   red: "#E53E3E",
 };
 
+// Styled Components
+const FormContainer = styled(Box)(({ theme }) => ({
+  padding: theme.spacing(2),
+  backgroundColor: colors.white,
+  borderRadius: '8px',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(1),
+  },
+}));
+
+const SectionHeader = styled(Typography)(({ theme }) => ({
+  color: colors.primary,
+  fontWeight: 'bold',
+  marginBottom: theme.spacing(2),
+  [theme.breakpoints.down('sm')]: {
+    marginBottom: theme.spacing(1),
+  },
+}));
+
+const SaveButton = styled(Button)(({ theme }) => ({
+  backgroundColor: colors.secondary,
+  color: '#fff',
+  '&:hover': {
+    backgroundColor: '#56c078', // Darker Green
+  },
+  [theme.breakpoints.down('sm')]: {
+    width: '100%',
+  },
+}));
+
+const CancelButton = styled(Button)(({ theme }) => ({
+  backgroundColor: colors.red,
+  color: '#fff',
+  '&:hover': {
+    backgroundColor: '#c53030', // Darker Red
+  },
+  [theme.breakpoints.down('sm')]: {
+    width: '100%',
+    marginTop: theme.spacing(1),
+  },
+}));
+
+// Quill Editor Modules and Formats
 const modules = {
   toolbar: [
     [{ header: [1, 2, false] }],
@@ -29,6 +89,7 @@ const formats = [
   'header', 'bold', 'italic', 'underline', 'list', 'bullet', 'align', 'link', 'image', 'color'
 ];
 
+// Interfaces
 interface EventDetail {
   name: string;
   category: string;
@@ -46,7 +107,7 @@ interface EventDetail {
   event_status: string;
   event_type: string;
   event_category: string;
-  event_description?: string; // Adicionado o campo event_description
+  event_description?: string;
 }
 
 interface Estado {
@@ -57,15 +118,17 @@ interface Estado {
 
 const initialDescriptionTemplate = `
 <h2>Informações do Evento</h2>
-<li><b>Introdução:</b> Fale um pouco sobre o que é o seu evento</li>
-<li><b>Local:</b> Forneça detalhes sobre onde será o evento e como chegar</li>
-<li><b>Cronograma:</b> Especifique horários importantes (início, intervalos, fim)</li>
-<li><b>Contato:</b> Informe como os participantes podem tirar dúvidas</li>
-<li><b>Premiação:</b> Detalhe sobre prêmios ou brindes que serão oferecidos</li>
-<li><b>Entregas de kit:</b> Forneça informações sobre locais e horários de entrega de kits</li>
-<li><b>Categoria:</b> Enumere as categorias participantes do evento</li>
-<li><b>Viradas de lote:</b> Informações sobre as datas e preços de lotes de ingressos</li>
-<li><b>Informações adicionais:</b> Outras informações importantes</li>
+<ul>
+  <li><b>Introdução:</b> Fale um pouco sobre o que é o seu evento</li>
+  <li><b>Local:</b> Forneça detalhes sobre onde será o evento e como chegar</li>
+  <li><b>Cronograma:</b> Especifique horários importantes (início, intervalos, fim)</li>
+  <li><b>Contato:</b> Informe como os participantes podem tirar dúvidas</li>
+  <li><b>Premiação:</b> Detalhe sobre prêmios ou brindes que serão oferecidos</li>
+  <li><b>Entregas de kit:</b> Forneça informações sobre locais e horários de entrega de kits</li>
+  <li><b>Categoria:</b> Enumere as categorias participantes do evento</li>
+  <li><b>Viradas de lote:</b> Informações sobre as datas e preços de lotes de ingressos</li>
+  <li><b>Informações adicionais:</b> Outras informações importantes</li>
+</ul>
 `;
 
 const InformationCard: React.FC = () => {
@@ -86,14 +149,19 @@ const InformationCard: React.FC = () => {
     organizationContact: '',
     eventType: '',
     eventStatus: '',
-    eventDescription: initialDescriptionTemplate, // Adicionado o campo eventDescription
+    eventDescription: initialDescriptionTemplate,
   });
   const [errors, setErrors] = useState<string[]>([]);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [key, setKey] = useState(0); // Estado para forçar a renderização
+  const [key, setKey] = useState(0); // To force re-render
+
+  // Snackbar States
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   useEffect(() => {
     const fetchEventDetail = async () => {
@@ -116,7 +184,7 @@ const InformationCard: React.FC = () => {
           organizationContact: data.organization_contact,
           eventType: data.event_type,
           eventStatus: data.event_status,
-          eventDescription: data.event_description || initialDescriptionTemplate, // Se o campo for nulo, usa o template
+          eventDescription: data.event_description || initialDescriptionTemplate,
         });
       } catch (err) {
         setError("Erro ao carregar detalhes do evento.");
@@ -127,7 +195,7 @@ const InformationCard: React.FC = () => {
 
     fetchEventDetail();
 
-    // Carregar estados do IBGE
+    // Load Brazilian states from IBGE
     axios.get('https://servicodados.ibge.gov.br/api/v1/localidades/estados')
       .then(response => {
         setEstados(response.data as Estado[]);
@@ -177,17 +245,24 @@ const InformationCard: React.FC = () => {
           organization_contact: formData.organizationContact,
           event_type: formData.eventType,
           event_status: formData.eventStatus,
-          event_description: formData.eventDescription, // Adicionado para enviar a descrição do evento
+          event_description: formData.eventDescription,
         });
 
         setSubmitting(false);
         setKey(prevKey => prevKey + 1);
 
-        // Scroll para o topo
+        setSnackbarMessage('Detalhes do evento atualizados com sucesso!');
+        setSnackbarSeverity('success');
+        setSnackbarOpen(true);
+
+        // Scroll to top
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } catch (err) {
         setSubmitting(false);
         console.error("Erro ao enviar formulário:", err);
+        setSnackbarMessage('Erro ao atualizar detalhes do evento.');
+        setSnackbarSeverity('error');
+        setSnackbarOpen(true);
       }
     }
   };
@@ -207,23 +282,30 @@ const InformationCard: React.FC = () => {
   };
 
   if (loading) {
-    return <Typography>Carregando...</Typography>;
+    return (
+      <Box>
+        <Typography variant="h6" color={colors.primary}>Carregando...</Typography>
+      </Box>
+    );
   }
 
   if (error) {
-    return <Typography color="error">{error}</Typography>;
+    return (
+      <Box>
+        <Typography variant="h6" color="error">{error}</Typography>
+      </Box>
+    );
   }
 
   return (
-    <Box sx={{ padding: { xs: '20px', md: '40px' }, maxWidth: { xs: '100%', md: '1400px' }, margin: '0 auto' }}>
+    <Box>
       <Grid container spacing={6}>
+        {/* Informações Básicas */}
         <Grid item xs={12} md={6}>
-          <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
-            Informações Básicas
-          </Typography>
+          <SectionHeader variant="h6">Informações Básicas</SectionHeader>
           <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '20px' }}>
-        <span style={{ color: colors.red }}>*</span> As informações podem ser editadas a qualquer momento.
-      </Typography>
+            <span style={{ color: colors.red }}>*</span> As informações podem ser editadas a qualquer momento.
+          </Typography>
           <TextField
             label="Nome do Evento"
             fullWidth
@@ -312,10 +394,9 @@ const InformationCard: React.FC = () => {
           </Grid>
         </Grid>
 
+        {/* Localização do Evento */}
         <Grid item xs={12}>
-          <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
-            Onde o evento vai acontecer?
-          </Typography>
+          <SectionHeader variant="h6">Onde o evento vai acontecer?</SectionHeader>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -387,10 +468,9 @@ const InformationCard: React.FC = () => {
           </Grid>
         </Grid>
 
+        {/* Descrição do Evento */}
         <Grid item xs={12}>
-          <Typography variant="h6" sx={{ marginBottom: '20px', color: colors.primary, fontWeight: 'bold' }}>
-            Descrição do Evento
-          </Typography>
+          <SectionHeader variant="h6">Descrição do Evento</SectionHeader>
           <ReactQuill
             value={formData.eventDescription}
             onChange={handleDescriptionChange}
@@ -402,21 +482,29 @@ const InformationCard: React.FC = () => {
         </Grid>
       </Grid>
 
+      {/* Botão de Salvar */}
       <Box sx={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-        <Button
+        <SaveButton
           variant="contained"
           onClick={handleSubmit}
-          sx={{
-            backgroundColor: colors.green,
-            color: '#fff',
-            padding: '10px 20px',
-            "&:hover": { backgroundColor: "#38A169" },
-          }}
+          startIcon={<SaveIcon />}
           disabled={submitting}
         >
           {submitting ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : 'Salvar'}
-        </Button>
+        </SaveButton>
       </Box>
+
+      {/* Snackbar para Feedback */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={6000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };
