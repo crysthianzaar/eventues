@@ -23,8 +23,11 @@ const CalculatorCard = styled(Card)(({ theme }) => ({
   background: 'linear-gradient(135deg, #EDF2F7 0%, #FFFFFF 100%)',
   borderRadius: '16px',
   boxShadow: '0 8px 24px rgba(0,0,0,0.1)',
-  padding: theme.spacing(4),
+  padding: theme.spacing(2),
   transition: 'transform 0.3s',
+  [theme.breakpoints.up('md')]: {
+    padding: theme.spacing(4), // Aumenta o padding em telas médias
+  },
   '&:hover': {
     transform: 'translateY(-5px)',
   },
@@ -38,6 +41,7 @@ const EconomyCalculator: React.FC = () => {
   const [participantPaymentPerTicket, setParticipantPaymentPerTicket] = useState<number>(0);
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
+  const isMediumScreen = useMediaQuery(theme.breakpoints.up('md'));
 
   useEffect(() => {
     const calculateSavings = (price: number, quantity: number): { totalSavings: number; participantPayment: number } => {
@@ -73,16 +77,15 @@ const EconomyCalculator: React.FC = () => {
   return (
     <CalculatorCard>
       <CardContent>
-        
         {/* Breve descrição */}
         <Typography variant="body2" sx={{ mb: 4, color: '#4A5568' }}>
-          Insira o valor da inscrição e a quantidade de ingressos vendidos. Escolha se deseja absorver a taxa ou repassá-la para os participantes.
+          Insira o valor e a quantidade de inscrições que espera ter. Escolha se deseja absorver a taxa ou repassá-la para os participantes.
           A calculadora mostrará a economia que você ou seus participantes podem obter ao utilizar a Eventues.
         </Typography>
 
-        <Grid container spacing={4}>
+        <Grid container spacing={isSmallScreen ? 2 : 4}>
           {/* Input Valor da Inscrição */}
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12}>
             <TextField
               label="Valor da Inscrição (R$)"
               type="number"
@@ -101,7 +104,7 @@ const EconomyCalculator: React.FC = () => {
           </Grid>
 
           {/* Input Quantidade de Ingressos */}
-          <Grid item xs={12} sm={6}>
+          <Grid item xs={12}>
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               <PeopleIcon sx={{ mr: 2, color: '#5A67D8' }} />
               <Box sx={{ width: '100%' }}>
@@ -148,7 +151,7 @@ const EconomyCalculator: React.FC = () => {
               sx={{
                 background: 'linear-gradient(135deg, #E6FFFA 0%, #B2F5EA 100%)',
                 borderRadius: '12px',
-                padding: 3,
+                padding: isSmallScreen ? 2 : 3,
                 boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
                 display: 'flex',
                 flexDirection: isSmallScreen ? 'column' : 'row',

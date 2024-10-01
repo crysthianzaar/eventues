@@ -12,10 +12,15 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
+  Stepper,
+  Step,
+  StepLabel,
+  useMediaQuery,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import logo from "../assets/icon_eventues.png";
 
 // Importação dos ícones para as categorias de Organizadores
 import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
@@ -42,6 +47,9 @@ const WhyChooseEventues: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const theme = useTheme();
   const navigate = useNavigate(); // Inicialização do navigate
+
+  // Detecta se a tela é pequena (mobile)
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const handleTabChange = (event: React.SyntheticEvent, newValue: number) => {
     setActiveTab(newValue);
@@ -306,85 +314,9 @@ const WhyChooseEventues: React.FC = () => {
     });
   };
 
-  return (
-    <Container maxWidth="lg">
-      {/* Título da página */}
-      <Box
-        sx={{
-          padding: { xs: '40px 10px', sm: '60px 20px' },
-          backgroundColor: '#EDF2F7',
-          textAlign: 'center',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-          marginTop: '40px',
-        }}
-      >
-        <Typography
-          variant="h4"
-          component="h2"
-          sx={{ mb: 3, color: '#5A67D8', fontWeight: 'bold' }}
-        >
-          Por que escolher a Eventues?
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            maxWidth: 800,
-            margin: '0 auto',
-            color: '#4A5568',
-            fontSize: { xs: '1rem', sm: '1.125rem' },
-          }}
-        >
-          Seja um Organizador de Sucesso com a Eventues. Transforme a maneira como você gerencia seus eventos. Com a Eventues, você tem acesso a uma plataforma completa, eficiente e econômica, desenhada para atender todas as necessidades do organizador moderno. Foque no que realmente importa: criar experiências inesquecíveis para seus participantes.
-        </Typography>
-
-        {/* Adicionando os botões abaixo da descrição */}
-        <Box
-          sx={{
-            marginTop: 4,
-            display: 'flex',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: 2,
-          }}
-        >
-          <Button
-            variant="contained"
-            color="primary"
-            onClick={() => navigate('/criar_evento')} // Navegação programática
-            sx={{
-              px: 5,
-              py: 1.5,
-              backgroundColor: '#5A67D8',
-              '&:hover': { backgroundColor: '#434190' },
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            }}
-          >
-            Criar Evento
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => navigate('/contato')} // Navegação programática
-            sx={{
-              px: 5,
-              py: 1.5,
-              borderColor: '#5A67D8',
-              color: '#5A67D8',
-              '&:hover': {
-                borderColor: '#434190',
-                color: '#434190',
-              },
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            }}
-          >
-            Fale Conosco
-          </Button>
-        </Box>
-      </Box>
-
+  // Component for Desktop and Tablet View
+  const DesktopView = () => (
+    <>
       {/* Tabs para alternar entre as vantagens */}
       <Box
         sx={{
@@ -624,6 +556,200 @@ const WhyChooseEventues: React.FC = () => {
           </Box>
         </Fade>
       </Box>
+    </>
+  );
+
+  // Component for Mobile View
+  const MobileView = () => {
+    // Define steps for Stepper
+    const steps = [
+      {
+        label: 'Vantagens para o Organizador',
+        content: advantages.organizers.map((categoryObj, index) => (
+          <Box key={index} sx={{ mb: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              {organizerCategoryIcons[categoryObj.category] || <InfoIcon sx={{ mr: 2, color: '#5A67D8' }} />}
+              <Typography variant="h6" sx={{ color: '#5A67D8', fontWeight: 'bold' }}>
+                {categoryObj.category}
+              </Typography>
+            </Box>
+            {categoryObj.advantages.map((adv, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  backgroundColor: '#F7FAFC',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  mb: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <CheckCircleIcon color="primary" sx={{ mr: 2 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    {adv.title}
+                  </Typography>
+                </Box>
+                {adv.title === 'Calculadora de Economia' ? (
+                  <EconomyCalculator />
+                ) : (
+                  <Typography variant="body2">
+                    {adv.title === 'Ferramenta de IA para Resultados' ? (
+                      <Box>{formatDescription(adv.description)}</Box>
+                    ) : (
+                      adv.description
+                    )}
+                  </Typography>
+                )}
+              </Box>
+            ))}
+          </Box>
+        )),
+      },
+      {
+        label: 'Vantagens para os Participantes',
+        content: advantages.participants.map((categoryObj, index) => (
+          <Box key={index} sx={{ mb: 4 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+              {participantCategoryIcons[categoryObj.category] || <InfoIcon sx={{ mr: 2, color: '#5A67D8' }} />}
+              <Typography variant="h6" sx={{ color: '#5A67D8', fontWeight: 'bold' }}>
+                {categoryObj.category}
+              </Typography>
+            </Box>
+            {categoryObj.advantages.map((adv, idx) => (
+              <Box
+                key={idx}
+                sx={{
+                  backgroundColor: '#F7FAFC',
+                  borderRadius: '8px',
+                  padding: '16px',
+                  mb: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                }}
+              >
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <CheckCircleIcon color="primary" sx={{ mr: 2 }} />
+                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                    {adv.title}
+                  </Typography>
+                </Box>
+                <Typography variant="body2">{adv.description}</Typography>
+              </Box>
+            ))}
+          </Box>
+        )),
+      },
+    ];
+
+    return (
+      <Box
+        sx={{
+          backgroundColor: '#FFF',
+          padding: { xs: '20px 10px', sm: '40px 20px' },
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          marginTop: '40px',
+        }}
+      >
+        <Stepper orientation="vertical" nonLinear activeStep={-1}>
+          {steps.map((step, index) => (
+            <Step key={index}>
+              <StepLabel sx={{ fontWeight: 'bold', color: '#5A67D8' }}>{step.label}</StepLabel>
+              <Box sx={{ mt: 2 }}>{step.content}</Box>
+            </Step>
+          ))}
+        </Stepper>
+      </Box>
+    );
+  };
+
+  return (
+    <Container maxWidth="lg">
+      {/* Título da página */}
+
+      <Box
+        sx={{
+          padding: { xs: '40px 10px', sm: '60px 20px' },
+          backgroundColor: '#EDF2F7',
+          textAlign: 'center',
+          borderRadius: '12px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+          marginTop: '40px',
+        }}
+      >
+        <img
+          src={logo}
+          alt="Eventues Icon"
+          style={{ width: '100px', marginBottom: '20px' }}
+        />
+        <Typography
+          variant="h4"
+          component="h2"
+          sx={{ mb: 3, color: '#5A67D8', fontWeight: 'bold' }}
+        >
+          Por que escolher a Eventues?
+        </Typography>
+        <Typography
+          variant="body1"
+          sx={{
+            maxWidth: 800,
+            margin: '0 auto',
+            color: '#4A5568',
+            fontSize: { xs: '1rem', sm: '1.125rem' },
+          }}
+        >
+          Seja um Organizador de Sucesso com a Eventues. Transforme a maneira como você gerencia seus eventos. Com a Eventues, você tem acesso a uma plataforma completa, eficiente e econômica, desenhada para atender todas as necessidades do organizador moderno. Foque no que realmente importa: criar experiências inesquecíveis para seus participantes.
+        </Typography>
+
+        {/* Adicionando os botões abaixo da descrição */}
+        <Box
+          sx={{
+            marginTop: 4,
+            display: 'flex',
+            justifyContent: 'center',
+            flexWrap: 'wrap',
+            gap: 2,
+          }}
+        >
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => navigate('/criar_evento')} // Navegação programática
+            sx={{
+              px: 5,
+              py: 1.5,
+              backgroundColor: '#5A67D8',
+              '&:hover': { backgroundColor: '#434190' },
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            }}
+          >
+            Criar Evento
+          </Button>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => navigate('/contato')} // Navegação programática
+            sx={{
+              px: 5,
+              py: 1.5,
+              borderColor: '#5A67D8',
+              color: '#5A67D8',
+              '&:hover': {
+                borderColor: '#434190',
+                color: '#434190',
+              },
+              borderRadius: '8px',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+            }}
+          >
+            Fale Conosco
+          </Button>
+        </Box>
+      </Box>
+
+      {/* Conditionally render Desktop or Mobile view */}
+      {isMobile ? <MobileView /> : <DesktopView />}
 
       {/* Call to Action */}
       <Box
