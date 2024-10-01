@@ -1,3 +1,4 @@
+// src/components/CreateEventStepper.tsx
 import * as React from 'react';
 import Box from '@mui/material/Box';
 import Stepper from '@mui/material/Stepper';
@@ -233,26 +234,37 @@ export default function CreateEventStepper() {
     setErrors([]);
   };
 
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getToday = (): string => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (`0${today.getMonth() + 1}`).slice(-2);
+    const day = (`0${today.getDate()}`).slice(-2);
+    return `${year}-${month}-${day}`;
+  };
+
   const getStepContent = (step: number) => {
     switch (step) {
       case 0:
         return (
           <Stack spacing={2}>
             <TextField
-              label="Nome do evento"
+              label="Nome do Evento"
               variant="outlined"
               fullWidth
               required
               name="nomeEvento"
               value={formValues.nomeEvento}
               onChange={handleChange}
+              // Alteração para prevenir autocomplete
+              autoComplete="new-event-name"
               error={!!errors.find((error) => error.includes('Nome do evento'))}
               helperText={errors.find((error) => error.includes('Nome do evento'))}
             />
             <Grid container spacing={0}>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Data de início"
+                  label="Data de Início"
                   type="date"
                   InputLabelProps={{ shrink: true }}
                   fullWidth
@@ -260,13 +272,19 @@ export default function CreateEventStepper() {
                   name="dataInicio"
                   value={formValues.dataInicio}
                   onChange={handleChange}
+                  // Restrição para não permitir datas anteriores a hoje
+                  InputProps={{
+                    inputProps: { min: getToday() }
+                  }}
+                  // Alteração para prevenir autocomplete
+                  autoComplete="new-start-date"
                   error={!!errors.find((error) => error.includes('Data de início'))}
                   helperText={errors.find((error) => error.includes('Data de início'))}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <TextField
-                  label="Data de término"
+                  label="Data de Término"
                   type="date"
                   InputLabelProps={{ shrink: true }}
                   fullWidth
@@ -274,10 +292,12 @@ export default function CreateEventStepper() {
                   name="dataTermino"
                   value={formValues.dataTermino}
                   onChange={handleChange}
-                  // Definindo o valor mínimo como a data de início
+                  // Restrição para não permitir datas anteriores à data de início ou hoje
                   InputProps={{
-                    inputProps: { min: formValues.dataInicio }
+                    inputProps: { min: formValues.dataInicio || getToday() }
                   }}
+                  // Alteração para prevenir autocomplete
+                  autoComplete="new-end-date"
                   error={!!errors.find((error) => error.includes('Data de término'))}
                   helperText={errors.find((error) => error.includes('Data de término'))}
                 />
@@ -297,6 +317,8 @@ export default function CreateEventStepper() {
               name="event_type"
               value={formValues.event_type}
               onChange={handleChange}
+              // Alteração para prevenir autocomplete
+              autoComplete="new-event-type"
               error={!!errors.find((error) => error.includes('Tipo de evento'))}
               helperText={errors.find((error) => error.includes('Tipo de evento'))}
             >
@@ -307,13 +329,15 @@ export default function CreateEventStepper() {
 
             <TextField
               select
-              label="Categoria do evento"
+              label="Categoria do Evento"
               variant="outlined"
               fullWidth
               required
               name="categoria"
               value={formValues.categoria}
               onChange={handleChange}
+              // Alteração para prevenir autocomplete
+              autoComplete="new-categoria"
               error={!!errors.find((error) => error.includes('Categoria'))}
               helperText={errors.find((error) => error.includes('Categoria'))}
             >
@@ -338,6 +362,7 @@ export default function CreateEventStepper() {
                   name="estado"
                   value={formValues.estado}
                   onChange={handleEstadoChange}
+                  autoComplete="new-estado"
                   error={!!errors.find((error) => error.includes('Estado'))}
                   helperText={errors.find((error) => error.includes('Estado'))}
                 >
@@ -358,7 +383,8 @@ export default function CreateEventStepper() {
                   value={formValues.cidade}
                   onChange={handleChange}
                   disabled={!formValues.estado}
-                  autoComplete="off" // Desativa o autocomplete para a cidade
+                  // Alteração para prevenir autocomplete
+                  autoComplete="new-cidade"
                   error={!!errors.find((error) => error.includes('Cidade'))}
                   helperText={errors.find((error) => error.includes('Cidade'))}
                 >
@@ -372,14 +398,15 @@ export default function CreateEventStepper() {
             </Grid>
 
             <TextField
-              label="Nome do organizador"
+              label="Nome do Organizador"
               variant="outlined"
               fullWidth
               required
               name="nomeOrganizador"
               value={formValues.nomeOrganizador}
               onChange={handleChange}
-              autoComplete="off" // Desativa o autocomplete para o nome do organizador
+              // Alteração para prevenir autocomplete
+              autoComplete="new-nome-organizador"
               error={!!errors.find((error) => error.includes('Nome do organizador'))}
               helperText={errors.find((error) => error.includes('Nome do organizador'))}
             />
@@ -391,7 +418,8 @@ export default function CreateEventStepper() {
               name="telefone"
               value={formValues.telefone}
               onChange={handleChange}
-              autoComplete="off" // Desativa o autocomplete para o telefone
+              // Alteração para prevenir autocomplete
+              autoComplete="new-telefone"
               error={!!errors.find((error) => error.includes('Telefone'))}
               helperText={errors.find((error) => error.includes('Telefone'))}
             />

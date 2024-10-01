@@ -131,7 +131,7 @@ const initialDescriptionTemplate = `
 </ul>
 `;
 
-const InformationCard: React.FC = () => {
+const InformationCard = () => {
   const { event_id } = useParams<{ event_id: string }>();
   const [formData, setFormData] = useState({
     eventName: '',
@@ -219,6 +219,15 @@ const InformationCard: React.FC = () => {
     if (!formData.organizationName) newErrors.push('Nome do organizador é obrigatório.');
     if (!formData.organizationContact) newErrors.push('Contato do organizador é obrigatório.');
 
+    // Validação das datas
+    if (formData.startDate && formData.endDate) {
+      const startDate = new Date(formData.startDate);
+      const endDate = new Date(formData.endDate);
+      if (endDate < startDate) {
+        newErrors.push('A data de término não pode ser anterior à data de início.');
+      }
+    }
+
     setErrors(newErrors);
 
     return newErrors.length === 0;
@@ -281,6 +290,15 @@ const InformationCard: React.FC = () => {
     setFormData({ ...formData, eventDescription: value });
   };
 
+  // Helper function to get today's date in YYYY-MM-DD format
+  const getToday = (): string => {
+    const today = new Date();
+    const year = today.getFullYear();
+    const month = (`0${today.getMonth() + 1}`).slice(-2);
+    const day = (`0${today.getDate()}`).slice(-2);
+    return `${year}-${month}-${day}`;
+  };
+
   if (loading) {
     return (
       <Box>
@@ -314,7 +332,8 @@ const InformationCard: React.FC = () => {
             value={formData.eventName}
             onChange={handleInputChange}
             sx={{ marginBottom: '20px' }}
-            autoComplete="off"
+            // Alteração para prevenir autocomplete
+            autoComplete="new-event-name"
             error={!!errors.find((error) => error.includes('Nome do evento'))}
             helperText={errors.find((error) => error.includes('Nome do evento'))}
           />
@@ -326,7 +345,8 @@ const InformationCard: React.FC = () => {
             value={formData.eventCategory}
             onChange={handleInputChange}
             sx={{ marginBottom: '20px' }}
-            autoComplete="off"
+            // Alteração para prevenir autocomplete
+            autoComplete="new-event-category"
             error={!!errors.find((error) => error.includes('Categoria do evento'))}
             helperText={errors.find((error) => error.includes('Categoria do evento'))}
           />
@@ -341,7 +361,13 @@ const InformationCard: React.FC = () => {
                 value={formData.startDate}
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
-                autoComplete="off"
+                sx={{ marginBottom: '20px' }}
+                // Restringe a data mínima para hoje
+                InputProps={{
+                  inputProps: { min: getToday() }
+                }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-start-date"
                 error={!!errors.find((error) => error.includes('Data de início'))}
                 helperText={errors.find((error) => error.includes('Data de início'))}
               />
@@ -356,7 +382,9 @@ const InformationCard: React.FC = () => {
                 value={formData.startTime}
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
-                autoComplete="off"
+                sx={{ marginBottom: '20px' }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-start-time"
                 error={!!errors.find((error) => error.includes('Hora de início'))}
                 helperText={errors.find((error) => error.includes('Hora de início'))}
               />
@@ -371,7 +399,13 @@ const InformationCard: React.FC = () => {
                 value={formData.endDate}
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
-                autoComplete="off"
+                sx={{ marginBottom: '20px' }}
+                // Restringe a data mínima para a data de início ou hoje
+                InputProps={{
+                  inputProps: { min: formData.startDate || getToday() }
+                }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-end-date"
                 error={!!errors.find((error) => error.includes('Data de término'))}
                 helperText={errors.find((error) => error.includes('Data de término'))}
               />
@@ -386,7 +420,9 @@ const InformationCard: React.FC = () => {
                 value={formData.endTime}
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
-                autoComplete="off"
+                sx={{ marginBottom: '20px' }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-end-time"
                 error={!!errors.find((error) => error.includes('Hora de término'))}
                 helperText={errors.find((error) => error.includes('Hora de término'))}
               />
@@ -407,7 +443,9 @@ const InformationCard: React.FC = () => {
                 name="state"
                 value={formData.state}
                 onChange={handleEstadoChange}
-                autoComplete="off"
+                sx={{ marginBottom: '20px' }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-state"
                 error={!!errors.find((error) => error.includes('Estado'))}
                 helperText={errors.find((error) => error.includes('Estado'))}
               >
@@ -426,7 +464,9 @@ const InformationCard: React.FC = () => {
                 name="city"
                 value={formData.city}
                 onChange={handleInputChange}
-                autoComplete="off"
+                sx={{ marginBottom: '20px' }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-city"
                 error={!!errors.find((error) => error.includes('Cidade'))}
                 helperText={errors.find((error) => error.includes('Cidade'))}
               />
@@ -439,6 +479,9 @@ const InformationCard: React.FC = () => {
                 name="address"
                 value={formData.address}
                 onChange={handleInputChange}
+                sx={{ marginBottom: '20px' }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-address"
                 error={!!errors.find((error) => error.includes('Endereço'))}
                 helperText={errors.find((error) => error.includes('Endereço'))}
               />
@@ -451,6 +494,9 @@ const InformationCard: React.FC = () => {
                 name="addressDetail"
                 value={formData.addressDetail}
                 onChange={handleInputChange}
+                sx={{ marginBottom: '20px' }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-address-detail"
                 error={!!errors.find((error) => error.includes('Nome do local'))}
                 helperText={errors.find((error) => error.includes('Nome do local'))}
               />
@@ -462,7 +508,9 @@ const InformationCard: React.FC = () => {
                 name="addressComplement"
                 value={formData.addressComplement}
                 onChange={handleInputChange}
-                autoComplete="off"
+                sx={{ marginBottom: '20px' }}
+                // Alteração para prevenir autocomplete
+                autoComplete="new-address-complement"
               />
             </Grid>
           </Grid>

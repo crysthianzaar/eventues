@@ -14,7 +14,6 @@ import {
   useTheme,
 } from '@mui/material';
 import { styled } from '@mui/system';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
 import PeopleIcon from '@mui/icons-material/People';
 import MoneyOffIcon from '@mui/icons-material/MoneyOff';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
@@ -41,7 +40,6 @@ const EconomyCalculator: React.FC = () => {
   const [participantPaymentPerTicket, setParticipantPaymentPerTicket] = useState<number>(0);
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('sm'));
-  const isMediumScreen = useMediaQuery(theme.breakpoints.up('md'));
 
   useEffect(() => {
     const calculateSavings = (price: number, quantity: number): { totalSavings: number; participantPayment: number } => {
