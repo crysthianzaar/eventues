@@ -57,22 +57,6 @@ interface GetPolicyResponse {
   allow_transfer: boolean;
 }
 
-// Styled Components
-const FormContainer = styled(Box)(({ theme }) => ({
-  padding: theme.spacing(4),
-  backgroundColor: colors.white,
-  borderRadius: '8px',
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-  maxWidth: '600px',
-  marginLeft: '0',  // Alinha o componente à direita
-  marginRight: '0',    // Remove a margem à direita
-  position: 'relative',
-  [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(2),
-    maxWidth: '100%',    // Ajusta para telas pequenas
-  },
-}));
-
 const SectionHeader = styled(Typography)(({ theme }) => ({
   color: colors.primary,
   fontWeight: 'bold',

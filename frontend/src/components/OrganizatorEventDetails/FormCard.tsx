@@ -29,16 +29,15 @@ import {
   ListItem,
   ListItemText,
   ListItemSecondaryAction,
-  Divider,
   Tooltip,
   Snackbar,
   Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
-import SaveIcon from '@mui/icons-material/Save'; // Importação do SaveIcon
-import VisibilityIcon from '@mui/icons-material/Visibility'; // Importação do VisibilityIcon
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator'; // Ícone de arrastar
+import SaveIcon from '@mui/icons-material/Save';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { styled } from '@mui/system';
 import {
   DragDropContext,
@@ -46,7 +45,7 @@ import {
   Draggable,
   DropResult,
 } from 'react-beautiful-dnd';
-import { v4 as uuidv4 } from 'uuid'; // Importação do UUID
+import { v4 as uuidv4 } from 'uuid';
 
 const colors = {
   primary: "#5A67D8",      // Azul
@@ -158,7 +157,6 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
   interface FormField {
     id: string;
     label: string;
-    include: boolean;
     required: boolean;
     type: string;
     options?: string[];
@@ -194,7 +192,9 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
           // Se não houver campos, carregar os campos padrões
           loadDefaultFields();
         } else {
-          setFields(data);
+          // Ordenar os campos recebidos
+          const sortedData = data.sort((a, b) => a.order - b.order);
+          setFields(sortedData);
         }
       } else {
         console.error('Erro ao buscar formulário:', await response.text());
@@ -211,19 +211,19 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
   // Função para carregar os campos padrões
   const loadDefaultFields = () => {
     const defaultFields: FormField[] = [
-      { id: uuidv4(), label: 'Nome Completo', include: true, required: true, type: 'Texto', order: 1 },
-      { id: uuidv4(), label: 'Data de Nascimento', include: true, required: true, type: 'Data', order: 2 },
-      { id: uuidv4(), label: 'Gênero', include: true, required: true, type: 'Seleção', options: ['Masculino', 'Feminino', 'Outro'], order: 3 },
-      { id: uuidv4(), label: 'Cidade', include: true, required: false, type: 'Seleção', options: ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte'], order: 4 },
-      { id: uuidv4(), label: 'Estado', include: true, required: false, type: 'Seleção', options: ['SP', 'RJ', 'MG'], order: 5 },
-      { id: uuidv4(), label: 'Endereço', include: true, required: false, type: 'Texto', order: 6 },
-      { id: uuidv4(), label: 'Email', include: true, required: true, type: 'Texto', order: 7 },
-      { id: uuidv4(), label: 'Telefone', include: true, required: true, type: 'Número', order: 8 },
-      { id: uuidv4(), label: 'Contato de Emergência', include: true, required: true, type: 'Texto', order: 9 },
-      { id: uuidv4(), label: 'Tamanho da Camiseta', include: true, required: false, type: 'Seleção', options: ['P', 'M', 'G', 'GG'], order: 10 },
-      { id: uuidv4(), label: 'Informações Médicas', include: false, required: false, type: 'Texto', order: 11 },
-      { id: uuidv4(), label: 'Equipe', include: false, required: false, type: 'Texto', order: 12 },
-      { id: uuidv4(), label: 'Aceitação de Termos e Condições', include: true, required: true, type: 'Verdadeiro/Falso', order: 13 },
+      { id: uuidv4(), label: 'Nome Completo', required: true, type: 'Texto', order: 1 },
+      { id: uuidv4(), label: 'Data de Nascimento', required: true, type: 'Data', order: 2 },
+      { id: uuidv4(), label: 'Gênero', required: true, type: 'Seleção', options: ['Masculino', 'Feminino'], order: 3 },
+      { id: uuidv4(), label: 'Cidade', required: false, type: 'Seleção', options: ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte'], order: 4 },
+      { id: uuidv4(), label: 'Estado', required: false, type: 'Seleção', options: ['SP', 'RJ', 'MG'], order: 5 },
+      { id: uuidv4(), label: 'Endereço', required: false, type: 'Texto', order: 6 },
+      { id: uuidv4(), label: 'Email', required: true, type: 'Texto', order: 7 },
+      { id: uuidv4(), label: 'Telefone', required: true, type: 'Número', order: 8 },
+      { id: uuidv4(), label: 'Contato de Emergência', required: true, type: 'Texto', order: 9 },
+      { id: uuidv4(), label: 'Tamanho da Camiseta', required: false, type: 'Seleção', options: ['P', 'M', 'G', 'GG'], order: 10 },
+      { id: uuidv4(), label: 'Informações Médicas', required: false, type: 'Texto', order: 11 },
+      { id: uuidv4(), label: 'Equipe', required: false, type: 'Texto', order: 12 },
+      { id: uuidv4(), label: 'Aceitação de Termos e Condições', required: true, type: 'Verdadeiro/Falso', order: 13 },
     ];
     setFields(defaultFields);
   };
@@ -237,13 +237,12 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
   const saveFormFields = async () => {
     try {
       const payload = {
-        form_fields: fields.map((field, index) => ({
+        form_fields: fields.map((field) => ({
           id: field.id,
           label: field.label,
           type: field.type,
           required: field.required,
-          include: field.include,
-          order: index + 1,
+          order: field.order,
           options: field.type === 'Seleção' ? field.options || [] : [],
         })),
       };
@@ -258,7 +257,8 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
 
       if (response.ok) {
         const data: FormField[] = await response.json();
-        setFields(data);
+        const sortedData = data.sort((a, b) => a.order - b.order);
+        setFields(sortedData);
         setSnackbarMessage('Alterações salvas com sucesso!');
         setSnackbarSeverity('success');
         setSnackbarOpen(true);
@@ -283,22 +283,25 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
       const newField: FormField = {
         id: uuidv4(),
         label: newQuestion.trim(),
-        include: true,
         required: false,
         type: questionType,
         options: questionType === 'Seleção' ? [] : undefined,
         order: fields.length + 1, // Adiciona o campo de ordem
       };
-      setFields([...fields, newField]);
-      setNewQuestion('');
-      setQuestionType('Texto');
-      setNewQuestionVisible(false);
+      const updatedFields = [...fields, newField];
+      setFields(updatedFields);
     }
+    setNewQuestion('');
+    setQuestionType('Texto');
+    setNewQuestionVisible(false);
   };
 
   // Função para deletar uma pergunta
   const handleDelete = (id: string) => {
-    const updatedFields = fields.filter(field => field.id !== id);
+    const updatedFields = fields.filter(field => field.id !== id).map((field, index) => ({
+      ...field,
+      order: index + 1,
+    }));
     setFields(updatedFields);
   };
 
@@ -320,7 +323,14 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
     }
 
     const reorderedFields = reorder(fields, source.index, destination.index);
-    setFields(reorderedFields);
+
+    // Update order property
+    const updatedFields = reorderedFields.map((field, index) => ({
+      ...field,
+      order: index + 1,
+    }));
+
+    setFields(updatedFields);
   };
 
   // Funções para gerenciar as opções de campos do tipo 'Seleção'
@@ -377,9 +387,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
               <TableRow>
                 <StyledTableHeadCell>Ordenar</StyledTableHeadCell> {/* Coluna para arrastar */}
                 <StyledTableHeadCell>Campo</StyledTableHeadCell>
-                {/* Nova Coluna "Tipo" */}
                 <StyledTableHeadCell>Tipo</StyledTableHeadCell>
-                <StyledTableHeadCell>Exibir</StyledTableHeadCell>
                 <StyledTableHeadCell>Obrigatório</StyledTableHeadCell>
                 <StyledTableHeadCell>Excluir</StyledTableHeadCell>
               </TableRow>
@@ -438,29 +446,11 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
                           </StyledTableCell>
                           <StyledTableCell>
                             <Switch
-                              checked={field.include}
-                              onChange={() => {
-                                const updatedFields = [...fields];
-                                updatedFields[index].include = !updatedFields[index].include;
-                                setFields(updatedFields);
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiSwitch-switchBase.Mui-checked': {
-                                  color: colors.secondary,
-                                },
-                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                  backgroundColor: colors.secondary,
-                                },
-                              }}
-                            />
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            <Switch
                               checked={field.required}
                               onChange={() => {
-                                const updatedFields = [...fields];
-                                updatedFields[index].required = !updatedFields[index].required;
+                                const updatedFields = fields.map((f, idx) =>
+                                  idx === index ? { ...f, required: !f.required } : f
+                                );
                                 setFields(updatedFields);
                               }}
                               size="small"
@@ -613,104 +603,101 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
               <TableBody>
                 {fields
                   .sort((a, b) => a.order - b.order)
-                  .map(
-                    (field, index) =>
-                      field.include && (
-                        <TableRow key={field.id}>
-                          <TableCell>{field.label}</TableCell>
-                          <TableCell>
-                            {field.type === 'Texto' && (
-                              <TextField
-                                fullWidth
-                                label={field.label}
-                                variant="outlined"
-                                margin="normal"
-                                required={field.required}
-                                InputProps={{
-                                  readOnly: true, // Torna o campo read-only
-                                }}
-                                sx={{
-                                  backgroundColor: '#f5f5f5',
-                                  borderRadius: '4px',
-                                }}
-                              />
-                            )}
-                            {field.type === 'Número' && (
-                              <TextField
-                                fullWidth
-                                type="number"
-                                label={field.label}
-                                variant="outlined"
-                                margin="normal"
-                                required={field.required}
-                                InputProps={{
-                                  readOnly: true,
-                                }}
-                                sx={{
-                                  backgroundColor: '#f5f5f5',
-                                  borderRadius: '4px',
-                                }}
-                              />
-                            )}
-                            {field.type === 'Data' && (
-                              <TextField
-                                fullWidth
-                                type="date"
-                                label={field.label}
-                                variant="outlined"
-                                margin="normal"
-                                required={field.required}
-                                InputLabelProps={{
-                                  shrink: true,
-                                }}
-                                InputProps={{
-                                  readOnly: true,
-                                }}
-                                sx={{
-                                  backgroundColor: '#f5f5f5',
-                                  borderRadius: '4px',
-                                }}
-                              />
-                            )}
-                            {field.type === 'Seleção' && (
-                              <Select
-                                fullWidth
-                                label={field.label}
-                                value=""
-                                disabled
-                                displayEmpty
-                                variant="outlined"
-                                sx={{
-                                  backgroundColor: '#f5f5f5',
-                                  borderRadius: '4px',
-                                }}
-                              >
-                                <MenuItem value="">
-                                  <em>Selecione</em>
-                                </MenuItem>
-                                {field.options && field.options.map((option, idx) => (
-                                  <MenuItem key={idx} value={option}>{option}</MenuItem>
-                                ))}
-                              </Select>
-                            )}
-                            {field.type === 'Verdadeiro/Falso' && (
-                              <Switch
-                                checked={false}
-                                disabled
-                                sx={{
-                                  '& .MuiSwitch-thumb': {
-                                    backgroundColor: '#f5f5f5',
-                                  },
-                                  '& .MuiSwitch-track': {
-                                    backgroundColor: '#f5f5f5',
-                                  },
-                                }}
-                              />
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      )
-                  )}
+                  .map((field, index) => (
+                    <TableRow key={field.id}>
+                      <TableCell>{field.label}</TableCell>
+                      <TableCell>
+                        {field.type === 'Texto' && (
+                          <TextField
+                            fullWidth
+                            label={field.label}
+                            variant="outlined"
+                            margin="normal"
+                            required={field.required}
+                            InputProps={{
+                              readOnly: true, // Torna o campo read-only
+                            }}
+                            sx={{
+                              backgroundColor: '#f5f5f5',
+                              borderRadius: '4px',
+                            }}
+                          />
+                        )}
+                        {field.type === 'Número' && (
+                          <TextField
+                            fullWidth
+                            type="number"
+                            label={field.label}
+                            variant="outlined"
+                            margin="normal"
+                            required={field.required}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            sx={{
+                              backgroundColor: '#f5f5f5',
+                              borderRadius: '4px',
+                            }}
+                          />
+                        )}
+                        {field.type === 'Data' && (
+                          <TextField
+                            fullWidth
+                            type="date"
+                            label={field.label}
+                            variant="outlined"
+                            margin="normal"
+                            required={field.required}
+                            InputLabelProps={{
+                              shrink: true,
+                            }}
+                            InputProps={{
+                              readOnly: true,
+                            }}
+                            sx={{
+                              backgroundColor: '#f5f5f5',
+                              borderRadius: '4px',
+                            }}
+                          />
+                        )}
+                        {field.type === 'Seleção' && (
+                          <Select
+                            fullWidth
+                            label={field.label}
+                            value=""
+                            disabled
+                            displayEmpty
+                            variant="outlined"
+                            sx={{
+                              backgroundColor: '#f5f5f5',
+                              borderRadius: '4px',
+                            }}
+                          >
+                            <MenuItem value="">
+                              <em>Selecione</em>
+                            </MenuItem>
+                            {field.options && field.options.map((option, idx) => (
+                              <MenuItem key={idx} value={option}>{option}</MenuItem>
+                            ))}
+                          </Select>
+                        )}
+                        {field.type === 'Verdadeiro/Falso' && (
+                          <Switch
+                            checked={false}
+                            disabled
+                            sx={{
+                              '& .MuiSwitch-thumb': {
+                                backgroundColor: '#f5f5f5',
+                              },
+                              '& .MuiSwitch-track': {
+                                backgroundColor: '#f5f5f5',
+                              },
+                            }}
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
               </TableBody>
             </Table>
           </TableContainer>
