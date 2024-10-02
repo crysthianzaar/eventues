@@ -403,7 +403,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ eventId }) => {
       {/* Snackbar para Feedback */}
       <Snackbar
         open={snackbarOpen}
-        autoHideDuration={6000}
+        autoHideDuration={3000}
         onClose={() => setSnackbarOpen(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
       >

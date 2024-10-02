@@ -1,3 +1,5 @@
+// src/components/BannerDocumentCard.jsx
+
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -13,39 +15,120 @@ import {
   TableRow,
   Paper,
   Tooltip,
+  Snackbar,
+  Alert,
+  AlertColor,
 } from "@mui/material";
-import { UploadFile, Delete } from "@mui/icons-material";
+import { UploadFile, Delete, Add, Download } from "@mui/icons-material";
+import { styled } from "@mui/system";
 import loadingGif from "../../assets/aquecendo.gif";
+import bannerTemplate from "../../assets/banner.jpg";
+import regulamentoTemplate from "../../assets/Regulamento do Evento.pdf";
 import LoadingOverlay from "../LoadingOverlay";
+import axios from "axios";
 
+// Define a paleta de cores
 const colors = {
-  primary: "#5A67D8",
-  green: "#48BB78",
+  primary: "#5A67D8",           // Azul
+  secondary: "#68BB78",         // Verde
+  lightBlue: "#63B3ED",         // Azul Claro
+  grayLight: "#EDF2F7",
   grayDark: "#2D3748",
-  grayLight: "#F7FAFC",
   white: "#FFFFFF",
+  red: "#E53E3E",
+  tableHeaderBg: "#E2E8F0",
+  rowOddBg: "#F9FAFB",          // Cor de fundo para linhas ímpares
+  rowEvenBg: "#FFFFFF",         // Cor de fundo para linhas pares
+  template: "#F6AD55",          // Laranja para botões de template
 };
 
-interface FileData {
-  id: string;
-  name: string;
-  file: File | null;
-  base64: string;
-  title: string;
-  required: boolean;
-  url?: string;
-  s3_key?: string;
+// Componentes Estilizados
+const StyledTableContainer = styled(TableContainer)(({ theme }) => ({
+  marginTop: theme.spacing(2),
+  borderRadius: theme.spacing(1),
+  boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+  backgroundColor: colors.white,
+}));
+
+const StyledTableHeadCell = styled(TableCell)(() => ({
+  backgroundColor: colors.tableHeaderBg,
+  color: colors.primary,
+  fontWeight: "bold",
+}));
+
+const StyledTableCell = styled(TableCell)(({ theme }) => ({
+  padding: theme.spacing(1.5),
+  color: colors.grayDark,
+}));
+
+const AddButton = styled(Button)(({ theme }) => ({
+  backgroundColor: colors.lightBlue,
+  color: "#fff",
+  "&:hover": {
+    backgroundColor: "#4299e1", // Azul mais escuro
+  },
+  [theme.breakpoints.down("sm")]: {
+    width: "100%",
+  },
+}));
+
+const SaveButton = styled(Button)(({ theme }) => ({
+  backgroundColor: colors.secondary,
+  color: "#fff",
+  "&:hover": {
+    backgroundColor: "#56c078", // Verde mais escuro
+  },
+  [theme.breakpoints.down("sm")]: {
+    width: "100%",
+  },
+}));
+
+const DeleteButton = styled(IconButton)(({ theme }) => ({
+  color: colors.red,
+}));
+
+const TemplateDownloadButton = styled(Button)(({ theme }) => ({
+  backgroundColor: colors.primary,
+  color: "#fff",
+  "&:hover": {
+    backgroundColor: "#dd6b20", // Laranja mais escuro
+  },
+  marginRight: theme.spacing(2),
+  [theme.breakpoints.down("sm")]: {
+    width: "100%",
+    marginBottom: theme.spacing(2),
+  },
+}));
+
+interface BannerDocumentCardProps {
+  eventId: string;
 }
 
-const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
+const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({ eventId }) => {
+  interface FileData {
+    id: string;
+    name: string;
+    file: File | null;
+    base64: string;
+    title: string;
+    required: boolean;
+    url?: string;
+    s3_key?: string;
+  }
+  
   const [files, setFiles] = useState<FileData[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [deletingFileId, setDeletingFileId] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [snackbarOpen, setSnackbarOpen] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState("");
+  
+  const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>("success");
 
-  const convertToBase64 = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
+  // Função para converter arquivo para base64
+  const convertToBase64 = (file: File) => {
+    return new Promise<string>((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
       reader.onload = () => resolve(reader.result as string);
@@ -53,7 +136,8 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     });
   };
 
-  const isFormValid = () => {
+  // Função para validar o formulário
+  const validateForm = () => {
     const newErrors: string[] = [];
 
     files.forEach((file) => {
@@ -66,73 +150,83 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     });
 
     setErrors(newErrors);
+    return newErrors.length === 0;
   };
 
+  // Função para buscar arquivos existentes
   const fetchExistingFiles = async () => {
     try {
       setLoading(true);
-      const response = await fetch(
+      const response = await axios.get<{ s3_key: string; file_name: string; title?: string; url?: string; }[]>(
         `http://127.0.0.1:8000/organizer_detail/${eventId}/get_document_files`
       );
-      
+
       let existingFiles: FileData[] = [];
-  
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data && data.length > 0) {
-          existingFiles = data.map((file: any) => ({
+
+      if (response.status === 200) {
+        const data = response.data;
+
+        if (data.length > 0) {
+          existingFiles = data.map((file) => ({
             id: `${file.s3_key}`,
             name: file.file_name,
             file: null,
-            base64: "", 
+            base64: "",
             title: file.title || file.file_name.split(".")[0].replace(/_/g, " "),
-            required: file.file_name.includes("Banner") || file.file_name.includes("Regulamento"),
-            url: file.url, 
+            required:
+              file.file_name.includes("Banner") ||
+              file.file_name.includes("Regulamento"),
+            url: file.url,
             s3_key: file.s3_key,
           }));
         } else {
-          // Adiciona os arquivos padrão se a resposta for null ou uma lista vazia
+          // Adiciona os arquivos padrão se a resposta for vazia
           const mandatoryTitles = ["Banner do Evento", "Regulamento"];
-          existingFiles = mandatoryTitles.map(mandatoryTitle => ({
-            id: `mandatory-${mandatoryTitle}`,
+          existingFiles = mandatoryTitles.map((title) => ({
+            id: `mandatory-${title}`,
             name: "",
             file: null,
             base64: "",
-            title: mandatoryTitle,
+            title: title,
             required: true,
           }));
         }
       } else {
         console.error("Falha ao buscar arquivos existentes");
       }
-  
-      // Verifica se os arquivos obrigatórios estão presentes
+
+      // Garante que os arquivos obrigatórios estejam presentes
       const mandatoryTitles = ["Banner do Evento", "Regulamento"];
-      mandatoryTitles.forEach((mandatoryTitle) => {
-        const exists = existingFiles.some((file) => file.title === mandatoryTitle);
+      mandatoryTitles.forEach((title) => {
+        const exists = existingFiles.some((file) => file.title === title);
         if (!exists) {
           existingFiles.push({
-            id: `mandatory-${mandatoryTitle}`,
+            id: `mandatory-${title}`,
             name: "",
             file: null,
             base64: "",
-            title: mandatoryTitle,
+            title: title,
             required: true,
           });
         }
       });
-  
+
       setFiles(existingFiles);
     } catch (error) {
       console.error("Erro ao buscar arquivos existentes:", error);
+      setErrors((prev) => [...prev, "Erro ao buscar arquivos existentes."]);
     } finally {
-      setLoading(false); 
-      isFormValid();
+      setLoading(false);
+      validateForm();
     }
   };
-  
 
+  useEffect(() => {
+    fetchExistingFiles();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [eventId]);
+
+  // Função para enviar arquivo ao backend
   const uploadFileToBackend = async (fileData: FileData) => {
     try {
       setIsSubmitting(true);
@@ -141,32 +235,31 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
         title: fileData.title,
       };
 
-      const response = await fetch(
+      const response = await axios.post(
         `http://127.0.0.1:8000/organizer_detail/${eventId}/upload_document_file`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
+        data
       );
 
-      if (!response.ok) {
+      if (response.status === 200) {
+        setSnackbarMessage("Arquivo enviado com sucesso!");
+        setSnackbarSeverity("success");
+        setSnackbarOpen(true);
+        await fetchExistingFiles();
+      } else {
         throw new Error("Falha ao enviar arquivo");
       }
-
-      const result = await response.json();
-
-      await fetchExistingFiles();
     } catch (error) {
       console.error("Erro ao enviar arquivo:", error);
       setErrors((prev) => [...prev, "Erro ao enviar arquivo."]);
+      setSnackbarMessage("Erro ao enviar arquivo.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
+  // Função para atualizar título no backend
   const updateFileTitleInBackend = async (fileData: FileData) => {
     try {
       setIsSubmitting(true);
@@ -175,36 +268,34 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
         title: fileData.title,
       };
 
-      const response = await fetch(
+      const response = await axios.post(
         `http://127.0.0.1:8000/organizer_detail/${eventId}/update_document_title`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify(data),
-        }
+        data
       );
 
-      if (!response.ok) {
+      if (response.status === 200) {
+        setSnackbarMessage("Título do documento atualizado com sucesso!");
+        setSnackbarSeverity("success");
+        setSnackbarOpen(true);
+        await fetchExistingFiles();
+      } else {
         throw new Error("Falha ao atualizar título do documento");
       }
-
-      await fetchExistingFiles();
     } catch (error) {
       console.error("Erro ao atualizar título do documento:", error);
       setErrors((prev) => [...prev, "Erro ao atualizar título do documento."]);
+      setSnackbarMessage("Erro ao atualizar título do documento.");
+      setSnackbarSeverity("error");
+      setSnackbarOpen(true);
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-    id: string
-  ) => {
+  // Função para lidar com upload de arquivo
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, id: string) => {
     const uploadedFiles = event.target.files;
-    if (uploadedFiles) {
+    if (uploadedFiles && uploadedFiles.length > 0) {
       const file = uploadedFiles[0];
 
       if (file.type.includes("image") || file.type.includes("pdf")) {
@@ -217,7 +308,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
               ...files[fileIndex],
               name: file.name,
               file: file,
-              base64: base64,
+              base64: base64 as string,
             };
 
             if (updatedFile.title) {
@@ -244,45 +335,34 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
     }
   };
 
+  // Função para deletar arquivo no backend
   const handleFileDelete = async (id: string, s3_key?: string) => {
     setDeletingFileId(id);
 
     if (s3_key) {
       try {
-        const response = await fetch(
+        const response = await axios.post(
           `http://127.0.0.1:8000/organizer_detail/${eventId}/delete_document_file`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ s3_key }),
-          }
+          { s3_key }
         );
 
-        if (!response.ok) {
+        if (response.status === 200) {
+          setSnackbarMessage("Arquivo deletado com sucesso!");
+          setSnackbarSeverity("success");
+          setSnackbarOpen(true);
+          await fetchExistingFiles();
+        } else {
           throw new Error("Falha ao deletar arquivo no backend");
         }
-
-        setFiles((prevFiles) =>
-          prevFiles.map((file) =>
-            file.id === id
-              ? {
-                  ...file,
-                  url: undefined,
-                  s3_key: undefined,
-                  base64: "",
-                  name: "",
-                  file: null,
-                }
-              : file
-          )
-        );
       } catch (error) {
         console.error("Erro ao deletar arquivo:", error);
+        setErrors((prev) => [...prev, "Erro ao deletar arquivo."]);
+        setSnackbarMessage("Erro ao deletar arquivo.");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
       } finally {
         setDeletingFileId(null);
-        isFormValid();
+        validateForm();
       }
     } else {
       setFiles((prevFiles) =>
@@ -291,43 +371,47 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
         )
       );
       setDeletingFileId(null);
-      isFormValid();
+      validateForm();
     }
   };
 
+  // Função para deletar item (não obrigatório)
   const handleItemDelete = async (id: string, s3_key?: string) => {
     setDeletingFileId(id);
 
     if (s3_key) {
       try {
-        const response = await fetch(
+        const response = await axios.post(
           `http://127.0.0.1:8000/organizer_detail/${eventId}/delete_document_file`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ s3_key }),
-          }
+          { s3_key }
         );
 
-        if (!response.ok) {
-          throw new Error("Falha ao deletar arquivo no backend");
+        if (response.status === 200) {
+          setSnackbarMessage("Item deletado com sucesso!");
+          setSnackbarSeverity("success");
+          setSnackbarOpen(true);
+          await fetchExistingFiles();
+        } else {
+          throw new Error("Falha ao deletar item no backend");
         }
-        setFiles((prevFiles) => prevFiles.filter((file) => file.id !== id));
       } catch (error) {
         console.error("Erro ao deletar item:", error);
+        setErrors((prev) => [...prev, "Erro ao deletar item."]);
+        setSnackbarMessage("Erro ao deletar item.");
+        setSnackbarSeverity("error");
+        setSnackbarOpen(true);
       } finally {
-        setDeletingFileId(null); 
-        isFormValid();
+        setDeletingFileId(null);
+        validateForm();
       }
     } else {
       setFiles((prevFiles) => prevFiles.filter((file) => file.id !== id));
       setDeletingFileId(null);
-      isFormValid();
+      validateForm();
     }
   };
 
+  // Função para adicionar novo documento
   const addNewFile = () => {
     const newId = `${Date.now()}`;
     setFiles([
@@ -341,12 +425,8 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
         required: false,
       },
     ]);
-    isFormValid();
+    validateForm();
   };
-
-  useEffect(() => {
-    fetchExistingFiles();
-  }, [eventId]);
 
   return (
     <Box
@@ -372,26 +452,14 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
             Gerenciamento de Materiais Visuais e Documentos
           </Typography>
 
-          <TableContainer component={Paper} elevation={3}>
+          <StyledTableContainer>
             <Table>
               <TableHead>
-                <TableRow
-                  sx={{
-                    backgroundColor: colors.primary,
-                  }}
-                >
-                  <TableCell sx={{ color: colors.white, fontWeight: "bold" }}>
-                    Título do Documento
-                  </TableCell>
-                  <TableCell sx={{ color: colors.white, fontWeight: "bold" }}>
-                    Arquivo
-                  </TableCell>
-                  <TableCell sx={{ color: colors.white, fontWeight: "bold" }}>
-                    Ação sobre Anexo
-                  </TableCell>
-                  <TableCell sx={{ color: colors.white, fontWeight: "bold" }}>
-                    Excluir Item
-                  </TableCell>
+                <TableRow>
+                  <StyledTableHeadCell>Título do Documento</StyledTableHeadCell>
+                  <StyledTableHeadCell>Arquivo</StyledTableHeadCell>
+                  <StyledTableHeadCell>Ação sobre Anexo</StyledTableHeadCell>
+                  <StyledTableHeadCell>Excluir Item</StyledTableHeadCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -400,10 +468,10 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                     key={file.id}
                     sx={{
                       backgroundColor:
-                        index % 2 === 0 ? colors.grayLight : colors.white,
+                        index % 2 === 0 ? colors.rowEvenBg : colors.rowOddBg,
                     }}
                   >
-                    <TableCell>
+                    <StyledTableCell>
                       <TextField
                         label="Título do Documento"
                         fullWidth
@@ -412,28 +480,24 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                         onChange={async (e) => {
                           const newTitle = e.target.value;
                           setFiles((prevFiles) =>
-                            prevFiles.map((f, i) =>
-                              i === index ? { ...f, title: newTitle } : f
+                            prevFiles.map((f) =>
+                              f.id === file.id ? { ...f, title: newTitle } : f
                             )
                           );
 
-                          const fileData = files[index];
-
-                          if (fileData) {
-                            if (fileData.url && fileData.s3_key) {
-                              await updateFileTitleInBackend({
-                                ...fileData,
-                                title: newTitle,
-                              });
-                            } else if (fileData.base64 && fileData.file) {
-                              const updatedFileData = {
-                                ...fileData,
-                                title: newTitle,
-                              };
-                              await uploadFileToBackend(updatedFileData);
-                            }
+                          if (file.url && file.s3_key) {
+                            await updateFileTitleInBackend({
+                              ...file,
+                              title: newTitle,
+                            });
+                          } else if (file.base64 && file.file) {
+                            const updatedFileData = {
+                              ...file,
+                              title: newTitle,
+                            };
+                            await uploadFileToBackend(updatedFileData);
                           }
-                          isFormValid();
+                          validateForm();
                         }}
                         disabled={
                           file.required ||
@@ -441,9 +505,12 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                           deletingFileId === file.id ||
                           isSubmitting
                         }
+                        autoComplete="new-document-title"
+                        error={!!errors.find((error) => error.includes("Título do documento"))}
+                        helperText={errors.find((error) => error.includes("Título do documento"))}
                       />
-                    </TableCell>
-                    <TableCell>
+                    </StyledTableCell>
+                    <StyledTableCell>
                       <Button
                         variant="contained"
                         component="label"
@@ -451,7 +518,7 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                         sx={{
                           backgroundColor:
                             file.name || file.url
-                              ? colors.green
+                              ? colors.secondary
                               : colors.primary,
                           color: colors.white,
                           "&:hover": {
@@ -480,17 +547,13 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                           onChange={(e) => handleFileUpload(e, file.id)}
                         />
                       </Button>
-                    </TableCell>
-                    <TableCell>
+                    </StyledTableCell>
+                    <StyledTableCell>
                       {(file.name || file.url) && (
                         <Tooltip title="Excluir Anexo">
-                          <IconButton
+                          <DeleteButton
                             aria-label="delete file"
-                            size="small"
-                            sx={{ color: colors.primary }}
-                            onClick={() =>
-                              handleFileDelete(file.id, file.s3_key)
-                            }
+                            onClick={() => handleFileDelete(file.id, file.s3_key)}
                             disabled={
                               deletingFileId === file.id || isSubmitting
                             }
@@ -504,20 +567,16 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                             ) : (
                               <Delete />
                             )}
-                          </IconButton>
+                          </DeleteButton>
                         </Tooltip>
                       )}
-                    </TableCell>
-                    <TableCell>
+                    </StyledTableCell>
+                    <StyledTableCell>
                       {!file.required && (
                         <Tooltip title="Excluir Item">
-                          <IconButton
+                          <DeleteButton
                             aria-label="delete item"
-                            size="small"
-                            sx={{ color: "red" }}
-                            onClick={() =>
-                              handleItemDelete(file.id, file.s3_key)
-                            }
+                            onClick={() => handleItemDelete(file.id, file.s3_key)}
                             disabled={
                               deletingFileId === file.id || isSubmitting
                             }
@@ -531,15 +590,59 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
                             ) : (
                               <Delete />
                             )}
-                          </IconButton>
+                          </DeleteButton>
                         </Tooltip>
                       )}
-                    </TableCell>
+                    </StyledTableCell>
                   </TableRow>
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
+          </StyledTableContainer>
+
+          {/* Contêiner para Botões de Download e Adicionar Novo Documento */}
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              justifyContent: "flex-start",
+              alignItems: "center",
+              marginTop: "20px",
+              gap: "1rem",
+              flexWrap: "wrap",
+            }}
+          >
+            <AddButton
+              variant="contained"
+              startIcon={<Add />}
+              onClick={addNewFile}
+              disabled={isSubmitting}
+            >
+              Adicionar Novo Documento
+            </AddButton>
+            <TemplateDownloadButton variant="contained" startIcon={<Download />}>
+              <a
+                href={bannerTemplate}
+                target="_blank"
+                rel="noopener noreferrer"
+                download="banner.jpg"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Baixar Template de Banner
+              </a>
+            </TemplateDownloadButton>
+            <TemplateDownloadButton variant="contained" startIcon={<Download />}>
+              <a
+                href={regulamentoTemplate}
+                target="_blank"
+                rel="noopener noreferrer"
+                download="Regulamento do Evento.pdf"
+                style={{ color: "inherit", textDecoration: "none" }}
+              >
+                Baixar Template de Regulamento
+              </a>
+            </TemplateDownloadButton>
+          </Box>
 
           {errors.length > 0 && (
             <Box sx={{ color: "red", marginTop: "20px" }}>
@@ -551,22 +654,21 @@ const BannerDocumentCard: React.FC<{ eventId: string }> = ({ eventId }) => {
             </Box>
           )}
 
-          <Button
-            variant="outlined"
-            onClick={addNewFile}
-            disabled={deletingFileId !== null || isSubmitting}
-            sx={{
-              marginTop: "20px",
-              color: colors.primary,
-              borderColor: colors.primary,
-              "&:hover": {
-                backgroundColor: colors.grayLight,
-                borderColor: colors.primary,
-              },
-            }}
+          {/* Snackbar para Feedback */}
+          <Snackbar
+            open={snackbarOpen}
+            autoHideDuration={3000}
+            onClose={() => setSnackbarOpen(false)}
+            anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
           >
-            Adicionar Novo Documento
-          </Button>
+            <Alert
+              onClose={() => setSnackbarOpen(false)}
+              severity={snackbarSeverity}
+              sx={{ width: "100%" }}
+            >
+              {snackbarMessage}
+            </Alert>
+          </Snackbar>
         </>
       )}
     </Box>
