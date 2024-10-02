@@ -29,7 +29,8 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { Add, Edit, Delete, ExpandMore } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
+import {useTheme } from '@mui/material/styles';
+import { styled } from '@mui/system';
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid'; // Importando o gerador de UUID
 
@@ -222,6 +223,15 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
     setEditingSubcategoriaIndex(null);
     setCurrentcategoriaIndex(null);
   };
+  
+  const SectionHeader = styled(Typography)(({ theme }) => ({
+    color: colors.primary,
+    fontWeight: 'bold',
+    marginBottom: theme.spacing(2),
+    [theme.breakpoints.down('sm')]: {
+      marginBottom: theme.spacing(1),
+    },
+  }));
 
   const handleSaveSubcategoria = () => {
     if (currentcategoriaIndex !== null) {
@@ -603,15 +613,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
           gap: '16px',
         }}
       >
-        <Typography
-          variant="h5"
-          sx={{
-            color: colors.primary,
-            fontWeight: 'bold',
-          }}
-        >
-          Gerenciamento de Categorias e Valores
-        </Typography>
+        <SectionHeader variant="h6">Gerenciamento de Categorias e Valores</SectionHeader>
       </Box>
 
       {/* Indicador de Carregamento ou Erro */}
@@ -1148,7 +1150,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
                 left: '50%',
                 transform: 'translate(-50%, -50%)',
                 width: { xs: '95%', sm: '90%', md: '80%' },
-                maxWidth: 900, // Aumenta o maxWidth para acomodar mais conteúdo
+                maxWidth: 1200,
                 bgcolor: colors.white,
                 p: 4,
                 borderRadius: '8px',
@@ -1560,7 +1562,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             width: { xs: '95%', sm: '90%', md: '80%' },
-            maxWidth: 900, // Aumenta o maxWidth para acomodar mais conteúdo
+            maxWidth: 1200,
             bgcolor: colors.white,
             p: 4,
             borderRadius: '8px',
