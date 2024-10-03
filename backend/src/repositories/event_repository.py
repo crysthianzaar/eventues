@@ -392,7 +392,7 @@ class EventRepository:
         return event.to_dict() if event else None
 
     def has_event_documents(self, event_id):
-        return self.session.query(EventDocuments).filter_by(event_id=event_id).count() > 0
+        return self.session.query(EventDocuments).filter_by(event_id=event_id).count() >= 2
     def has_event_policies(self, event_id):
         return self.session.query(EventPolicy).filter_by(event_id=event_id).count() > 0
 

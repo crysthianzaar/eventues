@@ -102,9 +102,11 @@ const TemplateDownloadButton = styled(Button)(({ theme }) => ({
 
 interface BannerDocumentCardProps {
   eventId: string;
+  onNotify: (message: string, severity: AlertColor) => void;
+  onUpdate: () => void;
 }
 
-const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({ eventId }) => {
+const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({ eventId, onNotify, onUpdate }) => {
   interface FileData {
     id: string;
     name: string;
@@ -141,9 +143,6 @@ const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({ eventId }) => {
     const newErrors: string[] = [];
 
     files.forEach((file) => {
-      if (file.required && !file.url && !file.base64) {
-        newErrors.push(`O arquivo "${file.title}" é obrigatório.`);
-      }
       if (!file.title) {
         newErrors.push(`O título do documento é obrigatório.`);
       }
@@ -241,9 +240,8 @@ const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({ eventId }) => {
       );
 
       if (response.status === 200) {
-        setSnackbarMessage("Arquivo enviado com sucesso!");
-        setSnackbarSeverity("success");
-        setSnackbarOpen(true);
+        onNotify("Arquivo enviado com sucesso!", "success");
+        onUpdate();
         await fetchExistingFiles();
       } else {
         throw new Error("Falha ao enviar arquivo");

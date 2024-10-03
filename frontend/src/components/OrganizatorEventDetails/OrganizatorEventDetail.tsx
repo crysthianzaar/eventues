@@ -258,7 +258,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <ImageIcon />,
       title: "Banner e Documentos",
-      component: <BannerDocumentCard eventId={event_id!} />,
+      component: <BannerDocumentCard eventId={event_id!} onNotify={handleNotifyAndRedirect} onUpdate={refetchEventDetail}/>,
       description:
         "Upload e gerenciamento de materiais visuais e documentos importantes.",
       status: eventDetail?.stepper.documents,
