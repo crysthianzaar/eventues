@@ -1,7 +1,7 @@
 import React, { ReactNode } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Navbar from "./GeneralComponents/Navbar";
-import NavbarBlog from "./Blog/NavbarBlog"; // Importa o NavbarBlog específico para o blog
+import NavbarBlog from "./Blog/NavbarBlog";
 import Hero from "./GeneralComponents/Hero";
 import Filters from "./GeneralComponents/Filters";
 import Events from "./GeneralComponents/Events";
@@ -19,6 +19,7 @@ import TermsOfService from "./GeneralComponents/TermsOfService";
 import PrivacyPolicy from "./GeneralComponents/PrivacyPolicy";
 import WhyChooseEventues from "./WhyChooseEventues";
 import EventuesConnect from "./Blog/EventuesConnect";
+import { Helmet } from "react-helmet"; // Importe o Helmet
 
 // Defina a interface para as props que o LayoutWithNavbar irá receber
 interface LayoutWithNavbarProps {
@@ -33,7 +34,7 @@ const LayoutWithNavbar: React.FC<LayoutWithNavbarProps> = ({ children }) => {
     <>
       {!isBlogRoute && <Navbar />}
       {isBlogRoute && <NavbarBlog />}
-      
+
       <Box sx={{ flexGrow: 1, minHeight: 'calc(100vh - 120px)' }}>
         {children}
       </Box>
@@ -46,6 +47,25 @@ const App: React.FC = () => {
   return (
     <Authenticator.Provider>
       <Router>
+        <Helmet>
+          <title>Eventues - Gestão Inteligente de Eventos</title>
+          <meta name="description" content="A Eventues é uma plataforma inovadora para gestão e organização de eventos." />
+
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="website" />
+          <meta property="og:url" content="https://www.eventues.com" />
+          <meta property="og:title" content="Eventues - Gestão Inteligente de Eventos" />
+          <meta property="og:description" content="Simplifique a gestão dos seus eventos com a Eventues. Soluções completas e integradas." />
+          <meta property="og:image" content="https://www.eventues.com/imagens/eventues_og_image.jpg" />
+
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta name="twitter:url" content="https://www.eventues.com" />
+          <meta name="twitter:title" content="Eventues - Gestão Inteligente de Eventos" />
+          <meta name="twitter:description" content="Simplifique a gestão dos seus eventos com a Eventues. Soluções completas e integradas." />
+          <meta name="twitter:image" content="https://www.eventues.com/imagens/eventues_twitter_image.jpg" />
+        </Helmet>
+
         <LayoutWithNavbar>
           <Routes>
             <Route

@@ -49,6 +49,9 @@ import AccessLevelsCard from "./AccessLevelsCard";
 import banner_template from "../../assets/banner_template.png";
 import PolicyCard from "./PolicyCard";
 
+// Importe o Helmet
+import { Helmet } from "react-helmet";
+
 const colors = {
   primary: "#5A67D8",
   green: "#48BB78",
@@ -73,6 +76,8 @@ interface EventDetail {
   views: number;
   visibility: string;
   event_status: string;
+  description: string; // Adicionado
+  banner_image_url: string; // Adicionado
   stepper: {
     inf_basic: boolean;
     event_details: boolean;
@@ -92,24 +97,47 @@ const OrganizatorEventDetail: React.FC = () => {
   const [expandedCard, setExpandedCard] = useState<number | null>(0);
   const isSmallScreen = useMediaQuery("(max-width: 600px)");
 
-  // Snackbar States
+  // Estados para o Snackbar
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "info" | "warning">("success");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<
+    "success" | "error" | "info" | "warning"
+  >("success");
 
   const steps = eventDetail
     ? [
-        { label: "Informações essenciais inseridas", status: eventDetail.stepper.inf_basic },
-        { label: "Detalhes do evento preenchidos", status: eventDetail.stepper.event_details },
-        { label: "Banner e documentos carregados", status: eventDetail.stepper.documents },
-        { label: "Políticas definidas", status: eventDetail.stepper.policies },
-        { label: "Categorias e Valores configurados", status: eventDetail.stepper.category_and_values },
-        { label: "Formulário de Inscrição configurados", status: eventDetail.stepper.form },
-        { label: "Evento pronto para publicação", status: eventDetail.stepper.event_ready },
+        {
+          label: "Informações essenciais inseridas",
+          status: eventDetail.stepper.inf_basic,
+        },
+        {
+          label: "Detalhes do evento preenchidos",
+          status: eventDetail.stepper.event_details,
+        },
+        {
+          label: "Banner e documentos carregados",
+          status: eventDetail.stepper.documents,
+        },
+        {
+          label: "Políticas definidas",
+          status: eventDetail.stepper.policies,
+        },
+        {
+          label: "Categorias e Valores configurados",
+          status: eventDetail.stepper.category_and_values,
+        },
+        {
+          label: "Formulário de Inscrição configurados",
+          status: eventDetail.stepper.form,
+        },
+        {
+          label: "Evento pronto para publicação",
+          status: eventDetail.stepper.event_ready,
+        },
       ]
     : [];
 
-  // Function to fetch event details
+  // Função para buscar detalhes do evento
   const refetchEventDetail = async () => {
     setLoading(true);
     setError(null);
@@ -167,7 +195,7 @@ const OrganizatorEventDetail: React.FC = () => {
     setExpandedCard(expandedCard === cardIndex ? null : cardIndex);
   };
 
-  // Step Icon Component
+  // Componente de Ícone do Stepper
   const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
     const stepIndex = Number(icon) - 1;
     const stepStatus = steps[stepIndex].status;
@@ -179,7 +207,7 @@ const OrganizatorEventDetail: React.FC = () => {
     );
   };
 
-  // Get Status Icon for Cards
+  // Função para obter o ícone de status dos cards
   const getStatusIcon = (status: boolean | null) => {
     if (status === null) return null;
     return status ? (
@@ -189,32 +217,35 @@ const OrganizatorEventDetail: React.FC = () => {
     );
   };
 
-  // Reusable Notification Handler with Scroll-to-Top
-  const handleNotify = (message: string, severity: "success" | "error" | "info" | "warning") => {
+  // Handler de Notificação com Scroll-to-Top
+  const handleNotify = (
+    message: string,
+    severity: "success" | "error" | "info" | "warning"
+  ) => {
     setSnackbarMessage(message);
     setSnackbarSeverity(severity);
     setSnackbarOpen(true);
 
-    // Scroll to top smoothly
+    // Scroll para o topo suavemente
     window.scrollTo({
       top: 0,
       behavior: "smooth",
     });
   };
 
-  // Function to Redirect to Next Incomplete Step
+  // Função para redirecionar para o próximo passo incompleto
   const handleRedirectToNextIncompleteStep = () => {
     if (!eventDetail) return;
 
     const stepper = eventDetail.stepper;
     const stepEntries = Object.entries(stepper);
 
-    // Find the first step that is false
+    // Encontra o primeiro passo que é false
     const firstIncompleteStep = stepEntries.find(([key, value]) => !value);
 
     if (firstIncompleteStep) {
       const stepKey = firstIncompleteStep[0];
-      // Map step keys to card indices
+      // Mapeia os passos para os índices dos cards
       const stepToCardMap: { [key: string]: number } = {
         inf_basic: 0, // Resumo
         event_details: 1, // Detalhes do Evento
@@ -222,18 +253,22 @@ const OrganizatorEventDetail: React.FC = () => {
         policies: 3, // Políticas
         category_and_values: 4, // Categorias e Valores
         form: 5, // Formulário de Inscrição
-        // event_ready is the final step, redirect to summary
+        // event_ready é o passo final, redirecionar para o resumo
       };
-      const cardIndex = stepToCardMap[stepKey] !== undefined ? stepToCardMap[stepKey] : 0;
+      const cardIndex =
+        stepToCardMap[stepKey] !== undefined ? stepToCardMap[stepKey] : 0;
       setExpandedCard(cardIndex);
     } else {
-      // All steps are complete, redirect to summary
+      // Todos os passos estão completos, redirecionar para o resumo
       setExpandedCard(0);
     }
   };
 
-  // Combined Handler: Notify and Redirect
-  const handleNotifyAndRedirect = (message: string, severity: "success" | "error" | "info" | "warning") => {
+  // Handler combinado: Notificar e Redirecionar
+  const handleNotifyAndRedirect = (
+    message: string,
+    severity: "success" | "error" | "info" | "warning"
+  ) => {
     handleNotify(message, severity);
     handleRedirectToNextIncompleteStep();
   };
@@ -367,250 +402,294 @@ const OrganizatorEventDetail: React.FC = () => {
   ];
 
   return (
-    <Box
-      sx={{
-        width: "100%",
-        minHeight: "100vh",
-        backgroundColor: "#F7FAFC",
-        display: "flex",
-        flexDirection: "column",
-        padding: "20px",
-      }}
-    >
-      {/* Cabeçalho com Banner e status do evento */}
+    <>
+      {eventDetail && (
+        <Helmet>
+          <title>{eventDetail.name} | Eventues</title>
+          <meta name="description" content={eventDetail.description} />
+
+          {/* Open Graph / Facebook */}
+          <meta property="og:type" content="article" />
+          <meta
+            property="og:url"
+            content={`https://www.eventues.com/event_detail/${event_id}`}
+          />
+          <meta property="og:title" content={eventDetail.name} />
+          <meta
+            property="og:description"
+            content={eventDetail.description}
+          />
+          <meta
+            property="og:image"
+            content={eventDetail.banner_image_url || banner_template}
+          />
+
+          {/* Twitter */}
+          <meta name="twitter:card" content="summary_large_image" />
+          <meta
+            name="twitter:url"
+            content={`https://www.eventues.com/event_detail/${event_id}`}
+          />
+          <meta name="twitter:title" content={eventDetail.name} />
+          <meta
+            name="twitter:description"
+            content={eventDetail.description}
+          />
+          <meta
+            name="twitter:image"
+            content={eventDetail.banner_image_url || banner_template}
+          />
+        </Helmet>
+      )}
+
       <Box
         sx={{
-          position: "relative",
           width: "100%",
-          height: isSmallScreen ? "150px" : "200px",
-          backgroundImage: `url(${banner_template})`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
+          minHeight: "100vh",
+          backgroundColor: "#F7FAFC",
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          borderRadius: "20px",
-          overflow: "hidden",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
+          flexDirection: "column",
+          padding: "20px",
         }}
       >
-        {eventDetail && (
-          <Box sx={{ textAlign: "center", color: colors.white }}>
-            <Box
-              sx={{
-                marginBottom: "10px",
-                padding: "5px 15px",
-                borderRadius: "20px",
-                backgroundColor:
-                  eventDetail.event_status === "Rascunho"
-                    ? colors.grayLight
-                    : eventDetail.event_status === "Inscrições abertas"
-                    ? colors.green
-                    : colors.red,
-                color: colors.white,
-                fontWeight: "bold",
-                textAlign: "center",
-                display: "inline-block",
-              }}
-            >
-              {eventDetail.event_status}
-            </Box>
-
-            <Typography
-              variant={isSmallScreen ? "h5" : "h3"}
-              sx={{
-                fontWeight: "bold",
-                textTransform: "uppercase",
-                marginTop: "10px",
-              }}
-            >
-              {eventDetail.name}
-            </Typography>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <LocationOnIcon sx={{ marginRight: "8px" }} />
-              <Typography variant={isSmallScreen ? "body1" : "h6"}>
-                {eventDetail.city}, {eventDetail.state}
-              </Typography>
-            </Box>
-          </Box>
-        )}
-      </Box>
-
-      {/* Stepper com Scroll Horizontal em Mobile */}
-      <Box
-        sx={{
-          marginTop: "20px",
-          padding: isSmallScreen ? "0 20px" : "0",
-          width: "100%",
-          display: "flex",
-          flexDirection: isSmallScreen ? "column" : "row",
-          alignItems: isSmallScreen ? "unset" : "center",
-          justifyContent: isSmallScreen ? "unset" : "center",
-          overflowX: isSmallScreen ? "scroll" : "unset",
-          whiteSpace: isSmallScreen ? "nowrap" : "normal",
-          gap: isSmallScreen ? "20px" : "unset",
-        }}
-      >
-        <Stepper
-          alternativeLabel
-          sx={{
-            minWidth: isSmallScreen ? "600px" : "unset",
-            whiteSpace: "normal",
-            justifyContent: "center",
-            marginBottom: "10px",
-          }}
-        >
-          {steps.map((step, index) => (
-            <Step key={index}>
-              <StepLabel
-                StepIconComponent={StepIconComponent}
-                sx={{
-                  "& .MuiStepLabel-label": {
-                    display: "block",
-                    fontSize: isSmallScreen ? "12px" : "14px",
-                    maxWidth: "160px",
-                    textAlign: "center",
-                    whiteSpace: "normal",
-                  },
-                }}
-              >
-                {step.label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
-
-        {/* Botão de Publicação */}
-        <Button
-          variant="contained"
-          color="primary"
-          disabled={!steps.every((step) => step.status)}
-          sx={{
-            display: "block",
-            fontSize: isSmallScreen ? "12px" : "14px",
-            textAlign: "center",
-            whiteSpace: "normal",
-          }}
-        >
-          Publicar Evento
-        </Button>
-      </Box>
-
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: isSmallScreen ? "column" : "row",
-          flexGrow: 1,
-          padding: "15px",
-        }}
-      >
-        {/* Sidebar com as seções */}
+        {/* Cabeçalho com Banner e status do evento */}
         <Box
           sx={{
-            flexBasis: isSmallScreen ? "100%" : "20%",
-            padding: "10px",
+            position: "relative",
+            width: "100%",
+            height: isSmallScreen ? "150px" : "200px",
+            backgroundImage: `url(${banner_template})`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            borderRadius: "20px",
+            overflow: "hidden",
+            boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
           }}
         >
-          {cards.map((card, index) => (
-            <Box key={index}>
-              <Tooltip title={card.description} placement="right" arrow>
-                <Card
-                  sx={{
-                    marginBottom: "8px",
-                    padding: "10px",
-                    cursor: "pointer",
-                    backgroundColor:
-                      expandedCard === index
-                        ? colors.backgroundCardExpanded
-                        : colors.white,
-                    transition: "background-color 0.3s",
-                    "&:hover": {
-                      backgroundColor: colors.backgroundCardExpanded,
-                    },
-                  }}
-                  onClick={() => handleExpand(index)}
-                >
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      width: "100%", // Faz o ícone ocupar o espaço correto
-                    }}
-                  >
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      {card.icon}
-                      <Typography
-                        variant="h6"
-                        sx={{
-                          marginLeft: "8px",
-                          fontWeight: expandedCard === index ? "bold" : "normal",
-                        }}
-                      >
-                        {card.title}
-                      </Typography>
-                    </Box>
-                    {getStatusIcon(card.status !== undefined ? card.status : null)}
-                  </Box>
-                </Card>
-              </Tooltip>
+          {eventDetail && (
+            <Box sx={{ textAlign: "center", color: colors.white }}>
+              <Box
+                sx={{
+                  marginBottom: "10px",
+                  padding: "5px 15px",
+                  borderRadius: "20px",
+                  backgroundColor:
+                    eventDetail.event_status === "Rascunho"
+                      ? colors.grayLight
+                      : eventDetail.event_status === "Inscrições abertas"
+                      ? colors.green
+                      : colors.red,
+                  color: colors.white,
+                  fontWeight: "bold",
+                  textAlign: "center",
+                  display: "inline-block",
+                }}
+              >
+                {eventDetail.event_status}
+              </Box>
 
-              {isSmallScreen && expandedCard === index && (
-                <Box
-                  sx={{
-                    padding: "20px",
-                    backgroundColor: colors.white,
-                    borderRadius: "15px",
-                    boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-                    marginBottom: "20px",
-                  }}
-                >
-                  {card.component}
-                </Box>
-              )}
+              <Typography
+                variant={isSmallScreen ? "h5" : "h3"}
+                sx={{
+                  fontWeight: "bold",
+                  textTransform: "uppercase",
+                  marginTop: "10px",
+                }}
+              >
+                {eventDetail.name}
+              </Typography>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <LocationOnIcon sx={{ marginRight: "8px" }} />
+                <Typography variant={isSmallScreen ? "body1" : "h6"}>
+                  {eventDetail.city}, {eventDetail.state}
+                </Typography>
+              </Box>
             </Box>
-          ))}
+          )}
         </Box>
 
-        {/* Conteúdo expandido das seções em telas maiores */}
-        {!isSmallScreen && expandedCard !== null && (
-          <Box
+        {/* Stepper com Scroll Horizontal em Mobile */}
+        <Box
+          sx={{
+            marginTop: "20px",
+            padding: isSmallScreen ? "0 20px" : "0",
+            width: "100%",
+            display: "flex",
+            flexDirection: isSmallScreen ? "column" : "row",
+            alignItems: isSmallScreen ? "unset" : "center",
+            justifyContent: isSmallScreen ? "unset" : "center",
+            overflowX: isSmallScreen ? "scroll" : "unset",
+            whiteSpace: isSmallScreen ? "nowrap" : "normal",
+            gap: isSmallScreen ? "20px" : "unset",
+          }}
+        >
+          <Stepper
+            alternativeLabel
             sx={{
-              flexBasis: "80%",
-              padding: "20px",
-              backgroundColor: colors.white,
-              borderRadius: "15px",
-              boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
-              transition: "all 0.3s ease-in-out",
+              minWidth: isSmallScreen ? "600px" : "unset",
+              whiteSpace: "normal",
+              justifyContent: "center",
+              marginBottom: "10px",
             }}
           >
-            {cards[expandedCard].component}
-          </Box>
-        )}
-      </Box>
+            {steps.map((step, index) => (
+              <Step key={index}>
+                <StepLabel
+                  StepIconComponent={StepIconComponent}
+                  sx={{
+                    "& .MuiStepLabel-label": {
+                      display: "block",
+                      fontSize: isSmallScreen ? "12px" : "14px",
+                      maxWidth: "160px",
+                      textAlign: "center",
+                      whiteSpace: "normal",
+                    },
+                  }}
+                >
+                  {step.label}
+                </StepLabel>
+              </Step>
+            ))}
+          </Stepper>
 
-      {/* Centralized Snackbar for Notifications */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }} // Changed to top to align with scroll-to-top
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ width: "100%" }}
+          {/* Botão de Publicação */}
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={!steps.every((step) => step.status)}
+            sx={{
+              display: "block",
+              fontSize: isSmallScreen ? "12px" : "14px",
+              textAlign: "center",
+              whiteSpace: "normal",
+            }}
+          >
+            Publicar Evento
+          </Button>
+        </Box>
+
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: isSmallScreen ? "column" : "row",
+            flexGrow: 1,
+            padding: "15px",
+          }}
         >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-    </Box>
+          {/* Sidebar com as seções */}
+          <Box
+            sx={{
+              flexBasis: isSmallScreen ? "100%" : "20%",
+              padding: "10px",
+            }}
+          >
+            {cards.map((card, index) => (
+              <Box key={index}>
+                <Tooltip title={card.description} placement="right" arrow>
+                  <Card
+                    sx={{
+                      marginBottom: "8px",
+                      padding: "10px",
+                      cursor: "pointer",
+                      backgroundColor:
+                        expandedCard === index
+                          ? colors.backgroundCardExpanded
+                          : colors.white,
+                      transition: "background-color 0.3s",
+                      "&:hover": {
+                        backgroundColor: colors.backgroundCardExpanded,
+                      },
+                    }}
+                    onClick={() => handleExpand(index)}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        width: "100%",
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center" }}>
+                        {card.icon}
+                        <Typography
+                          variant="h6"
+                          sx={{
+                            marginLeft: "8px",
+                            fontWeight:
+                              expandedCard === index ? "bold" : "normal",
+                          }}
+                        >
+                          {card.title}
+                        </Typography>
+                      </Box>
+                      {getStatusIcon(
+                        card.status !== undefined ? card.status : null
+                      )}
+                    </Box>
+                  </Card>
+                </Tooltip>
+
+                {isSmallScreen && expandedCard === index && (
+                  <Box
+                    sx={{
+                      padding: "20px",
+                      backgroundColor: colors.white,
+                      borderRadius: "15px",
+                      boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                      marginBottom: "20px",
+                    }}
+                  >
+                    {card.component}
+                  </Box>
+                )}
+              </Box>
+            ))}
+          </Box>
+
+          {/* Conteúdo expandido das seções em telas maiores */}
+          {!isSmallScreen && expandedCard !== null && (
+            <Box
+              sx={{
+                flexBasis: "80%",
+                padding: "20px",
+                backgroundColor: colors.white,
+                borderRadius: "15px",
+                boxShadow: "0px 4px 20px rgba(0, 0, 0, 0.1)",
+                transition: "all 0.3s ease-in-out",
+              }}
+            >
+              {cards[expandedCard].component}
+            </Box>
+          )}
+        </Box>
+
+        {/* Snackbar Centralizado para Notificações */}
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={3000}
+          onClose={() => setSnackbarOpen(false)}
+          anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        >
+          <Alert
+            onClose={() => setSnackbarOpen(false)}
+            severity={snackbarSeverity}
+            sx={{ width: "100%" }}
+          >
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
+      </Box>
+    </>
   );
 };
 
