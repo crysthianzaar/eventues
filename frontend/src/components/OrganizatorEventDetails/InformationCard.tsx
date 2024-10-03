@@ -113,6 +113,7 @@ interface Estado {
 
 interface InformationCardProps {
   onNotify: (message: string, severity: "success" | "error" | "info" | "warning") => void;
+  onUpdate: () => void;
 }
 
 const initialDescriptionTemplate = `
@@ -131,7 +132,7 @@ const initialDescriptionTemplate = `
 `;
 
 const InformationCard: React.FC<InformationCardProps> = ({
-  onNotify
+  onNotify, onUpdate
 }) => {
   const { event_id } = useParams<{ event_id: string }>();
   const [formData, setFormData] = useState({
@@ -278,6 +279,7 @@ const InformationCard: React.FC<InformationCardProps> = ({
         setKey((prevKey) => prevKey + 1);
 
         onNotify("Detalhes do evento atualizados com sucesso!", "success");
+        onUpdate();
       } catch (err) {
         setSubmitting(false);
         console.error("Erro ao enviar formulário:", err);

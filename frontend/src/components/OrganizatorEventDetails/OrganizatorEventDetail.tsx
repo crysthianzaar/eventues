@@ -250,7 +250,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <InfoIcon />,
       title: "Detalhes do Evento",
-      component: <InformationCard onNotify={handleNotifyAndRedirect}/>,
+      component: <InformationCard onNotify={handleNotifyAndRedirect} onUpdate={refetchEventDetail}/>,
       description:
         "Informações completas sobre o evento (nome, local, data, descrição).",
       status: eventDetail?.stepper.event_details,
