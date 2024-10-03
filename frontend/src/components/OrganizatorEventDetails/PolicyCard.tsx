@@ -14,8 +14,6 @@ import {
   FormControl,
   FormLabel,
   Divider,
-  Snackbar,
-  Alert,
 } from '@mui/material';
 import axios from 'axios';
 import { styled } from '@mui/system';
@@ -92,9 +90,11 @@ const ButtonContainer = styled(Box)(({ theme }) => ({
 
 interface PolicyCardProps {
   eventId: string;
+  onUpdate: () => void;
+  handleNotify: (message: string, severity: "success" | "error" | "info" | "warning") => void; // New prop
 }
 
-const PolicyCard: React.FC<PolicyCardProps> = ({ eventId }) => {
+const PolicyCard: React.FC<PolicyCardProps> = ({ eventId, onUpdate, handleNotify }) => {
   const [formData, setFormData] = useState<EventPolicy>({
     eventVisibility: false,
     participantListVisibility: 'organizador',
@@ -109,11 +109,6 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ eventId }) => {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  // Estados para Snackbar
-  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
-  const [snackbarMessage, setSnackbarMessage] = useState<string>("");
-  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "info">("success");
 
   // Funções API
   const fetchEventPolicy = async (eventId: string): Promise<GetPolicyResponse> => {
@@ -144,6 +139,7 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ eventId }) => {
       } catch (error) {
         setFetchError('Erro ao carregar as políticas do evento.');
         console.error('Erro ao carregar as políticas do evento:', error);
+        handleNotify('Erro ao carregar as políticas do evento.', 'error');
       } finally {
         setLoading(false);
         validateForm();
@@ -208,35 +204,30 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ eventId }) => {
           allow_transfer: formData.allowTransfer,
         };
         await updateEventPolicy(eventId, payload);
-        setSnackbarMessage('Políticas do evento atualizadas com sucesso.');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
+        handleNotify('Políticas do evento atualizadas com sucesso.', 'success');
+        onUpdate(); // Trigger refetch in parent
       } catch (error) {
         console.error('Erro ao salvar as políticas:', error);
-        setSnackbarMessage('Erro ao salvar as políticas do evento.');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
+        handleNotify('Erro ao salvar as políticas do evento.', 'error');
       } finally {
         setSubmitting(false);
       }
     } else {
-      setSnackbarMessage('Por favor, corrija os erros no formulário.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+      handleNotify('Por favor, corrija os erros no formulário.', 'error');
     }
   };
 
   if (loading) {
     return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
-          <CircularProgress />
-        </Box>
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '200px' }}>
+        <CircularProgress />
+      </Box>
     );
   }
 
   if (fetchError) {
     return (
-        <Typography color="error">{fetchError}</Typography>
+      <Typography color="error">{fetchError}</Typography>
     );
   }
 
@@ -383,22 +374,6 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ eventId }) => {
           {submitting ? <CircularProgress size={24} sx={{ color: "#fff" }} /> : 'Salvar'}
         </SaveButton>
       </ButtonContainer>
-
-      {/* Snackbar para Feedback */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
-      >
-        <Alert
-          onClose={() => setSnackbarOpen(false)}
-          severity={snackbarSeverity}
-          sx={{ width: "100%" }}
-        >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </Box>
   );
 };

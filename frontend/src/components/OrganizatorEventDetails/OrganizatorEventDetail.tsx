@@ -1,3 +1,5 @@
+// src/components/OrganizatorEventDetails/OrganizatorEventDetail.tsx
+
 import React, { useEffect, useState } from "react";
 import {
   Box,
@@ -11,6 +13,8 @@ import {
   Step,
   StepLabel,
   StepIconProps,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import { useParams } from "react-router-dom";
 import axios from "axios";
@@ -88,6 +92,11 @@ const OrganizatorEventDetail: React.FC = () => {
   const [expandedCard, setExpandedCard] = useState<number | null>(0);
   const isSmallScreen = useMediaQuery("(max-width: 600px)");
 
+  // Snackbar States
+  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
+  const [snackbarMessage, setSnackbarMessage] = useState<string>("");
+  const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "info" | "warning">("success");
+
   const steps = eventDetail
     ? [
         { label: "Informações essenciais inseridas", status: eventDetail.stepper.inf_basic },
@@ -100,35 +109,65 @@ const OrganizatorEventDetail: React.FC = () => {
       ]
     : [];
 
-  useEffect(() => {
-    const fetchEventDetail = async () => {
-      try {
-        const response = await axios.get<EventDetail>(
-          `http://127.0.0.1:8000/organizer_detail/${event_id}`
-        );
-        setEventDetail(response.data);
-      } catch (err) {
-        setError("Erro ao carregar detalhes do evento.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  // Function to fetch event details
+  const refetchEventDetail = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await axios.get<EventDetail>(
+        `http://127.0.0.1:8000/organizer_detail/${event_id}`
+      );
+      setEventDetail(response.data);
+    } catch (err) {
+      setError("Erro ao carregar detalhes do evento.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    fetchEventDetail();
+  useEffect(() => {
+    refetchEventDetail();
   }, [event_id]);
 
   if (loading) {
-    return <CircularProgress sx={{ color: colors.primary }} />;
+    return (
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#F7FAFC",
+        }}
+      >
+        <CircularProgress sx={{ color: colors.primary }} />
+      </Box>
+    );
   }
 
   if (error) {
-    return <Typography color="error">{error}</Typography>;
+    return (
+      <Box
+        sx={{
+          width: "100%",
+          minHeight: "100vh",
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: "#F7FAFC",
+        }}
+      >
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
   }
 
   const handleExpand = (cardIndex: number) => {
     setExpandedCard(expandedCard === cardIndex ? null : cardIndex);
   };
 
+  // Step Icon Component
   const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
     const stepIndex = Number(icon) - 1;
     const stepStatus = steps[stepIndex].status;
@@ -140,6 +179,7 @@ const OrganizatorEventDetail: React.FC = () => {
     );
   };
 
+  // Get Status Icon for Cards
   const getStatusIcon = (status: boolean | null) => {
     if (status === null) return null;
     return status ? (
@@ -147,6 +187,55 @@ const OrganizatorEventDetail: React.FC = () => {
     ) : (
       <ErrorIcon sx={{ color: colors.yellowDark }} />
     );
+  };
+
+  // Reusable Notification Handler with Scroll-to-Top
+  const handleNotify = (message: string, severity: "success" | "error" | "info" | "warning") => {
+    setSnackbarMessage(message);
+    setSnackbarSeverity(severity);
+    setSnackbarOpen(true);
+
+    // Scroll to top smoothly
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
+
+  // Function to Redirect to Next Incomplete Step
+  const handleRedirectToNextIncompleteStep = () => {
+    if (!eventDetail) return;
+
+    const stepper = eventDetail.stepper;
+    const stepEntries = Object.entries(stepper);
+
+    // Find the first step that is false
+    const firstIncompleteStep = stepEntries.find(([key, value]) => !value);
+
+    if (firstIncompleteStep) {
+      const stepKey = firstIncompleteStep[0];
+      // Map step keys to card indices
+      const stepToCardMap: { [key: string]: number } = {
+        inf_basic: 0, // Resumo
+        event_details: 1, // Detalhes do Evento
+        documents: 2, // Banner e Documentos
+        policies: 3, // Políticas
+        category_and_values: 4, // Categorias e Valores
+        form: 5, // Formulário de Inscrição
+        // event_ready is the final step, redirect to summary
+      };
+      const cardIndex = stepToCardMap[stepKey] !== undefined ? stepToCardMap[stepKey] : 0;
+      setExpandedCard(cardIndex);
+    } else {
+      // All steps are complete, redirect to summary
+      setExpandedCard(0);
+    }
+  };
+
+  // Combined Handler: Notify and Redirect
+  const handleNotifyAndRedirect = (message: string, severity: "success" | "error" | "info" | "warning") => {
+    handleNotify(message, severity);
+    handleRedirectToNextIncompleteStep();
   };
 
   const cards = [
@@ -161,7 +250,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <InfoIcon />,
       title: "Detalhes do Evento",
-      component: <InformationCard />,
+      component: <InformationCard onNotify={handleNotifyAndRedirect}/>,
       description:
         "Informações completas sobre o evento (nome, local, data, descrição).",
       status: eventDetail?.stepper.event_details,
@@ -177,7 +266,13 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <PolicyIcon />,
       title: "Políticas",
-      component: <PolicyCard eventId={event_id!} />,
+      component: (
+        <PolicyCard
+          eventId={event_id!}
+          onUpdate={refetchEventDetail}
+          handleNotify={handleNotifyAndRedirect}
+        />
+      ), // Pass handleNotifyAndRedirect here
       description:
         "Configuração das políticas de cancelamento, reembolso, e termos de participação.",
       status: eventDetail?.stepper.policies,
@@ -185,14 +280,14 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <SportsIcon />,
       title: "Categorias e Valores",
-      component: <TicketsCard eventId={event_id!} />,
+      component: <TicketsCard eventId={event_id!} onNotify={handleNotifyAndRedirect} onUpdate={refetchEventDetail} />,
       description: "Definição de categorias de inscrição e respectivos preços.",
       status: eventDetail?.stepper.category_and_values,
     },
     {
       icon: <FormIcon />,
       title: "Formulário de Inscrição",
-      component: <FormCard eventId={event_id!}/>,
+      component: <FormCard eventId={event_id!} onNotify={handleNotifyAndRedirect} onUpdate={refetchEventDetail} />,
       description:
         "Personalização do formulário que os participantes devem preencher ao se inscrever.",
       status: eventDetail?.stepper.form,
@@ -200,7 +295,7 @@ const OrganizatorEventDetail: React.FC = () => {
     {
       icon: <TicketIcon />,
       title: "Ingressos/Inscrições",
-      component: <TicketsCard eventId={event_id!} />,
+      component: <TicketsCard eventId={event_id!} onNotify={handleNotifyAndRedirect} onUpdate={refetchEventDetail} />,
       description:
         "Gerenciamento de ingressos ou inscrições, controle de disponibilidade e venda.",
       status: null,
@@ -296,7 +391,7 @@ const OrganizatorEventDetail: React.FC = () => {
           alignItems: "center",
           borderRadius: "20px",
           overflow: "hidden",
-          boxShadow: "0 4px 12px rgba(1, 1, 1, 1)",
+          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
         }}
       >
         {eventDetail && (
@@ -499,6 +594,22 @@ const OrganizatorEventDetail: React.FC = () => {
           </Box>
         )}
       </Box>
+
+      {/* Centralized Snackbar for Notifications */}
+      <Snackbar
+        open={snackbarOpen}
+        autoHideDuration={3000}
+        onClose={() => setSnackbarOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }} // Changed to top to align with scroll-to-top
+      >
+        <Alert
+          onClose={() => setSnackbarOpen(false)}
+          severity={snackbarSeverity}
+          sx={{ width: "100%" }}
+        >
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

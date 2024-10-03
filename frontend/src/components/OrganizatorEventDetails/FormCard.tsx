@@ -30,8 +30,6 @@ import {
   ListItemText,
   ListItemSecondaryAction,
   Tooltip,
-  Snackbar,
-  Alert,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -124,7 +122,7 @@ const AddButton = styled(Button)(({ theme }) => ({
 }));
 
 // Botão Salvar (Verde) com ícone
-const SaveButton = styled(Button)(({ theme }) => ({
+const SaveButtonStyled = styled(Button)(({ theme }) => ({
   backgroundColor: colors.secondary,
   color: '#fff',
   '&:hover': {
@@ -150,9 +148,11 @@ const ViewButton = styled(Button)(({ theme }) => ({
 // Definindo a interface das props
 interface FormCardProps {
   eventId: string;
+  onNotify: (message: string, severity: "success" | "error" | "info" | "warning") => void;
+  onUpdate: () => void;
 }
 
-const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
+const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
   // Define the FormField interface
   interface FormField {
     id: string;
@@ -171,11 +171,6 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
   const [optionsDialogOpen, setOptionsDialogOpen] = useState<boolean>(false);
   const [currentOptions, setCurrentOptions] = useState<string[]>([]);
   const [currentFieldId, setCurrentFieldId] = useState<string | null>(null);
-
-  // Estados para Snackbar
-  const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
-  const [snackbarMessage, setSnackbarMessage] = useState<string>('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   // Função para buscar os campos do formulário do backend
   const fetchFormFields = async () => {
@@ -231,6 +226,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
   // Chama a função de busca ao montar o componente
   useEffect(() => {
     fetchFormFields();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
   // Função para salvar as alterações no backend
@@ -259,21 +255,18 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
         const data: FormField[] = await response.json();
         const sortedData = data.sort((a, b) => a.order - b.order);
         setFields(sortedData);
-        setSnackbarMessage('Alterações salvas com sucesso!');
-        setSnackbarSeverity('success');
-        setSnackbarOpen(true);
+        onNotify('Alterações salvas com sucesso!', 'success');
+        onUpdate();
       } else {
         const errorData = await response.json();
         console.error('Erro ao salvar formulário:', errorData);
-        setSnackbarMessage('Erro ao salvar alterações.');
-        setSnackbarSeverity('error');
-        setSnackbarOpen(true);
+        onNotify('Erro ao salvar alterações.', 'error');
+        onUpdate();
       }
     } catch (error) {
       console.error('Erro ao salvar formulário:', error);
-      setSnackbarMessage('Erro ao salvar alterações.');
-      setSnackbarSeverity('error');
-      setSnackbarOpen(true);
+      onNotify('Erro ao salvar alterações.', 'error');
+      onUpdate();
     }
   };
 
@@ -540,9 +533,9 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
             >
               Cancelar
             </Button>
-            <SaveButton variant="contained" onClick={handleAddQuestion}>
+            <SaveButtonStyled variant="contained" onClick={handleAddQuestion}>
               Adicionar Pergunta
-            </SaveButton>
+            </SaveButtonStyled>
           </Box>
         </Box>
       )}
@@ -558,9 +551,9 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
           flexWrap: 'wrap',
         }}
       >
-        <SaveButton variant="contained" startIcon={<SaveIcon />} onClick={saveFormFields}>
+        <SaveButtonStyled variant="contained" startIcon={<SaveIcon />} onClick={saveFormFields}>
           Salvar Alterações
-        </SaveButton>
+        </SaveButtonStyled>
         <ViewButton variant="contained" startIcon={<VisibilityIcon />} onClick={() => setModalOpen(true)}>
           Visualizar Formulário
         </ViewButton>
@@ -740,18 +733,6 @@ const FormCard: React.FC<FormCardProps> = ({ eventId }) => {
           </Button>
         </DialogActions>
       </Dialog>
-
-      {/* Snackbar para Feedback */}
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={3000}
-        onClose={() => setSnackbarOpen(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-      >
-        <Alert onClose={() => setSnackbarOpen(false)} severity={snackbarSeverity} sx={{ width: '100%' }}>
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
     </FormContainer>
   );
 };

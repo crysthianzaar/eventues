@@ -82,10 +82,16 @@ interface PriceConfiguration {
 }
 
 interface TicketsCardProps {
+
   eventId: string; // Definindo a prop eventId
+
+  onNotify: (message: string, severity: "success" | "error" | "info" | "warning") => void; // Função de notificação
+
+  onUpdate: () => void; // Função de atualização
+
 }
 
-const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
+const TicketsCard: React.FC<TicketsCardProps> = ({ eventId, onNotify, onUpdate }) => {
   const [categories, setCategories] = useState<categoria[]>([]);
   const [priceConfigurations, setPriceConfigurations] = useState<PriceConfiguration[]>([]);
 
@@ -476,53 +482,68 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
   // Função para consolidar e enviar os dados
   const handleSaveAll = async () => {
     setIsSaving(true);
-    setSaveSuccess(null);
+    
+    // Reset previous errors
     setSaveError(null);
-
+  
     // Validação básica
     for (const cat of categories) {
       if (cat.subcategories.length === 0) {
-        setSaveError(`A categoria "${cat.name}" deve ter pelo menos uma subcategoria.`);
+        const errorMsg = `A categoria "${cat.name}" deve ter pelo menos uma subcategoria.`;
+        setSaveError(errorMsg);
+        onNotify(errorMsg, "error");
         setIsSaving(false);
         return;
       }
     }
-
+  
     for (const config of priceConfigurations) {
       if (config.type === 'standard' && (config.price ?? 0) <= 0) {
-        setSaveError(`A configuração "${config.name}" deve ter um preço válido.`);
+        const errorMsg = `A configuração "${config.name}" deve ter um preço válido.`;
+        setSaveError(errorMsg);
+        onNotify(errorMsg, "error");
         setIsSaving(false);
         return;
       }
-
+  
       if (config.type === 'batch') {
         if (!config.batch_configs || config.batch_configs.length === 0) {
-          setSaveError(`A configuração "${config.name}" deve ter pelo menos um lote.`);
+          const errorMsg = `A configuração "${config.name}" deve ter pelo menos um lote.`;
+          setSaveError(errorMsg);
+          onNotify(errorMsg, "error");
           setIsSaving(false);
           return;
         }
-
+  
         for (const batch of config.batch_configs) {
           if (!batch.name) {
-            setSaveError(`Todos os lotes na configuração "${config.name}" devem ter um nome.`);
+            const errorMsg = `Todos os lotes na configuração "${config.name}" devem ter um nome.`;
+            setSaveError(errorMsg);
+            onNotify(errorMsg, "error");
             setIsSaving(false);
             return;
           }
           if (batch.price === null || batch.price <= 0) {
-            setSaveError(`Todos os lotes na configuração "${config.name}" devem ter um preço válido.`);
+            const errorMsg = `Todos os lotes na configuração "${config.name}" devem ter um preço válido.`;
+            setSaveError(errorMsg);
+            onNotify(errorMsg, "error");
             setIsSaving(false);
             return;
           }
           if (batch.type === 'temporal') {
             if (!batch.start_date || !batch.end_date) {
-              setSaveError(`Todos os lotes temporais na configuração "${config.name}" devem ter datas de início e fim.`);
+              const errorMsg = `Todos os lotes temporais na configuração "${config.name}" devem ter datas de início e fim.`;
+              setSaveError(errorMsg);
+              onNotify(errorMsg, "error");
               setIsSaving(false);
               return;
             }
             const start = new Date(batch.start_date);
             const end = new Date(batch.end_date);
             if (start >= end) {
-              setSaveError(`A data de início do lote "${batch.name}" deve ser anterior à data de fim.`);
+              const errorMsg = `A data de início do lote "${batch.name}" deve ser anterior à data de fim.`;
+              setSaveError(errorMsg);
+              onNotify(errorMsg, "error");
               setIsSaving(false);
               return;
             }
@@ -531,7 +552,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
         }
       }
     }
-
+  
     // Estruturando os dados conforme as interfaces e o backend
     const dataToSend = {
       categories: categories.map((cat) => ({
@@ -567,38 +588,36 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
           : undefined,
       })),
     };
-
+  
     try {
       const response = await axios.post(
         `http://127.0.0.1:8000/organizer_detail/${eventId}/categories`,
         dataToSend
       );
-
+  
       if (response.status === 200 || response.status === 201) {
-        setSaveSuccess(true);
-        // Opcional: Limpar os estados após o salvamento
-        // setCategories([]);
-        // setPriceConfigurations([]);
+        onNotify('Categoria e Valores Salvos com sucesso!', 'success');
+        onUpdate();
       } else {
-        setSaveSuccess(false);
-        setSaveError(`Erro: ${response.statusText}`);
+        const errorMsg = `Erro: ${response.statusText}`;
+        setSaveError(errorMsg);
+        onNotify(errorMsg, "error");
       }
     } catch (error: any) {
-      setSaveSuccess(false);
-      setSaveError(error.message || 'Ocorreu um erro ao salvar os dados.');
+      const errorMsg = error.message || 'Ocorreu um erro ao salvar os dados.';
+      setSaveError(errorMsg);
+      onNotify(errorMsg, "error");
     } finally {
       setIsSaving(false);
     }
   };
+  
 
   return (
     <Box
       sx={{
         padding: { xs: '20px', md: '40px' },
         maxWidth: { xs: '100%', md: '1400px' },
-        margin: '0 auto',
-        position: 'relative',
-        backgroundColor: colors.grayLight,
         borderRadius: '12px',
       }}
     >
@@ -606,8 +625,6 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
       <Box
         sx={{
           display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
           marginBottom: '20px',
           flexWrap: 'wrap',
           gap: '16px',
@@ -632,8 +649,6 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
           {/* Buttons "Add categoria" and "Add Price Configuration" */}
           <Box
             display="flex"
-            justifyContent="center"
-            alignItems="center"
             mb={4}
             sx={{ gap: '16px', flexWrap: 'wrap' }}
           >
@@ -995,8 +1010,6 @@ const TicketsCard: React.FC<TicketsCardProps> = ({ eventId }) => {
           {/* Botão "Salvar Tudo" */}
           <Box
             display="flex"
-            justifyContent="center"
-            alignItems="center"
             mt={4}
             sx={{ gap: '16px', flexWrap: 'wrap' }}
           >
