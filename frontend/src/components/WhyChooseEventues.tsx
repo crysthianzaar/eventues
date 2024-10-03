@@ -42,6 +42,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Importação do EconomyCalculator
 import EconomyCalculator from './EconomyCalculator';
+import { Helmet } from 'react-helmet';
 
 const WhyChooseEventues: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
@@ -664,53 +665,152 @@ const WhyChooseEventues: React.FC = () => {
   };
 
   return (
-    <Container maxWidth="lg">
-      {/* Título da página */}
-
-      <Box
-        sx={{
-          padding: { xs: '40px 10px', sm: '60px 20px' },
-          backgroundColor: '#EDF2F7',
-          textAlign: 'center',
-          borderRadius: '12px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-          marginTop: '40px',
-        }}
-      >
-        <img
-          src={logo}
-          alt="Eventues Icon"
-          style={{ width: '100px', marginBottom: '20px' }}
+    <>
+      {/* Adicione o Helmet aqui */}
+      <Helmet>
+        <title>Por que Escolher a Eventues? | Eventues</title>
+        <meta
+          name="description"
+          content="Descubra as vantagens de usar a Eventues para organizar e participar de eventos. Economize nas taxas, maximize seus lucros e ofereça a melhor experiência aos participantes."
         />
-        <Typography
-          variant="h4"
-          component="h2"
-          sx={{ mb: 3, color: '#5A67D8', fontWeight: 'bold' }}
-        >
-          Por que escolher a Eventues?
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            maxWidth: 800,
-            margin: '0 auto',
-            color: '#4A5568',
-            fontSize: { xs: '1rem', sm: '1.125rem' },
-          }}
-        >
-          Seja um Organizador de Sucesso com a Eventues. Transforme a maneira como você gerencia seus eventos. Com a Eventues, você tem acesso a uma plataforma completa, eficiente e econômica, desenhada para atender todas as necessidades do organizador moderno. Foque no que realmente importa: criar experiências inesquecíveis para seus participantes.
-        </Typography>
 
-        {/* Adicionando os botões abaixo da descrição */}
+        {/* Open Graph / Facebook */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content="https://www.eventues.com/seja_organizador" />
+        <meta property="og:title" content="Por que Escolher a Eventues? | Eventues" />
+        <meta
+          property="og:description"
+          content="Descubra as vantagens de usar a Eventues para organizar e participar de eventos. Economize nas taxas, maximize seus lucros e ofereça a melhor experiência aos participantes."
+        />
+        <meta property="og:image" content="https://www.eventues.com/imagens/eventues_organizador_og_image.jpg" />
+
+        {/* Twitter */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content="https://www.eventues.com/seja_organizador" />
+        <meta name="twitter:title" content="Por que Escolher a Eventues? | Eventues" />
+        <meta
+          name="twitter:description"
+          content="Descubra as vantagens de usar a Eventues para organizar e participar de eventos. Economize nas taxas, maximize seus lucros e ofereça a melhor experiência aos participantes."
+        />
+        <meta name="twitter:image" content="https://www.eventues.com/imagens/eventues_organizador_twitter_image.jpg" />
+      </Helmet>
+
+      <Container maxWidth="lg">
+        {/* Título da página */}
+
         <Box
           sx={{
-            marginTop: 4,
-            display: 'flex',
-            justifyContent: 'center',
-            flexWrap: 'wrap',
-            gap: 2,
+            padding: { xs: '40px 10px', sm: '60px 20px' },
+            backgroundColor: '#EDF2F7',
+            textAlign: 'center',
+            borderRadius: '12px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            marginTop: '40px',
           }}
         >
+          <img
+            src={logo}
+            alt="Eventues Icon"
+            style={{ width: '100px', marginBottom: '20px' }}
+          />
+          <Typography
+            variant="h4"
+            component="h2"
+            sx={{ mb: 3, color: '#5A67D8', fontWeight: 'bold' }}
+          >
+            Por que escolher a Eventues?
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              maxWidth: 800,
+              margin: '0 auto',
+              color: '#4A5568',
+              fontSize: { xs: '1rem', sm: '1.125rem' },
+            }}
+          >
+            Seja um Organizador de Sucesso com a Eventues. Transforme a maneira como você gerencia seus eventos. Com a Eventues, você tem acesso a uma plataforma completa, eficiente e econômica, desenhada para atender todas as necessidades do organizador moderno. Foque no que realmente importa: criar experiências inesquecíveis para seus participantes.
+          </Typography>
+
+          {/* Adicionando os botões abaixo da descrição */}
+          <Box
+            sx={{
+              marginTop: 4,
+              display: 'flex',
+              justifyContent: 'center',
+              flexWrap: 'wrap',
+              gap: 2,
+            }}
+          >
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={() => navigate('/criar_evento')} // Navegação programática
+              sx={{
+                px: 5,
+                py: 1.5,
+                backgroundColor: '#5A67D8',
+                '&:hover': { backgroundColor: '#434190' },
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              }}
+            >
+              Criar Evento
+            </Button>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => navigate('/contato')} // Navegação programática
+              sx={{
+                px: 5,
+                py: 1.5,
+                borderColor: '#5A67D8',
+                color: '#5A67D8',
+                '&:hover': {
+                  borderColor: '#434190',
+                  color: '#434190',
+                },
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+              }}
+            >
+              Fale Conosco
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Conditionally render Desktop or Mobile view */}
+        {isMobile ? <MobileView /> : <DesktopView />}
+
+        {/* Call to Action */}
+        <Box
+          sx={{
+            textAlign: 'center',
+            padding: { xs: '40px 20px', sm: '60px 40px' },
+            backgroundColor: '#F7FAFC',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+            borderTop: '1px solid #E2E8F0',
+            marginTop: '40px',
+            borderRadius: '12px',
+          }}
+        >
+          <Typography
+            variant="h4"
+            sx={{ fontWeight: 'bold', color: '#5A67D8', mb: 3 }}
+          >
+            Pronto para elevar seus eventos ao próximo nível?
+          </Typography>
+          <Typography
+            variant="body1"
+            sx={{
+              color: '#4A5568',
+              maxWidth: '800px',
+              margin: '0 auto',
+              mb: 3,
+            }}
+          >
+            Junte-se aos organizadores que já estão transformando suas experiências com a Eventues. Simplifique a gestão, reduza custos e encante seus participantes.
+          </Typography>
           <Button
             variant="contained"
             color="primary"
@@ -724,79 +824,11 @@ const WhyChooseEventues: React.FC = () => {
               boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
             }}
           >
-            Criar Evento
-          </Button>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => navigate('/contato')} // Navegação programática
-            sx={{
-              px: 5,
-              py: 1.5,
-              borderColor: '#5A67D8',
-              color: '#5A67D8',
-              '&:hover': {
-                borderColor: '#434190',
-                color: '#434190',
-              },
-              borderRadius: '8px',
-              boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-            }}
-          >
-            Fale Conosco
+            Crie o Seu Evento Agora Mesmo
           </Button>
         </Box>
-      </Box>
-
-      {/* Conditionally render Desktop or Mobile view */}
-      {isMobile ? <MobileView /> : <DesktopView />}
-
-      {/* Call to Action */}
-      <Box
-        sx={{
-          textAlign: 'center',
-          padding: { xs: '40px 20px', sm: '60px 40px' },
-          backgroundColor: '#F7FAFC',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
-          borderTop: '1px solid #E2E8F0',
-          marginTop: '40px',
-          borderRadius: '12px',
-        }}
-      >
-        <Typography
-          variant="h4"
-          sx={{ fontWeight: 'bold', color: '#5A67D8', mb: 3 }}
-        >
-          Pronto para elevar seus eventos ao próximo nível?
-        </Typography>
-        <Typography
-          variant="body1"
-          sx={{
-            color: '#4A5568',
-            maxWidth: '800px',
-            margin: '0 auto',
-            mb: 3,
-          }}
-        >
-          Junte-se aos organizadores que já estão transformando suas experiências com a Eventues. Simplifique a gestão, reduza custos e encante seus participantes.
-        </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => navigate('/criar_evento')} // Navegação programática
-          sx={{
-            px: 5,
-            py: 1.5,
-            backgroundColor: '#5A67D8',
-            '&:hover': { backgroundColor: '#434190' },
-            borderRadius: '8px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-          }}
-        >
-          Crie o Seu Evento Agora Mesmo
-        </Button>
-      </Box>
-    </Container>
+      </Container>
+    </>
   );
 };
 
