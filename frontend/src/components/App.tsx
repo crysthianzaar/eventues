@@ -47,31 +47,21 @@ const App: React.FC = () => {
   return (
     <Authenticator.Provider>
       <Router>
-        <Helmet>
-          <title>Eventues - Gestão Inteligente de Eventos</title>
-          <meta name="description" content="A Eventues é uma plataforma inovadora para gestão e organização de eventos." />
-
-          {/* Open Graph / Facebook */}
-          <meta property="og:type" content="website" />
-          <meta property="og:url" content="https://www.eventues.com" />
-          <meta property="og:title" content="Eventues - Gestão Inteligente de Eventos" />
-          <meta property="og:description" content="Simplifique a gestão dos seus eventos com a Eventues. Soluções completas e integradas." />
-          <meta property="og:image" content="https://www.eventues.com/imagens/eventues_og_image.jpg" />
-
-          {/* Twitter */}
-          <meta name="twitter:card" content="summary_large_image" />
-          <meta name="twitter:url" content="https://www.eventues.com" />
-          <meta name="twitter:title" content="Eventues - Gestão Inteligente de Eventos" />
-          <meta name="twitter:description" content="Simplifique a gestão dos seus eventos com a Eventues. Soluções completas e integradas." />
-          <meta name="twitter:image" content="https://www.eventues.com/imagens/eventues_twitter_image.jpg" />
-        </Helmet>
-
         <LayoutWithNavbar>
           <Routes>
-            <Route
+          <Route
               path="/"
               element={
                 <>
+                  <Helmet>
+                    <title>Eventues - Gestão Inteligente de Eventos</title>
+                    <meta name="description" content="A Eventues é uma plataforma inovadora para gestão e organização de eventos." />
+                    <meta property="og:type" content="website" />
+                    <meta property="og:url" content="https://www.eventues.com" />
+                    <meta property="og:title" content="Eventues - Gestão Inteligente de Eventos" />
+                    <meta property="og:description" content="Simplifique a gestão dos seus eventos com a Eventues. Soluções completas e integradas." />
+                    <meta property="og:image" content="https://www.eventues.com/imagens/eventues_og_image.jpg" />
+                  </Helmet>
                   <Hero />
                   <Filters />
                   <Events />
