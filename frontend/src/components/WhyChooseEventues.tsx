@@ -42,7 +42,7 @@ import { useNavigate } from 'react-router-dom';
 
 // Importação do EconomyCalculator
 import EconomyCalculator from './EconomyCalculator';
-import { Helmet } from 'react-helmet';
+import { Helmet } from 'react-helmet-async';
 
 const WhyChooseEventues: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);

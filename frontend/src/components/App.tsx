@@ -19,7 +19,7 @@ import TermsOfService from "./GeneralComponents/TermsOfService";
 import PrivacyPolicy from "./GeneralComponents/PrivacyPolicy";
 import WhyChooseEventues from "./WhyChooseEventues";
 import EventuesConnect from "./Blog/EventuesConnect";
-import { Helmet } from "react-helmet"; // Importe o Helmet
+import {HelmetProvider } from "react-helmet-async";
 
 // Defina a interface para as props que o LayoutWithNavbar irá receber
 interface LayoutWithNavbarProps {
@@ -47,7 +47,7 @@ const App: React.FC = () => {
   return (
     <Authenticator.Provider>
       <Router>
-        <Helmet>
+        <HelmetProvider>
           <title>Eventues - Gestão Inteligente de Eventos</title>
           <meta name="description" content="A Eventues é uma plataforma inovadora para gestão e organização de eventos." />
 
@@ -64,7 +64,7 @@ const App: React.FC = () => {
           <meta name="twitter:title" content="Eventues - Gestão Inteligente de Eventos" />
           <meta name="twitter:description" content="Simplifique a gestão dos seus eventos com a Eventues. Soluções completas e integradas." />
           <meta name="twitter:image" content="https://www.eventues.com/imagens/eventues_twitter_image.jpg" />
-        </Helmet>
+        </HelmetProvider>
 
         <LayoutWithNavbar>
           <Routes>

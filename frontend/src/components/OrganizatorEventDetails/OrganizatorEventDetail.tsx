@@ -48,9 +48,7 @@ import FinanceCard from "./FinanceCard";
 import AccessLevelsCard from "./AccessLevelsCard";
 import banner_template from "../../assets/banner_template.png";
 import PolicyCard from "./PolicyCard";
-
-// Importe o Helmet
-import { Helmet } from "react-helmet";
+import { Helmet } from "react-helmet-async";
 
 const colors = {
   primary: "#5A67D8",
