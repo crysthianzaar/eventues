@@ -11,11 +11,9 @@ const Footer: React.FC = () => {
         color: 'white', 
         textAlign: 'center', 
         padding: '2rem 0', 
-        position: 'fixed', // Fixado no rodapé
-        bottom: 0, // Colado na parte inferior
-        left: 0, // Colado na lateral esquerda
+        position: 'relative', // Usando relative para permitir que o conteúdo empurre o footer para baixo
         width: '100%', // Ocupar 100% da largura da página
-        zIndex: 1000, // Garante que esteja por cima de outros elementos
+        marginTop: 'auto', // Garante que o footer fique na parte inferior se o conteúdo for menor que a tela
       }}
     >
       <Typography variant="body2">&copy; 2024 Eventues. Todos os direitos reservados.</Typography>

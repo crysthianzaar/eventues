@@ -40,7 +40,7 @@ interface LayoutProps {
 export default function RootLayout({ children }: LayoutProps) {
   return (
     <html lang="pt-BR">
-      <body style={{ margin: 0, padding: 0 }}>
+      <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', margin: 0 }}>
         <Navbar />
         <main>{children}</main>
         <Footer />

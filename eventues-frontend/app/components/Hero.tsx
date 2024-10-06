@@ -9,7 +9,7 @@ const Hero: React.FC = () => {
   const items = [
     {
       word: 'Encontre',
-      color: '#5A67D8',
+      color: '#2C3BBA',
       backgroundImage: 'url(https://cdn.pixabay.com/photo/2016/11/18/22/24/woman-1837158_960_720.jpg)',
     },
     {
@@ -85,6 +85,7 @@ const Hero: React.FC = () => {
             style={{
               color: items[currentIndex].color,
               textShadow: '2px 2px 4px #000000', // Borda preta
+              WebkitTextStroke: '0.5px #E5E5E5', // Borda branca ao redor do texto
             }}
           >
             {items[currentIndex].word}
