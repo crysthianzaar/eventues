@@ -70,7 +70,7 @@ const App: React.FC = () => {
               }
             />
             <Route path="/login" element={<MyAuthenticator />} />
-            <Route path="/terms-of-service" element={<TermsOfService />} />
+            <Route path="/terms_of_service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
             <Route path="/seja_organizador" element={<WhyChooseEventues />} />
             <Route path="/blog" element={<EventuesConnect />} />

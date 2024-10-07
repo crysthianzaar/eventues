@@ -16,7 +16,7 @@ const Footer: React.FC = () => {
       }}
     >
       <Typography variant="body2">&copy; 2024 Eventues. Todos os direitos reservados.</Typography>
-      <Link to="/terms-of-service" style={{ color: 'inherit', display: 'block', marginTop: '1rem', textDecoration: 'none' }}>
+      <Link to="/terms_of_service" style={{ color: 'inherit', display: 'block', marginTop: '1rem', textDecoration: 'none' }}>
         Termos de Serviço
       </Link>
       <Link to="/privacy-policy" style={{ color: 'inherit', display: 'block', marginTop: '1rem', textDecoration: 'none' }}>

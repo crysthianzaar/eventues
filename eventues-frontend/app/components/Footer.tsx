@@ -19,7 +19,7 @@ const Footer: React.FC = () => {
       <Typography variant="body2">&copy; 2024 Eventues. Todos os direitos reservados.</Typography>
       
       {/* Links usando o Next.js Link */}
-      <Link href="/terms-of-service" passHref legacyBehavior>
+      <Link href="/terms_of_service" passHref legacyBehavior>
         <a style={{ color: 'inherit', display: 'block', marginTop: '1rem', textDecoration: 'none' }}>
           Termos de Serviço
         </a>
