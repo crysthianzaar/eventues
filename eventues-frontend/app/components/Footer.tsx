@@ -25,7 +25,7 @@ const Footer: React.FC = () => {
         </a>
       </Link>
 
-      <Link href="/privacy-policy" passHref legacyBehavior>
+      <Link href="/privacy_policy" passHref legacyBehavior>
         <a style={{ color: 'inherit', display: 'block', marginTop: '1rem', textDecoration: 'none' }}>
           Política de Privacidade
         </a>
