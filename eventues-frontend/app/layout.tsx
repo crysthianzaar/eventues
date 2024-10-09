@@ -20,7 +20,7 @@ export const metadata = {
   },
   icons: {
     icon: [
-      { url: "/icon_eventues.png", type: "image/png", sizes: "32x32" }, // Ícone alternativo (PNG)
+      { url: "/icon_eventues.png", type: "image/png", sizes: "32x32" }, // Ícone principal (PNG)
     ],
   },
 };
