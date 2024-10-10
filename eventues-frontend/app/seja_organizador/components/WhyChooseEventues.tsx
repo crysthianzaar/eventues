@@ -126,95 +126,95 @@ const WhyChooseEventues: React.FC = () => {
       <Box
         sx={{
           position: "relative",
-          height: { xs: "60vh", md: "80vh" },
+          height: { xs: "100vh", md: "80vh" },
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           backgroundImage:
-            "url(https://cdn.pixabay.com/photo/2019/05/05/17/32/stadium-4181150_1280.jpg)", // Replace with your image path
+        "url(https://cdn.pixabay.com/photo/2018/05/15/23/02/football-stadium-3404535_1280.jpg)", // Replace with your image path
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
       >
         <Box
           sx={{
-            position: "absolute",
-            width: "100%",
-            height: "100%",
-            backgroundColor: "rgba(0,0,0,0.5)",
+        position: "absolute",
+        width: "100%",
+        height: "100%",
+        backgroundColor: "rgba(0,0,0,0.5)",
           }}
         ></Box>
         <Container
           sx={{
-            position: "relative",
-            zIndex: 1,
-            textAlign: "center",
-            color: "#FFF",
-            px: { xs: 2, sm: 4 },
+        position: "relative",
+        zIndex: 1,
+        textAlign: "center",
+        color: "#FFF",
+        px: { xs: 2, sm: 4 },
           }}
         >
           <Image
-            src="/icon_eventues.png"
-            alt="Eventues Icon"
-            width={75}
-            height={75}
-            style={{ marginBottom: "20px" }}
+        src="/icon_eventues.png"
+        alt="Eventues Icon"
+        width={75}
+        height={75}
+        style={{ marginBottom: "20px" }}
           />
           <Typography
-            variant={isMobile ? "h4" : "h2"}
-            sx={{
-              fontWeight: "bold",
-              mb: 2,
-              color: "#5A67D8",
-              textShadow: "4px 4px 4px rgba(0.5, 0.5, 0.5, 0.5)",
-            }}
+        variant={isMobile ? "h5" : "h2"}
+        sx={{
+          fontWeight: "bold",
+          mb: 2,
+          color: "#5A67D8",
+          textShadow: "4px 4px 4px rgba(0.5, 0.5, 0.5, 0.5)",
+        }}
           >
-            Conheça a Eventues
+        Por que Escolher a Eventues?
           </Typography>
-          <Typography variant={isMobile ? "h6" : "h5"} sx={{ mb: 3 }}>
-            Mais que uma plataforma de inscrição, somos seu parceiro na gestão
-            de eventos. Com taxas competitivas e um suporte dedicado, oferecemos
-            tudo o que você precisa para organizar e impulsionar seus eventos
-            com eficiência.
+          <Typography
+        variant={isMobile ? "body1" : "h5"}
+        sx={{ mb: 3, textShadow: "4px 4px 4px rgba(0.5, 0.5, 0.5, 0.5)" }}
+          >
+        Somos mais que uma plataforma de inscrições, somos seu parceiro completo na gestão de eventos. Com preços competitivos e suporte dedicado, oferecemos todas as ferramentas e recursos que você precisa para organizar e promover seus eventos com facilidade e eficiência.
           </Typography>
           <Box
-            sx={{
-              display: "flex",
-              flexDirection: { xs: "column", sm: "row" },
-              justifyContent: "center",
-              gap: 2,
-            }}
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", sm: "row" },
+          justifyContent: "center",
+          gap: 2,
+        }}
           >
-            <Button
-              variant="contained"
-              color="primary"
-              sx={{
-                borderRadius: "8px",
-                textTransform: "none",
-                fontWeight: "bold",
-                width: { xs: "100%", sm: "auto" },
-                py: { xs: 1.5, sm: 1 },
-              }}
-              onClick={() => router.push("/criar_evento")}
-            >
-              Crie seu Evento Agora
-            </Button>
-            <Button
-              variant="outlined"
-              color="inherit"
-              sx={{
-                borderRadius: "8px",
-                color: "#FFF",
-                borderColor: "#FFF",
-                textTransform: "none",
-                fontWeight: "bold",
-                width: { xs: "100%", sm: "auto" },
-                py: { xs: 1.5, sm: 1 },
-              }}
-              href="#benefits"
-            >
-              Saiba Mais
-            </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          sx={{
+            borderRadius: "8px",
+            textTransform: "none",
+            fontWeight: "bold",
+            width: { xs: "100%", sm: "auto" },
+            py: { xs: 1.5, sm: 1 },
+          }}
+          onClick={() => router.push("/criar_evento")}
+        >
+          Crie seu Evento Agora
+        </Button>
+        <Button
+          variant="outlined"
+          color="inherit"
+          sx={{
+            borderRadius: "8px",
+            color: "#FFF",
+            borderColor: "#FFF",
+            textTransform: "none",
+            fontWeight: "bold",
+            width: { xs: "100%", sm: "auto" },
+            py: { xs: 1.5, sm: 1 },
+          }}
+          href="#benefits"
+        >
+          Saiba Mais
+        </Button>
           </Box>
         </Container>
       </Box>
