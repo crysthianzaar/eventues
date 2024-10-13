@@ -3,6 +3,7 @@
 import React from 'react';
 import { Metadata } from 'next';
 import ClientMeusEventosPage from './components/ClientMeusEventosPage';
+import ProtectedRoute from '../components/ProtectedRoute';
 
 export const metadata: Metadata = {
   title: 'Meus Eventos | Eventues',
@@ -39,7 +40,12 @@ export const metadata: Metadata = {
 };
 
 const MeusEventosPage = () => {
-  return <ClientMeusEventosPage />;
+  return (
+    <ProtectedRoute>
+      <ClientMeusEventosPage />;
+    </ProtectedRoute>
+  )
+
 };
 
 export default MeusEventosPage;
