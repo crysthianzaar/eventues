@@ -242,10 +242,10 @@ const WhyChooseEventues: React.FC = () => {
                   variant={isMobile ? "h6" : "h6"}
                   sx={{ fontWeight: "bold", mb: 1 }}
                 >
-                  Taxa de apenas 7,99% por inscrição
+                  Taxa de 7,99%
                 </Typography>
                 <Typography variant="body1" sx={{ px: { xs: 1, md: 2 } }}>
-                  O melhor custo-benefício para o seu evento.
+                  O melhor custo-benefício. Não cobramos taxa para eventos gratuitos.
                 </Typography>
               </Box>
             </Grid>
