@@ -14,7 +14,9 @@ import {
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import EventIcon from "@mui/icons-material/Event";
-import { fetchMyEvents } from "../api/api";
+import { useAuthState } from "react-firebase-hooks/auth"; // Hook para autenticação
+import { fetchMyEvents } from "../api/api"; // Função para chamar seu backend
+import { auth } from "../../../firebase";
 
 interface Event {
   id: number;
@@ -41,21 +43,21 @@ const MyEvents: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user] = useAuthState(auth); // Firebase Authentication
   const router = useRouter();
   const isMobile = useMediaQuery("(max-width:600px)");
 
   useEffect(() => {
     const fetchEvents = async () => {
-      try {
-        const userId = localStorage.getItem("user_id");
-        if (!userId) {
-          setError("Erro: Usuário não autenticado.");
-          setLoading(false);
-          return;
-        }
+      if (!user) {
+        setError("Erro: Usuário não autenticado.");
+        setLoading(false);
+        return;
+      }
 
-        const data: Event[] = await fetchMyEvents(userId) as Event[];
-        setEvents(data);
+      try {
+        const data = await fetchMyEvents(user.uid); // Passa o uid do Firebase para o backend
+        setEvents(data as Event[]);
       } catch (err) {
         if (err instanceof Error) {
           setError(err.message || "Erro ao carregar eventos.");
@@ -68,7 +70,7 @@ const MyEvents: React.FC = () => {
     };
 
     fetchEvents();
-  }, []);
+  }, [user]);
 
   const handleCardClick = (event_id: string) => {
     router.push(`/event_detail/${event_id}`);
