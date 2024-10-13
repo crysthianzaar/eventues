@@ -376,7 +376,7 @@ const WhyChooseEventues: React.FC = () => {
                 • Crie seu evento gratuitamente e só pague quando começar a vender.
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                • Receba seus valores antecipadamente, muitas vezes até antes do evento acontecer.
+                • Receba seus valores antecipadamente, antes do evento acontecer.
                 </Typography>
               <Box
                 sx={{
@@ -455,9 +455,9 @@ const WhyChooseEventues: React.FC = () => {
                   As Melhores Taxas do Mercado
                 </Typography>
                 <Typography variant="body1" sx={{ px: { xs: 1, md: 2 } }}>
-                  Taxas a partir de <strong>7,99%</strong> com uma taxa mínima
-                  de <strong>R$2,00</strong> por ingresso vendido abaixo de
-                  R$20. Não cobramos taxas para eventos gratuitos.
+                  Não tem segredo, a taxa é de <strong>7,99%</strong>, sendo a taxa mínima
+                  de <strong>R$2,00</strong> caso o valor da inscrição seja inferior a
+                  R$20. E não cobramos taxa para eventos gratuitos.
                 </Typography>
               </Box>
             </Grid>
@@ -485,7 +485,7 @@ const WhyChooseEventues: React.FC = () => {
                 </Typography>
                 <Typography variant="body1" sx={{ px: { xs: 1, md: 2 } }}>
                   Cobramos somente pelo valor transacionado. Se você oferecer um
-                  código de desconto, a taxa incidirá apenas sobre o valor
+                  cupon de desconto, a taxa incidirá apenas sobre o valor
                   final.
                 </Typography>
               </Box>
@@ -513,8 +513,8 @@ const WhyChooseEventues: React.FC = () => {
                   Sem Custos Ocultos
                 </Typography>
                 <Typography variant="body1" sx={{ px: { xs: 1, md: 2 } }}>
-                  Não cobramos taxas para ingressos gratuitos ou cortesias.
-                  Além disso, não há taxas para sacar os valores disponíveis,
+                  Não cobramos taxas para cortesias, cupons 100% ou inscrições manuais.
+                  Além disso, não há taxas para sacar os valores disponíveis via PIX,
                   independente do banco que você utiliza.
                 </Typography>
               </Box>
