@@ -37,6 +37,7 @@ import FormCard from "./FormCard";
 import PolicyCard from "./PolicyCard";
 
 interface EventDetail {
+  event_id: string;
   name: string;
   category: string;
   start_date: string;
@@ -215,7 +216,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       title: "Banner e Documentos",
       component: (
         <BannerDocumentCard
-          eventId={eventDetail.banner_image_url} // Adjust accordingly
+          eventId={eventDetail.event_id} // Adjust accordingly
           onNotify={handleNotifyAndRedirect}
           onUpdate={() => {} /* Implement if needed */}
         />
@@ -229,7 +230,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       title: "Políticas",
       component: (
         <PolicyCard
-          eventId={eventDetail.banner_image_url} // Adjust accordingly
+          eventId={eventDetail.event_id} // Adjust accordingly
           onUpdate={() => {} /* Implement if needed */}
           handleNotify={handleNotifyAndRedirect}
         />
@@ -243,7 +244,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       title: "Categorias e Valores",
       component: (
         <TicketsCard
-          eventId={eventDetail.banner_image_url} // Adjust accordingly
+          eventId={eventDetail.event_id} // Adjust accordingly
           onNotify={handleNotifyAndRedirect}
           onUpdate={() => {} /* Implement if needed */}
         />
@@ -256,7 +257,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       title: "Formulário de Inscrição",
       component: (
         <FormCard
-          eventId={eventDetail.banner_image_url} // Adjust accordingly
+          eventId={eventDetail.event_id} // Adjust accordingly
           onNotify={handleNotifyAndRedirect}
           onUpdate={() => {} /* Implement if needed */}
         />

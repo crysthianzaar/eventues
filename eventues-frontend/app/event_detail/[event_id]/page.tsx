@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image"; // Next.js Image component
 
 interface EventDetail {
+  event_id: string;
   name: string;
   category: string;
   start_date: string;

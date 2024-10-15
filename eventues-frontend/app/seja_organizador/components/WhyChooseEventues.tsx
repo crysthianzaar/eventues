@@ -429,7 +429,7 @@ const WhyChooseEventues: React.FC = () => {
             variant={isMobile ? "h5" : "h4"}
             sx={{ fontWeight: "bold", mb: 4, textAlign: "center" }}
             >
-            Economize com Nossas Taxas e Soluções Financeiras
+            Economize com Nossas Soluções Financeiras
             </Typography>
           {/* Grid de Vantagens */}
           <Grid container spacing={4}>

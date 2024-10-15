@@ -1,6 +1,7 @@
-'use client'; // Isso garante que estamos usando recursos do cliente
+// components/ProtectedRoute.tsx
+"use client"; // Garante que estamos usando recursos do cliente
 
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { ReactNode, useEffect } from 'react';
 import { auth } from '../../firebase';
@@ -12,13 +13,15 @@ interface ProtectedRouteProps {
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
   const [user, loading] = useAuthState(auth);
   const router = useRouter();
+  const pathname = usePathname(); // Obtém o caminho atual
 
   useEffect(() => {
     if (!loading && !user) {
-      // Se o usuário não estiver logado, redireciona para a página de login
+      // Salva o caminho original no localStorage antes de redirecionar
+      localStorage.setItem('redirectPath', pathname || '/');
       router.push('/login');
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, pathname]);
 
   if (loading) {
     // Exibe uma tela de carregamento enquanto verifica o status de autenticação

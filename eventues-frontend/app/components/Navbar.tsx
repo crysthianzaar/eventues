@@ -1,6 +1,6 @@
 "use client"; // Marca o componente como Client Component
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   AppBar,
   Toolbar,
@@ -28,7 +28,7 @@ import {
 } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../firebase"; // Certifique-se de ajustar o caminho
-import { useRouter } from "next/navigation"; // Usar 'next/navigation'
+import { useRouter, usePathname } from "next/navigation"; // Importação de usePathname
 import Image from "next/image"; // Importação do componente next/image
 
 const Navbar: React.FC = () => {
@@ -36,6 +36,12 @@ const Navbar: React.FC = () => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [user, loading] = useAuthState(auth); // Autenticação do Firebase
   const router = useRouter();
+  const pathname = usePathname(); // Obtém o pathname atual
+
+  // Resetar o menu de perfil sempre que a rota mudar
+  useEffect(() => {
+    setAnchorEl(null);
+  }, [pathname]);
 
   // Handlers de navegação
   const handleLogin = () => {
@@ -297,24 +303,39 @@ const Navbar: React.FC = () => {
               <Button
                 key={index}
                 startIcon={item.icon}
-                variant={item.variant as "contained" | "text" | "outlined" || "text"}
-                color={item.color as "success" | "inherit" | "primary" | "secondary" | "error" | "info" | "warning" || "inherit"} 
+                variant={
+                  (item.variant as "contained" | "text" | "outlined") ||
+                  "text"
+                }
+                color={
+                  (item.color as
+                    | "success"
+                    | "inherit"
+                    | "primary"
+                    | "secondary"
+                    | "error"
+                    | "info"
+                    | "warning") || "inherit"
+                }
                 sx={{
                   borderRadius: "20px",
                   textTransform: "none",
                   fontSize: "1rem",
-                  color: item.variant === "contained" ? "#fff" : "#2D3748",
+                  color:
+                    item.variant === "contained" ? "#fff" : "#2D3748",
                   backgroundColor:
                     item.variant === "contained" ? "#68D391" : "transparent",
-                  ":hover": item.variant === "contained" ? {
-                    transform: "scale(1.05)",
-                    backgroundColor: "#4CAF50",
-                    color: "#fff",
-                  } : {
-                    transform: "scale(1.05)",
-                    backgroundColor: "#e2e8f0",
-                    color: "#2D3748",
-                  },
+                  ":hover": item.variant === "contained"
+                    ? {
+                        transform: "scale(1.05)",
+                        backgroundColor: "#4CAF50",
+                        color: "#fff",
+                      }
+                    : {
+                        transform: "scale(1.05)",
+                        backgroundColor: "#e2e8f0",
+                        color: "#2D3748",
+                      },
                   transition: "transform 0.2s",
                 }}
                 onClick={item.action}
@@ -353,7 +374,9 @@ const Navbar: React.FC = () => {
                   onClose={handleMenuClose}
                   keepMounted
                 >
-                  <MenuItem onClick={handleAccountSettings}>Minha Conta</MenuItem>
+                  <MenuItem onClick={handleAccountSettings}>
+                    Minha Conta
+                  </MenuItem>
                   <MenuItem onClick={handleProfileSettings}>
                     Configurar Perfil
                   </MenuItem>

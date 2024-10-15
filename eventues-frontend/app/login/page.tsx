@@ -1,6 +1,7 @@
-'use client';
+// components/LoginPage.tsx
+"use client"; // Marca o componente como Client Component
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -36,13 +37,27 @@ const LoginPage = () => {
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
   const router = useRouter(); // Inicializar o router para redirecionamento
 
+  // Função para obter o caminho de redirecionamento após o login
+  const getRedirectPath = () => {
+    if (typeof window !== 'undefined') {
+      const path = localStorage.getItem('redirectPath');
+      console.log('Redirect path:', path);
+      if (path) {
+        return path;
+      }
+    }
+    return '/'; // Padrão para a home se nenhum caminho estiver salvo
+  };
+
   // Função para login com Google
   const signInWithGoogle = async () => {
     setSigningIn(true);
     try {
       await signInWithPopup(auth, provider);
-      router.push('/'); // Redireciona para a home após login com Google
+      const redirectPath = getRedirectPath();
+      router.push(redirectPath); // Redireciona para o caminho salvo ou home
     } catch (err) {
+      console.error(err);
       setAuthError('Falha ao tentar fazer login com Google.');
     } finally {
       setSigningIn(false);
@@ -54,8 +69,10 @@ const LoginPage = () => {
     setSigningIn(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      router.push('/'); // Redireciona para a home após login
+      const redirectPath = getRedirectPath();
+      router.push(redirectPath); // Redireciona para o caminho salvo ou home
     } catch (err) {
+      console.error(err);
       setAuthError('Falha ao tentar fazer login com e-mail e senha.');
     } finally {
       setSigningIn(false);
@@ -69,9 +86,11 @@ const LoginPage = () => {
       await createUserWithEmailAndPassword(auth, email, password);
       setSignupSuccess(true); // Mostra a notificação de sucesso
       setTimeout(() => {
-        router.push('/'); // Redireciona para a home após o cadastro
+        const redirectPath = getRedirectPath();
+        router.push(redirectPath); // Redireciona para o caminho salvo ou home
       }, 3000);
     } catch (err) {
+      console.error(err);
       setAuthError('Falha ao tentar criar conta.');
     } finally {
       setSigningIn(false);
@@ -88,9 +107,18 @@ const LoginPage = () => {
       await sendPasswordResetEmail(auth, email);
       setResetEmailSent(true);
     } catch (err) {
+      console.error(err);
       setAuthError('Erro ao enviar e-mail de redefinição de senha.');
     }
   };
+
+  // Se o usuário já estiver logado, redireciona para a home ou para o caminho salvo
+  useEffect(() => {
+    if (user && !loading) {
+      const redirectPath = getRedirectPath();
+      router.push(redirectPath);
+    }
+  }, [user, loading, router]);
 
   return (
     <Box
