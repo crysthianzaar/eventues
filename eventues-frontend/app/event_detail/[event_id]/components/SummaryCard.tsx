@@ -1,7 +1,18 @@
-// components/OrganizatorEventDetails/SummaryCard.tsx
+// components/OrganizatorEventDetails/Dashboard.tsx
 
-import { Box, Typography, Button, CardContent } from '@mui/material';
+import React from 'react';
+import { Box, Typography, Grid, Card, CardContent, Button, IconButton, Tooltip } from '@mui/material';
 import { format } from 'date-fns';
+import MonetizationOnIcon from '@mui/icons-material/MonetizationOn';
+import PendingIcon from '@mui/icons-material/PendingActions';
+import CancelIcon from '@mui/icons-material/Cancel';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import PieChartIcon from '@mui/icons-material/PieChart';
+import AccountBalanceWalletIcon from '@mui/icons-material/AccountBalanceWallet';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
+import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
+import ShowChartIcon from '@mui/icons-material/ShowChart';
 
 // Paleta de cores Eventues
 const colors = {
@@ -9,34 +20,33 @@ const colors = {
   green: "#48BB78",
   red: "#F56565",
   grayDark: "#2D3748",
+  yellow: "#ECC94B",
   white: "#FFFFFF",
 };
 
 interface EventDetail {
-  name: string;
-  category: string;
-  start_date: string;
-  end_date: string;
-  start_time: string;
-  end_time: string;
-  city: string;
-  state: string;
+  totalSales: number;
+  pendingSales: number;
+  canceledSales: number;
+  netRevenue: number;
+  alreadyPaid: number;
+  toReceive: number;
   views: number;
-  visibility: string;
-  event_status: string;
+  conversionRate: number;
 }
 
-interface SummaryCardProps {
-  eventDetail: EventDetail | null;
-}
-
-const SummaryCard = ({ eventDetail }: SummaryCardProps) => {
-  if (!eventDetail) {
-    return null;
-  }
-
-  const formattedStartDate = format(new Date(eventDetail.start_date), 'dd/MM/yyyy');
-  const formattedEndDate = format(new Date(eventDetail.end_date), 'dd/MM/yyyy');
+const Dashboard: React.FC = () => {
+  // Mock de dados para o dashboard
+  const eventDetail: EventDetail = {
+    totalSales: 0,
+    pendingSales: 0,
+    canceledSales: 0,
+    netRevenue: 0,
+    alreadyPaid: 0,
+    toReceive: 0,
+    views: 1,
+    conversionRate: 0,
+  };
 
   return (
     <Box
@@ -44,68 +54,182 @@ const SummaryCard = ({ eventDetail }: SummaryCardProps) => {
         padding: { xs: '20px', md: '40px' },
         maxWidth: { xs: '100%', md: '1400px' },
         margin: '0 auto',
+        backgroundColor: colors.white,
+        borderRadius: '10px',
       }}
     >
-      <CardContent>
-        <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
-          Categoria: {eventDetail.category}
-        </Typography>
-        <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
-          Data: {formattedStartDate} - {formattedEndDate}
-        </Typography>
-        <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
-          Horário: {eventDetail.start_time} - {eventDetail.end_time}
-        </Typography>
-        <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
-          Local: {eventDetail.city}, {eventDetail.state}
-        </Typography>
-        <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
-          Visualizações: {eventDetail.views}
-        </Typography>
-        <Typography variant="body2" sx={{ color: colors.grayDark, marginBottom: '10px' }}>
-          Visibilidade: {eventDetail.visibility}
-        </Typography>
+      <Grid container spacing={4}>
+        {/* Total de Vendas */}
+        <Grid item xs={12} sm={4}>
+            <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <MonetizationOnIcon sx={{ color: colors.green, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Total de vendas
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    R$ {eventDetail.totalSales.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-        <Box sx={{ display: 'flex', marginTop: '20px', gap: '10px' }}>
-          <Button
-            variant="contained"
-            sx={{
-              backgroundColor: colors.primary,
-              "&:hover": { backgroundColor: "#434190" },
-              padding: '10px 20px',
-            }}
-          >
-            Ver página do evento
-          </Button>
+        {/* Vendas Pendentes */}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <PendingIcon sx={{ color: colors.yellow, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Vendas pendentes
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    R$ {eventDetail.pendingSales.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
 
-          {eventDetail.event_status === "Rascunho" && (
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: colors.green,
-                "&:hover": { backgroundColor: "#38A169" },
-                padding: '10px 20px',
-              }}
-            >
-              Publicar Evento
-            </Button>
-          )}
-          {eventDetail.event_status === "Inscrições abertas" && (
-            <Button
-              variant="contained"
-              sx={{
-                backgroundColor: colors.red,
-                "&:hover": { backgroundColor: "#E53E3E" },
-                padding: '10px 20px',
-              }}
-            >
-              Encerrar Inscrições
-            </Button>
-          )}
-        </Box>
-      </CardContent>
+        {/* Vendas Canceladas */}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CancelIcon sx={{ color: colors.red, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Canceladas e reembolsadas
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    R$ {eventDetail.canceledSales.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Gráfico de vendas - Mock simples */}
+        <Grid item xs={12}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Typography variant="body2" color={colors.grayDark}>
+                Histórico de vendas
+              </Typography>
+              <Box sx={{ height: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                <ShowChartIcon sx={{ color: colors.primary, fontSize: 50 }} />
+                <Typography variant="h6" color={colors.grayDark} sx={{ ml: 2 }}>
+                  Nenhuma venda registrada.
+                </Typography>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Receita Líquida */}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <AccountBalanceWalletIcon sx={{ color: colors.green, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Receita líquida
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    R$ {eventDetail.netRevenue.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Valor já repassado */}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <CheckCircleIcon sx={{ color: colors.primary, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Valor já repassado
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    R$ {eventDetail.alreadyPaid.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Valor a receber */}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <AttachMoneyIcon sx={{ color: colors.green, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Valor a receber
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    R$ {eventDetail.toReceive.toFixed(2)}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Visitas à página do evento */}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <VisibilityIcon sx={{ color: colors.primary, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Visitas à página do evento
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    {eventDetail.views}
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+
+        {/* Taxa de conversão */}
+        <Grid item xs={12} sm={4}>
+          <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
+            <CardContent>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <PieChartIcon sx={{ color: colors.yellow, fontSize: 40 }} />
+                <Box>
+                  <Typography variant="body2" color={colors.grayDark}>
+                    Taxa de conversão
+                  </Typography>
+                  <Typography variant="h5" fontWeight="bold">
+                    {eventDetail.conversionRate}%
+                  </Typography>
+                </Box>
+              </Box>
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
     </Box>
   );
 };
 
-export default SummaryCard;
+export default Dashboard;

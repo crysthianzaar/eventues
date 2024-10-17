@@ -35,6 +35,8 @@ import BannerDocumentCard from "./BannerDocumentCard";
 import TicketsCard from "./TicketsCard";
 import FormCard from "./FormCard";
 import PolicyCard from "./PolicyCard";
+import ClientIngressosPage from "./ClientIngressosPage";
+import CriarIngressoPage from "./ClientIngressosPage";
 
 interface EventDetail {
   event_id: string;
@@ -193,7 +195,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
     {
       icon: <DashboardIcon />,
       title: "Resumo",
-      component: <SummaryCard eventDetail={eventDetail} />,
+      component: <SummaryCard/>,
       description:
         "Visão geral do evento, status atual, principais métricas e ações rápidas.",
       status: eventDetail.stepper.inf_basic,
@@ -202,32 +204,24 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       icon: <InfoIcon />,
       title: "Detalhes do Evento",
       component: (
-        <InformationCard
-          onNotify={handleNotifyAndRedirect}
-          onUpdate={() => {} /* Implement if needed */}
-        />
+        <InformationCard/>
       ),
       description:
         "Informações completas sobre o evento (nome, local, data, descrição).",
       status: eventDetail.stepper.event_details,
     },
     {
-      icon: <ImageIcon />,
-      title: "Banner e Documentos",
+      icon: <SportsIcon />,
+      title: "Ingressos e Valores",
       component: (
-        <BannerDocumentCard
-          eventId={eventDetail.event_id} // Adjust accordingly
-          onNotify={handleNotifyAndRedirect}
-          onUpdate={() => {} /* Implement if needed */}
-        />
+        <CriarIngressoPage/>
       ),
-      description:
-        "Upload e gerenciamento de materiais visuais e documentos importantes.",
-      status: eventDetail.stepper.documents,
+      description: "Configuração de ingressos e seus respectivos preços.",
+      status: eventDetail.stepper.category_and_values,
     },
     {
       icon: <PolicyIcon />,
-      title: "Políticas",
+      title: "Categorias",
       component: (
         <PolicyCard
           eventId={eventDetail.event_id} // Adjust accordingly
@@ -238,19 +232,6 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       description:
         "Configuração das políticas de cancelamento, reembolso, e termos de participação.",
       status: eventDetail.stepper.policies,
-    },
-    {
-      icon: <SportsIcon />,
-      title: "Categorias e Valores",
-      component: (
-        <TicketsCard
-          eventId={eventDetail.event_id} // Adjust accordingly
-          onNotify={handleNotifyAndRedirect}
-          onUpdate={() => {} /* Implement if needed */}
-        />
-      ),
-      description: "Definição de categorias de inscrição e respectivos preços.",
-      status: eventDetail.stepper.category_and_values,
     },
     {
       icon: <FormIcon />,
