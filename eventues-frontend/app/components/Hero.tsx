@@ -13,14 +13,14 @@ const Hero: React.FC = () => {
       backgroundImage: 'url(https://cdn.pixabay.com/photo/2016/11/18/22/24/woman-1837158_960_720.jpg)',
     },
     {
-      word: 'Crie',
+      word: 'Desbrave',
       color: '#68D391',
       backgroundImage: 'url(https://cdn.pixabay.com/photo/2015/03/07/18/24/cycle-663342_960_720.jpg)',
     },
     {
-      word: 'Gerencie',
+      word: 'Acompanhe',
       color: '#000000',
-      backgroundImage: 'url(https://cdn.pixabay.com/photo/2023/06/15/10/03/surfing-8065035_1280.jpg)',
+      backgroundImage: 'url(https://cdn.pixabay.com/photo/2022/02/10/01/30/swimming-7004451_1280.jpg)',
     },
   ];
 
@@ -33,10 +33,9 @@ const Hero: React.FC = () => {
   }, [items.length]);
 
   return (
-    <Box
+      <Box
       sx={{
-        width: '100vw', // Garante que o Box ocupe toda a largura da viewport
-        height: { xs: '30vh', md: '50vh' }, // Altura ajustada para telas pequenas e grandes
+        height: { xs: '30vh', sm: '39vh', md: '49vh', lg: '54vh', xl: '49vh' },  // Altura ajustada para diferentes tamanhos de tela
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -81,19 +80,18 @@ const Hero: React.FC = () => {
           }}
         >
           {/* Texto que troca de cor e palavra */}
-          <span
+            <span
             style={{
               color: items[currentIndex].color,
-              textShadow: '2px 2px 4px #000000', // Borda preta
-              WebkitTextStroke: '0.5px #E5E5E5', // Borda branca ao redor do texto
+              textShadow: '4px 4px 4px #000000', // Sombra preta
             }}
-          >
+            >
             {items[currentIndex].word}
           </span>{' '}
           <span
             style={{
               color: '#FFFFFF',
-              textShadow: '2px 2px 4px #000000',
+              textShadow: '4px 4px 4px #000000', // Sombra preta
             }}
           >
             o seu evento esportivo.

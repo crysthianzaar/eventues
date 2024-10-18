@@ -23,6 +23,7 @@ import {
   IconButton,
   Tooltip,
   Checkbox,
+  InputAdornment,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -231,6 +232,23 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
           <Box>
             <TextField fullWidth label="Nome do Ingresso" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
             <TextField fullWidth label="Total de ingressos disponíveis" type="number" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField
+              fullWidth
+              label="Valor do Ingresso"
+              type="text"
+              sx={{ mb: 2 }}
+              InputProps={{
+              startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              onChange={(e) => {
+              const value = e.target.value.replace('.', ',');
+              const regex = /^\d*(,\d{0,2})?$/;
+              if (regex.test(value)) {
+                e.target.value = value;
+              }
+              }}
+            />
             <TextField fullWidth label="Início das vendas" type="date" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
             <TextField fullWidth label="Fim das vendas" type="date" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
             <FormControlLabel
@@ -392,9 +410,26 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
 
         {/* Outros tipos de ingresso como Simples e Gratuito podem ser ajustados abaixo */}
         {step === 1 && ingressoType === 'Simples' && (
-          <Box>
+            <Box>
             <TextField fullWidth label="Nome do Ingresso" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
             <TextField fullWidth label="Total de ingressos disponíveis" type="number" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
+            <TextField
+              fullWidth
+              label="Valor do Ingresso"
+              type="text"
+              sx={{ mb: 2 }}
+              InputProps={{
+              startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+              }}
+              slotProps={{ inputLabel: { shrink: true } }}
+              onChange={(e) => {
+              const value = e.target.value.replace('.', ',');
+              const regex = /^\d*(,\d{0,2})?$/;
+              if (regex.test(value)) {
+                e.target.value = value;
+              }
+              }}
+            />
             <TextField fullWidth label="Início das vendas" type="date" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
             <TextField fullWidth label="Fim das vendas" type="date" sx={{ mb: 2 }} slotProps={{ inputLabel: { shrink: true } }} />
             <FormControlLabel
@@ -407,7 +442,7 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
               label="Repassar taxa para o comprador"
               sx={{ mb: 2 }}
             />
-          </Box>
+            </Box>
         )}
         {step === 1 && ingressoType === 'Gratuito' && (
           <Box>

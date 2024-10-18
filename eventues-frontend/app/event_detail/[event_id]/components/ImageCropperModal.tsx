@@ -104,7 +104,7 @@ const ImageCropperModal = ({
             ref={cropperRef}
           />
         ) : (
-          <Box
+            <Box
             onClick={() => document.getElementById("image-input")?.click()}
             sx={{
               height: 300,
@@ -114,12 +114,14 @@ const ImageCropperModal = ({
               backgroundColor: "#f0f0f0",
               border: "1px dashed #ccc",
               cursor: "pointer",
+              flexDirection: "column",
             }}
-          >
+            >
+            <PhotoCamera sx={{ fontSize: 40, color: colors.grayDark, mb: 1 }} />
             <Typography variant="body2" color={colors.grayDark}>
               Clique aqui para carregar uma imagem
             </Typography>
-          </Box>
+            </Box>
         )}
 
         {/* Controles de Zoom */}

@@ -14,6 +14,7 @@ import {
   ListItemText,
   Menu,
   MenuItem,
+  Typography,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -25,11 +26,13 @@ import {
   AddCircleOutline as AddCircleOutlineIcon,
   Login as LoginIcon,
   AccountCircle as AccountCircleIcon,
+  Close as CloseIcon, // Importação do ícone de fechar
 } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../firebase"; // Certifique-se de ajustar o caminho
 import { useRouter, usePathname } from "next/navigation"; // Importação de usePathname
 import Image from "next/image"; // Importação do componente next/image
+import { useTheme } from "@mui/material/styles"; // Importação do tema
 
 const Navbar: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -37,6 +40,7 @@ const Navbar: React.FC = () => {
   const [user, loading] = useAuthState(auth); // Autenticação do Firebase
   const router = useRouter();
   const pathname = usePathname(); // Obtém o pathname atual
+  const theme = useTheme(); // Obtém o tema para mixins
 
   // Resetar o menu de perfil sempre que a rota mudar
   useEffect(() => {
@@ -125,18 +129,10 @@ const Navbar: React.FC = () => {
     },
   ];
 
-  // Handlers para o Drawer
-  const toggleDrawer =
-    (open: boolean) => (event: React.KeyboardEvent | React.MouseEvent) => {
-      if (
-        event.type === "keydown" &&
-        ((event as React.KeyboardEvent).key === "Tab" ||
-          (event as React.KeyboardEvent).key === "Shift")
-      ) {
-        return;
-      }
-      setDrawerOpen(open);
-    };
+  // Handlers para o Drawer (toggle)
+  const handleToggleDrawer = () => {
+    setDrawerOpen((prev) => !prev);
+  };
 
   // Handlers para o Menu de Perfil
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -147,7 +143,7 @@ const Navbar: React.FC = () => {
     setAnchorEl(null);
   };
 
-  // Itens do Drawer com ícones
+  // Itens do Drawer com ícones e botão de fechar
   const drawerList = (
     <Box
       sx={{
@@ -156,11 +152,19 @@ const Navbar: React.FC = () => {
         backgroundColor: "#ffffff",
         height: "100%",
         color: "#000000",
+        display: "flex",
+        flexDirection: "column",
       }}
       role="presentation"
-      onClick={toggleDrawer(false)}
-      onKeyDown={toggleDrawer(false)}
+      // Remover os handlers onClick e onKeyDown que fecham o Drawer automaticamente
+      // para permitir que o botão de fechar funcione corretamente
     >
+      {/* Botão de fechar */}
+      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
+        <IconButton onClick={handleToggleDrawer} aria-label="Fechar menu">
+          <CloseIcon />
+        </IconButton>
+      </Box>
       <List>
         {menuItems.map((item, index) => (
           <ListItemButton
@@ -183,17 +187,24 @@ const Navbar: React.FC = () => {
                   backgroundColor: "#e2e8f0",
                 },
               }),
+              paddingX: 2, // Aumenta o padding horizontal para melhor toque
+              paddingY: 1.5, // Aumenta o padding vertical para melhor toque
             }}
           >
             <ListItemIcon
               sx={{
                 color: item.variant === "contained" ? "#fff" : "#000000",
+                minWidth: "40px", // Ajusta a largura mínima do ícone
               }}
             >
               {item.icon}
             </ListItemIcon>
             <ListItemText
-              primary={item.label}
+              primary={
+                <Typography variant="body1" sx={{ fontSize: "1rem" }}>
+                  {item.label}
+                </Typography>
+              }
               sx={{
                 color: item.variant === "contained" ? "#fff" : "#000000",
               }}
@@ -207,13 +218,14 @@ const Navbar: React.FC = () => {
   return (
     <>
       <AppBar
-        position="static"
+        position="fixed" // Mantém a Navbar fixa
         sx={{
           backgroundColor: "#ffffff",
           borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
           width: "100%",
-          top: 0,
           left: 0,
+          zIndex: (theme) => theme.zIndex.drawer + 1, // Garante que a Navbar esteja acima do Drawer
+          boxShadow: "none", // Remove a sombra para parecer mais clean
         }}
       >
         <Toolbar
@@ -233,13 +245,13 @@ const Navbar: React.FC = () => {
             }}
           >
             {loading ? (
-              <div>Carregando...</div>
+              <Typography variant="body2">Carregando...</Typography>
             ) : user ? (
-              <IconButton onClick={handleMenuClick}>
+              <IconButton onClick={handleMenuClick} aria-label="Perfil">
                 <AccountCircleIcon sx={{ color: "#5A67D8" }} />
               </IconButton>
             ) : (
-              <IconButton onClick={handleLogin}>
+              <IconButton onClick={handleLogin} aria-label="Entrar">
                 <LoginIcon sx={{ color: "#2D3748" }} />
               </IconButton>
             )}
@@ -258,9 +270,10 @@ const Navbar: React.FC = () => {
               display: "flex",
               alignItems: "center",
               justifyContent: { xs: "center", md: "flex-start" },
-              position: "absolute",
-              left: { xs: "50%", md: "3%" },
-              transform: { xs: "translateX(-50%)", md: "none" },
+              position: { xs: "relative", md: "static" }, // Alterado para relativo no mobile
+              left: { xs: "0", md: "auto" }, // Removido o posicionamento absoluto no mobile
+              transform: { xs: "none", md: "none" }, // Removido o translate no mobile
+              margin: { xs: "0 auto", md: "0" }, // Centraliza no mobile
             }}
             onClick={handleInicio}
           >
@@ -283,7 +296,7 @@ const Navbar: React.FC = () => {
             <IconButton
               color="inherit"
               aria-label="menu"
-              onClick={toggleDrawer(true)}
+              onClick={handleToggleDrawer} // Usar a função de toggle
               sx={{ marginLeft: "10px" }} // Adiciona espaço à esquerda
             >
               <MenuIcon sx={{ color: "#000000" }} />
@@ -345,7 +358,7 @@ const Navbar: React.FC = () => {
             ))}
 
             {loading ? (
-              <div>Carregando...</div>
+              <Typography variant="body2">Carregando...</Typography>
             ) : user ? (
               <>
                 <Button
@@ -407,9 +420,13 @@ const Navbar: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      <Drawer anchor="right" open={drawerOpen} onClose={toggleDrawer(false)}>
+      {/* Drawer com botão de fechar */}
+      <Drawer anchor="right" open={drawerOpen} onClose={handleToggleDrawer}>
         {drawerList}
       </Drawer>
+
+      {/* Espaçador para compensar a altura da Navbar fixa */}
+      <Box sx={{ ...theme.mixins.toolbar }} />
     </>
   );
 };

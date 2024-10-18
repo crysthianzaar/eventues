@@ -373,7 +373,7 @@ const WhyChooseEventues: React.FC = () => {
                 público.
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
-                • Crie seu evento gratuitamente e só pague quando começar a vender.
+                • Crie seu evento gratuitamente e só pague quando começar a vender e pelo que vender.
                 </Typography>
                 <Typography variant="body1" sx={{ mb: 2 }}>
                 • Receba seus valores antecipadamente, antes do evento acontecer.
@@ -485,7 +485,7 @@ const WhyChooseEventues: React.FC = () => {
                 </Typography>
                 <Typography variant="body1" sx={{ px: { xs: 1, md: 2 } }}>
                   Cobramos somente pelo valor transacionado. Se você oferecer um
-                  cupon de desconto, a taxa incidirá apenas sobre o valor
+                  cupom de desconto, a taxa incidirá apenas sobre o valor
                   final.
                 </Typography>
               </Box>

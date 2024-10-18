@@ -18,9 +18,7 @@ import {
   Alert,
 } from "@mui/material";
 import {
-  Dashboard as DashboardIcon,
   Image as ImageIcon,
-  Info as InfoIcon,
   Assignment as FormIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
@@ -28,6 +26,12 @@ import {
   Sports as SportsIcon,
   LocationOn as LocationOnIcon,
 } from "@mui/icons-material";
+import EventIcon from "@mui/icons-material/Event"; // Para eventos em geral
+import InfoIcon from "@mui/icons-material/Info"; // Para detalhes do evento
+import MonetizationOnIcon from "@mui/icons-material/MonetizationOn"; // Para ingressos e valores
+import CategoryIcon from "@mui/icons-material/Category"; // Para categorias
+import AssignmentIcon from "@mui/icons-material/Assignment"; // Para formulários de inscrição
+import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/resumo
 import Image from "next/image"; // Next.js Image component
 import SummaryCard from "./SummaryCard";
 import InformationCard from "./InformationCard";
@@ -37,6 +41,7 @@ import FormCard from "./FormCard";
 import PolicyCard from "./PolicyCard";
 import ClientIngressosPage from "./ClientIngressosPage";
 import CriarIngressoPage from "./ClientIngressosPage";
+import Categories from "./Categories";
 
 interface EventDetail {
   event_id: string;
@@ -103,15 +108,11 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       status: eventDetail.stepper.event_details,
     },
     {
-      label: "Banner e documentos carregados",
-      status: eventDetail.stepper.documents,
-    },
-    {
-      label: "Políticas definidas",
+      label: "Ingressos e Valores definidas",
       status: eventDetail.stepper.policies,
     },
     {
-      label: "Categorias e Valores configurados",
+      label: "Categorias configurados",
       status: eventDetail.stepper.category_and_values,
     },
     {
@@ -193,61 +194,52 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
 
   const cards = [
     {
-      icon: <DashboardIcon />,
+      icon: <DashboardIcon />, // Mantém o ícone de "dashboard" para o resumo
       title: "Resumo",
-      component: <SummaryCard/>,
+      component: <SummaryCard />,
       description:
         "Visão geral do evento, status atual, principais métricas e ações rápidas.",
       status: eventDetail.stepper.inf_basic,
     },
     {
-      icon: <InfoIcon />,
+      icon: <InfoIcon />, // Ícone informativo para detalhes do evento
       title: "Detalhes do Evento",
-      component: (
-        <InformationCard/>
-      ),
+      component: <InformationCard />,
       description:
         "Informações completas sobre o evento (nome, local, data, descrição).",
       status: eventDetail.stepper.event_details,
     },
     {
-      icon: <SportsIcon />,
+      icon: <MonetizationOnIcon />, // Ícone de dinheiro para ingressos e valores
       title: "Ingressos e Valores",
-      component: (
-        <CriarIngressoPage/>
-      ),
+      component: <CriarIngressoPage />,
       description: "Configuração de ingressos e seus respectivos preços.",
       status: eventDetail.stepper.category_and_values,
     },
     {
-      icon: <PolicyIcon />,
+      icon: <CategoryIcon />, // Ícone de categorias para o card de categorias
       title: "Categorias",
       component: (
-        <PolicyCard
-          eventId={eventDetail.event_id} // Adjust accordingly
-          onUpdate={() => {} /* Implement if needed */}
-          handleNotify={handleNotifyAndRedirect}
-        />
+        <Categories/>
       ),
-      description:
-        "Configuração das políticas de cancelamento, reembolso, e termos de participação.",
+      description: "Configuração das categorias, subcategorias e políticas.",
       status: eventDetail.stepper.policies,
     },
     {
-      icon: <FormIcon />,
+      icon: <AssignmentIcon />, // Ícone de formulário para inscrição
       title: "Formulário de Inscrição",
       component: (
         <FormCard
-          eventId={eventDetail.event_id} // Adjust accordingly
+          eventId={eventDetail.event_id} // Ajustar conforme necessário
           onNotify={handleNotifyAndRedirect}
-          onUpdate={() => {} /* Implement if needed */}
+          onUpdate={() => {} /* Implementar se necessário */}
         />
       ),
       description:
         "Personalização do formulário que os participantes devem preencher ao se inscrever.",
       status: eventDetail.stepper.form,
     },
-    // Add more cards as needed...
+    // Adicione mais cards conforme necessário...
   ];
 
   return (
