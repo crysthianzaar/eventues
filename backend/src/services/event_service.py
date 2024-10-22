@@ -67,9 +67,7 @@ class EventService:
         return [doc.to_dict() for doc in documents]
     
     def delete_event_file(self, event_id: str, s3_key: str):
-        s3 = S3Service('dev-event-files')
         try:
-            s3.delete_file(s3_key)
             self.delete_event_document(event_id, s3_key)
         except Exception as e:
             raise Exception(f"Erro ao deletar o arquivo: {str(e)}")

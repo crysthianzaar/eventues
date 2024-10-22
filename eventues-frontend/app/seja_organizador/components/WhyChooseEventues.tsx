@@ -211,7 +211,12 @@ const WhyChooseEventues: React.FC = () => {
             width: { xs: "100%", sm: "auto" },
             py: { xs: 1.5, sm: 1 },
           }}
-          href="#benefits"
+          onClick={() => {
+            const element = document.getElementById("benefits");
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
         >
           Saiba Mais
         </Button>

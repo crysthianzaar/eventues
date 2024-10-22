@@ -28,7 +28,7 @@ const ImageCropperModal = ({
 }: {
   open: boolean;
   onClose: () => void;
-  onSave: (croppedImage: string) => void;
+  onSave: (croppedImage: string) => Promise<void>;
 }) => {
   const cropperRef = useRef<ReactCropperElement>(null);
   const [previewImage, setPreviewImage] = useState<string | null>(null);
@@ -42,31 +42,39 @@ const ImageCropperModal = ({
   };
 
   const handleZoomChange = (zoomType: "in" | "out") => {
-    const cropper = cropperRef.current?.cropper; // Asserting that cropper exists on ReactCropperElement
+    const cropper = cropperRef.current?.cropper;
     if (cropper) {
-      // Zoom para frente (in) ou para trás (out) sem limites rígidos
       const zoomFactor = zoomType === "in" ? 0.1 : -0.1;
-      cropper.zoom(zoomFactor); // Zoom incremental sem limites
+      cropper.zoom(zoomFactor);
     }
   };
 
   const handleCrop = () => {
-    const cropper = cropperRef.current?.cropper; // Asserting cropper exists on ReactCropperElement
+    const cropper = cropperRef.current?.cropper;
     if (cropper) {
       return cropper.getCroppedCanvas().toDataURL();
     }
     return null;
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const croppedImage = handleCrop();
     if (croppedImage) {
       setSubmitting(true);
-      setTimeout(() => {
-        onSave(croppedImage);
+      try {
+        await onSave(croppedImage);
+        onClose();
+        setPreviewImage(null);
+      } catch (error) {
+        console.error("Erro ao salvar a imagem cortada:", error);
+      } finally {
         setSubmitting(false);
-      }, 1000);
+      }
     }
+  };
+
+  const handleReset = () => {
+    setPreviewImage(null);
   };
 
   return (
@@ -98,13 +106,13 @@ const ImageCropperModal = ({
             guides={false}
             viewMode={1}
             dragMode="move"
-            scalable={true} // Permitir escalabilidade para um zoom infinito
+            scalable={true}
             cropBoxMovable={false}
             cropBoxResizable={false}
             ref={cropperRef}
           />
         ) : (
-            <Box
+          <Box
             onClick={() => document.getElementById("image-input")?.click()}
             sx={{
               height: 300,
@@ -116,35 +124,37 @@ const ImageCropperModal = ({
               cursor: "pointer",
               flexDirection: "column",
             }}
-            >
+          >
             <PhotoCamera sx={{ fontSize: 40, color: colors.grayDark, mb: 1 }} />
             <Typography variant="body2" color={colors.grayDark}>
               Clique aqui para carregar uma imagem
             </Typography>
-            </Box>
+          </Box>
         )}
 
         {/* Controles de Zoom */}
-        <Stack
-          direction="row"
-          spacing={2}
-          justifyContent="center"
-          alignItems="center"
-          mt={2}
-        >
-          <IconButton
-            onClick={() => handleZoomChange("out")}
-            sx={{ color: colors.primary }}
+        {previewImage && (
+          <Stack
+            direction="row"
+            spacing={2}
+            justifyContent="center"
+            alignItems="center"
+            mt={2}
           >
-            <ZoomOut />
-          </IconButton>
-          <IconButton
-            onClick={() => handleZoomChange("in")}
-            sx={{ color: colors.primary }}
-          >
-            <ZoomIn />
-          </IconButton>
-        </Stack>
+            <IconButton
+              onClick={() => handleZoomChange("out")}
+              sx={{ color: colors.primary }}
+            >
+              <ZoomOut />
+            </IconButton>
+            <IconButton
+              onClick={() => handleZoomChange("in")}
+              sx={{ color: colors.primary }}
+            >
+              <ZoomIn />
+            </IconButton>
+          </Stack>
+        )}
 
         {/* Botões de ação */}
         <Box display="flex" justifyContent="space-between" mt={2}>
@@ -152,7 +162,10 @@ const ImageCropperModal = ({
             variant="outlined"
             color="primary"
             startIcon={<Cancel />}
-            onClick={onClose}
+            onClick={() => {
+              onClose();
+              setPreviewImage(null);
+            }}
             sx={{ width: "48%" }}
           >
             Cancelar
@@ -174,24 +187,15 @@ const ImageCropperModal = ({
         </Box>
 
         {/* Input para seleção de imagem (oculto) */}
-        {previewImage && (
-          <Box mt={2} display="flex" justifyContent="center">
-            <Button
-              variant="outlined"
-              startIcon={<PhotoCamera />}
-              onClick={() => document.getElementById("image-input")?.click()}
-            >
-              Trocar Imagem
-            </Button>
-          </Box>
+        {!previewImage && (
+          <input
+            id="image-input"
+            type="file"
+            hidden
+            accept="image/*"
+            onChange={handleImageChange}
+          />
         )}
-        <input
-          id="image-input"
-          type="file"
-          hidden
-          accept="image/*"
-          onChange={handleImageChange}
-        />
       </Box>
     </Modal>
   );
