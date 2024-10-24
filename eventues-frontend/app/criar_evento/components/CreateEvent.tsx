@@ -26,6 +26,11 @@ import { useTheme } from "@mui/material/styles";
 import { fetchEstados, fetchCidades, Estado, Cidade } from "../api/ibge";
 import { createEvent } from "../api/events";
 
+// Importando hooks do Firebase
+import { useAuthState } from "react-firebase-hooks/auth";
+import { auth } from "../../../firebase";
+
+
 // Interfaces
 interface EventResponse {
   event_id: string;
@@ -74,6 +79,9 @@ const CreateEvent: React.FC = () => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
+  // Uso do hook de autenticação
+  const [user, loadingAuth, errorAuth] = useAuthState(auth);
+
   const [formValues, setFormValues] = useState({
     nomeEvento: "",
     categoria: "",
@@ -108,6 +116,13 @@ const CreateEvent: React.FC = () => {
     loadEstados();
   }, []);
 
+  // Redirecionar para login se não estiver autenticado
+  useEffect(() => {
+    if (!loadingAuth && !user) {
+      router.push("/login");
+    }
+  }, [user, loadingAuth, router]);
+
   const handleEstadoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const { value } = e.target;
     setFormValues({ ...formValues, estado: value, cidade: "" });
@@ -129,30 +144,44 @@ const CreateEvent: React.FC = () => {
 
     if (step === 0) {
       // Validação da Etapa 0: Detalhes do Evento
-      if (!formValues.nomeEvento) newErrors.push("Nome do evento é obrigatório.");
-      if (!formValues.dataInicio) newErrors.push("Data de início é obrigatória.");
+      if (!formValues.nomeEvento)
+        newErrors.push("Nome do evento é obrigatório.");
+      if (!formValues.dataInicio)
+        newErrors.push("Data de início é obrigatória.");
 
       if (!sameDayEvent && !formValues.dataTermino) {
         newErrors.push("Data de término é obrigatória.");
       }
 
-      if (formValues.dataInicio && formValues.dataTermino && !sameDayEvent) {
+      if (
+        formValues.dataInicio &&
+        formValues.dataTermino &&
+        !sameDayEvent
+      ) {
         const startDate = new Date(formValues.dataInicio);
         const endDate = new Date(formValues.dataTermino);
         if (endDate < startDate) {
-          newErrors.push("A data de término não pode ser anterior à data de início.");
+          newErrors.push(
+            "A data de término não pode ser anterior à data de início."
+          );
         }
       }
     } else if (step === 1) {
       // Validação da Etapa 1: Tipo de Evento
-      if (!formValues.event_type) newErrors.push("Tipo de evento é obrigatório.");
-      if (!formValues.categoria) newErrors.push("Categoria é obrigatória.");
+      if (!formValues.event_type)
+        newErrors.push("Tipo de evento é obrigatório.");
+      if (!formValues.categoria)
+        newErrors.push("Categoria é obrigatória.");
     } else if (step === 2) {
       // Validação da Etapa 2: Localização e Contato
-      if (!formValues.estado) newErrors.push("Estado é obrigatório.");
-      if (!formValues.cidade) newErrors.push("Cidade é obrigatória.");
-      if (!formValues.nomeOrganizador) newErrors.push("Nome do organizador é obrigatório.");
-      if (!formValues.telefone) newErrors.push("Telefone é obrigatório.");
+      if (!formValues.estado)
+        newErrors.push("Estado é obrigatório.");
+      if (!formValues.cidade)
+        newErrors.push("Cidade é obrigatória.");
+      if (!formValues.nomeOrganizador)
+        newErrors.push("Nome do organizador é obrigatório.");
+      if (!formValues.telefone)
+        newErrors.push("Telefone é obrigatório.");
     }
 
     setErrors(newErrors);
@@ -162,27 +191,41 @@ const CreateEvent: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: string[] = [];
 
-    if (!formValues.nomeEvento) newErrors.push("Nome do evento é obrigatório.");
-    if (!formValues.categoria) newErrors.push("Categoria é obrigatória.");
-    if (!formValues.dataInicio) newErrors.push("Data de início é obrigatória.");
+    if (!formValues.nomeEvento)
+      newErrors.push("Nome do evento é obrigatório.");
+    if (!formValues.categoria)
+      newErrors.push("Categoria é obrigatória.");
+    if (!formValues.dataInicio)
+      newErrors.push("Data de início é obrigatória.");
 
     if (!sameDayEvent && !formValues.dataTermino) {
       newErrors.push("Data de término é obrigatória.");
     }
 
-    if (formValues.dataInicio && formValues.dataTermino && !sameDayEvent) {
+    if (
+      formValues.dataInicio &&
+      formValues.dataTermino &&
+      !sameDayEvent
+    ) {
       const startDate = new Date(formValues.dataInicio);
       const endDate = new Date(formValues.dataTermino);
       if (endDate < startDate) {
-        newErrors.push("A data de término não pode ser anterior à data de início.");
+        newErrors.push(
+          "A data de término não pode ser anterior à data de início."
+        );
       }
     }
 
-    if (!formValues.estado) newErrors.push("Estado é obrigatório.");
-    if (!formValues.cidade) newErrors.push("Cidade é obrigatória.");
-    if (!formValues.nomeOrganizador) newErrors.push("Nome do organizador é obrigatório.");
-    if (!formValues.telefone) newErrors.push("Telefone é obrigatório.");
-    if (!formValues.event_type) newErrors.push("Tipo de evento é obrigatório.");
+    if (!formValues.estado)
+      newErrors.push("Estado é obrigatório.");
+    if (!formValues.cidade)
+      newErrors.push("Cidade é obrigatória.");
+    if (!formValues.nomeOrganizador)
+      newErrors.push("Nome do organizador é obrigatório.");
+    if (!formValues.telefone)
+      newErrors.push("Telefone é obrigatório.");
+    if (!formValues.event_type)
+      newErrors.push("Tipo de evento é obrigatório.");
 
     setErrors(newErrors);
 
@@ -193,8 +236,8 @@ const CreateEvent: React.FC = () => {
     if (validateForm()) {
       setIsSubmitting(true);
 
-      // Obtenha o user_id conforme sua lógica de autenticação
-      const userId = process.env.NEXT_PUBLIC_USER_ID || "user_id_fake";
+      // Obtenha o user_id do usuário autenticado
+      const userId = user?.uid;
 
       if (!userId) {
         setErrors(["Erro: Usuário não autenticado."]);
@@ -213,7 +256,7 @@ const CreateEvent: React.FC = () => {
         city: formValues.cidade,
         organization_name: formValues.nomeOrganizador,
         organization_contact: formValues.telefone,
-        user_id: userId.replace(/-/g, ""),
+        user_id: userId, // Utilize o userId do Firebase
       };
 
       try {
@@ -311,8 +354,12 @@ const CreateEvent: React.FC = () => {
                 value={formValues.nomeEvento}
                 onChange={handleChange}
                 autoComplete="new-event-name"
-                error={!!errors.find((error) => error.includes("Nome do evento"))}
-                helperText={errors.find((error) => error.includes("Nome do evento"))}
+                error={!!errors.find((error) =>
+                  error.includes("Nome do evento")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Nome do evento")
+                )}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -329,8 +376,12 @@ const CreateEvent: React.FC = () => {
                   inputProps: { min: getToday() },
                 }}
                 autoComplete="new-start-date"
-                error={!!errors.find((error) => error.includes("Data de início"))}
-                helperText={errors.find((error) => error.includes("Data de início"))}
+                error={!!errors.find((error) =>
+                  error.includes("Data de início")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Data de início")
+                )}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -345,16 +396,22 @@ const CreateEvent: React.FC = () => {
                 value={sameDayEvent ? formValues.dataInicio : formValues.dataTermino}
                 onChange={handleChange}
                 InputProps={{
-                  inputProps: { min: formValues.dataInicio || getToday() },
+                  inputProps: {
+                    min: formValues.dataInicio || getToday(),
+                  },
                 }}
                 autoComplete="new-end-date"
                 error={
                   !sameDayEvent &&
-                  !!errors.find((error) => error.includes("Data de término"))
+                  !!errors.find((error) =>
+                    error.includes("Data de término")
+                  )
                 }
                 helperText={
                   !sameDayEvent &&
-                  errors.find((error) => error.includes("Data de término"))
+                  errors.find((error) =>
+                    error.includes("Data de término")
+                  )
                 }
               />
             </Grid>
@@ -386,8 +443,12 @@ const CreateEvent: React.FC = () => {
                 value={formValues.event_type}
                 onChange={handleChange}
                 autoComplete="new-event-type"
-                error={!!errors.find((error) => error.includes("Tipo de evento"))}
-                helperText={errors.find((error) => error.includes("Tipo de evento"))}
+                error={!!errors.find((error) =>
+                  error.includes("Tipo de evento")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Tipo de evento")
+                )}
               >
                 <MenuItem value="presencial">Presencial</MenuItem>
                 <MenuItem value="virtual">Virtual</MenuItem>
@@ -405,8 +466,12 @@ const CreateEvent: React.FC = () => {
                 value={formValues.categoria}
                 onChange={handleChange}
                 autoComplete="new-categoria"
-                error={!!errors.find((error) => error.includes("Categoria"))}
-                helperText={errors.find((error) => error.includes("Categoria"))}
+                error={!!errors.find((error) =>
+                  error.includes("Categoria")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Categoria")
+                )}
               >
                 {modalidades.map((modalidade, index) => (
                   <MenuItem key={index} value={modalidade.label}>
@@ -430,8 +495,12 @@ const CreateEvent: React.FC = () => {
                 value={formValues.estado}
                 onChange={handleEstadoChange}
                 autoComplete="new-estado"
-                error={!!errors.find((error) => error.includes("Estado"))}
-                helperText={errors.find((error) => error.includes("Estado"))}
+                error={!!errors.find((error) =>
+                  error.includes("Estado")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Estado")
+                )}
                 disabled={loadingEstados}
               >
                 {estados.map((estado) => (
@@ -452,8 +521,12 @@ const CreateEvent: React.FC = () => {
                 onChange={handleChange}
                 disabled={!formValues.estado || loadingCidades}
                 autoComplete="new-cidade"
-                error={!!errors.find((error) => error.includes("Cidade"))}
-                helperText={errors.find((error) => error.includes("Cidade"))}
+                error={!!errors.find((error) =>
+                  error.includes("Cidade")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Cidade")
+                )}
               >
                 {cidades.map((cidade) => (
                   <MenuItem key={cidade.id} value={cidade.nome}>
@@ -472,8 +545,12 @@ const CreateEvent: React.FC = () => {
                 value={formValues.nomeOrganizador}
                 onChange={handleChange}
                 autoComplete="new-nome-organizador"
-                error={!!errors.find((error) => error.includes("Nome do organizador"))}
-                helperText={errors.find((error) => error.includes("Nome do organizador"))}
+                error={!!errors.find((error) =>
+                  error.includes("Nome do organizador")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Nome do organizador")
+                )}
               />
             </Grid>
             <Grid item xs={12}>
@@ -486,8 +563,12 @@ const CreateEvent: React.FC = () => {
                 value={formValues.telefone}
                 onChange={handleChange}
                 autoComplete="new-telefone"
-                error={!!errors.find((error) => error.includes("Telefone"))}
-                helperText={errors.find((error) => error.includes("Telefone"))}
+                error={!!errors.find((error) =>
+                  error.includes("Telefone")
+                )}
+                helperText={errors.find((error) =>
+                  error.includes("Telefone")
+                )}
               />
             </Grid>
           </Grid>
@@ -508,128 +589,138 @@ const CreateEvent: React.FC = () => {
         backgroundColor: "#daecf9",
       }}
     >
-      {submitted ? (
-        <Box
-          sx={{
-            textAlign: "center",
-            animation: "fadeIn 1s ease-in-out",
-            color: "#68D391",
-          }}
-        >
-          <CheckCircleOutlineIcon sx={{ fontSize: 80 }} />
-          <Typography variant="h4" sx={{ mt: 2 }}>
-            Evento criado com sucesso!
-          </Typography>
-        </Box>
-      ) : isSubmitting ? (
-        <CircularProgress sx={{ color: "#68D391" }} />
-      ) : (
-        <Card
-          sx={{
-            width: "100%",
-            maxWidth: "1100px",
-            minHeight: "600px",
-            padding: "40px",
-            display: "flex",
-            flexDirection: isMobile ? "column" : "row",
-            boxShadow: "0 0 15px rgba(0, 0, 0, 0.2)",
-            borderRadius: "15px",
-            opacity: submitted ? 0 : 1,
-            transition: "opacity 1s ease-in-out",
-          }}
-        >
+      {loadingAuth ? (
+        <CircularProgress />
+      ) : user ? (
+        submitted ? (
           <Box
             sx={{
-              width: isMobile ? "100%" : "50%",
-              height: isMobile ? "200px" : "auto",
-              background:
-                "url(https://img.freepik.com/vetores-gratis/ilustracao-de-execucao-de-mulher-geometrica-azul_1284-52845.jpg) center center / cover no-repeat",
-              borderRadius: isMobile ? "15px 15px 0 0" : "15px 0 0 15px",
-            }}
-          />
-
-          <Box
-            sx={{
-              width: isMobile ? "100%" : "50%",
-              padding: "0 20px",
-              display: "flex",
-              flexDirection: "column",
-              justifyContent: "center",
-              paddingTop: isMobile ? "20px" : "0",
+              textAlign: "center",
+              animation: "fadeIn 1s ease-in-out",
+              color: "#68D391",
             }}
           >
-            <Stepper
-              activeStep={activeStep}
+            <CheckCircleOutlineIcon sx={{ fontSize: 80 }} />
+            <Typography variant="h4" sx={{ mt: 2 }}>
+              Evento criado com sucesso!
+            </Typography>
+          </Box>
+        ) : isSubmitting ? (
+          <CircularProgress sx={{ color: "#68D391" }} />
+        ) : (
+          <Card
+            sx={{
+              width: "100%",
+              maxWidth: "1100px",
+              minHeight: "600px",
+              padding: "40px",
+              display: "flex",
+              flexDirection: isMobile ? "column" : "row",
+              boxShadow: "0 0 15px rgba(0, 0, 0, 0.2)",
+              borderRadius: "15px",
+              opacity: submitted ? 0 : 1,
+              transition: "opacity 1s ease-in-out",
+            }}
+          >
+            <Box
               sx={{
-                marginBottom: "30px",
-                flexDirection: isMobile ? "column" : "row",
+                width: isMobile ? "100%" : "50%",
+                height: isMobile ? "200px" : "auto",
+                background:
+                  "url(https://img.freepik.com/vetores-gratis/ilustracao-de-execucao-de-mulher-geometrica-azul_1284-52845.jpg) center center / cover no-repeat",
+                borderRadius: isMobile ? "15px 15px 0 0" : "15px 0 0 15px",
+              }}
+            />
+            <Box
+              sx={{
+                width: isMobile ? "100%" : "50%",
+                padding: "0 20px",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "center",
+                paddingTop: isMobile ? "20px" : "0",
               }}
             >
-              {steps.map((label) => (
-                <Step key={label}>
-                  <StepLabel>{label}</StepLabel>
-                </Step>
-              ))}
-            </Stepper>
-
-            {errors.length > 0 && (
-              <Box sx={{ mb: 2 }}>
-                {errors.map((error, index) => (
-                  <Typography key={index} color="error">
-                    {error}
-                  </Typography>
+              <Stepper
+                activeStep={activeStep}
+                sx={{
+                  marginBottom: "30px",
+                  flexDirection: isMobile ? "column" : "row",
+                }}
+              >
+                {steps.map((label) => (
+                  <Step key={label}>
+                    <StepLabel>{label}</StepLabel>
+                  </Step>
                 ))}
-              </Box>
-            )}
+              </Stepper>
 
-            {activeStep === steps.length ? (
-              <React.Fragment>
-                <Typography sx={{ mt: 2, mb: 1 }}>
-                  Todos os passos foram concluídos - Evento criado com sucesso.
-                </Typography>
-                <Box sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
-                  <Box sx={{ flex: "1 1 auto" }} />
-                  <Button onClick={handleReset} color="secondary">
-                    Resetar
-                  </Button>
+              {errors.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  {errors.map((error, index) => (
+                    <Typography key={index} color="error">
+                      {error}
+                    </Typography>
+                  ))}
                 </Box>
-              </React.Fragment>
-            ) : (
-              <React.Fragment>
-                <Box sx={{ mb: 2 }}>{getStepContent(activeStep)}</Box>
-                <Box sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
-                  <Button
-                    color="inherit"
-                    disabled={activeStep === 0}
-                    onClick={handleBack}
-                    sx={{ mr: 1 }}
-                  >
-                    Voltar
-                  </Button>
-                  <Box sx={{ flex: "1 1 auto" }} />
-                  {activeStep === steps.length - 1 ? (
-                    <Button
-                      onClick={handleSubmit}
-                      variant="contained"
-                      color="primary"
-                      disabled={isSubmitting}
-                    >
-                      Finalizar
+              )}
+
+              {activeStep === steps.length ? (
+                <React.Fragment>
+                  <Typography sx={{ mt: 2, mb: 1 }}>
+                    Todos os passos foram concluídos - Evento criado com sucesso.
+                  </Typography>
+                  <Box sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
+                    <Box sx={{ flex: "1 1 auto" }} />
+                    <Button onClick={handleReset} color="secondary">
+                      Resetar
                     </Button>
-                  ) : (
+                  </Box>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <Box sx={{ mb: 2 }}>{getStepContent(activeStep)}</Box>
+                  <Box sx={{ display: "flex", flexDirection: "row", pt: 2 }}>
                     <Button
-                      onClick={handleNext}
-                      variant="contained"
-                      color="primary"
+                      color="inherit"
+                      disabled={activeStep === 0}
+                      onClick={handleBack}
+                      sx={{ mr: 1 }}
                     >
-                      Próximo
+                      Voltar
                     </Button>
-                  )}
-                </Box>
-              </React.Fragment>
-            )}
-          </Box>
-        </Card>
+                    <Box sx={{ flex: "1 1 auto" }} />
+                    {activeStep === steps.length - 1 ? (
+                      <Button
+                        onClick={handleSubmit}
+                        variant="contained"
+                        color="primary"
+                        disabled={isSubmitting}
+                      >
+                        Finalizar
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={handleNext}
+                        variant="contained"
+                        color="primary"
+                      >
+                        Próximo
+                      </Button>
+                    )}
+                  </Box>
+                </React.Fragment>
+              )}
+            </Box>
+          </Card>
+        )
+      ) : (
+        // Caso ocorra um erro na autenticação
+        <Box sx={{ textAlign: "center" }}>
+          <Typography color="error">
+            {errorAuth?.message || "Erro na autenticação."}
+          </Typography>
+        </Box>
       )}
     </Box>
   );
