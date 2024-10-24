@@ -22,10 +22,23 @@ def authenticate_or_create_user():
         headers={'Content-Type': 'application/json'}
     )
 
-@user_api.route('/users/{user_id}', methods=['GET'])
+@user_api.route('/users/{user_id}', methods=['GET'], cors=cors_config)
 def get_user(user_id):
     user = use_case.get_user(user_id)
     if user:
-        return user.dict()
+        return user.to_dict()
     else:
         return {'message': 'User not found'}, 404
+
+@user_api.route('/users/{user_id}/update', methods=['PATCH'], cors=cors_config)
+def update_user(user_id):
+    request = user_api.current_request
+    user_data = request.json_body
+    user_data['id'] = user_id
+    user = use_case.update_user(user_data)
+    response_data = user.to_dict()
+    return Response(
+        body=response_data,
+        status_code=200,
+        headers={'Content-Type': 'application/json'}
+    )

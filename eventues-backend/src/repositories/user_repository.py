@@ -2,6 +2,7 @@
 from src.utils.firebase import db
 from src.models.user_model import UserModel
 from src.models.tables import Table
+from src.utils.utils import filter_none_values
 
 class UserRepository:
     def __init__(self):
@@ -9,6 +10,11 @@ class UserRepository:
 
     def add_user(self, user: UserModel) -> UserModel:
         self.users_collection.document(user.id).set(user.to_dict())
+        return user
+
+    def update_user(self, user: UserModel) -> UserModel:
+        user_dict = filter_none_values(user.to_dict())
+        self.users_collection.document(user.id).set(user_dict, merge=True)
         return user
 
     def find_user_by_id(self, user_id: str) -> UserModel:

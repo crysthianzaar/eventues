@@ -9,6 +9,10 @@ class UserUseCase:
         user = UserModel(**user_data)
         return self.user_repository.add_user(user)
 
+    def update_user(self, user_data):
+        user = UserModel(**user_data)
+        return self.user_repository.update_user(user)
+
     def get_user(self, user_id: str):
         return self.user_repository.find_user_by_id(user_id)
     
