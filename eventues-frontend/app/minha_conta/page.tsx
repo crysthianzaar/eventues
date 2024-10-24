@@ -1,3 +1,4 @@
+// pages/minha_conta/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -23,11 +24,14 @@ import {
   Edit as EditIcon,
 } from '@mui/icons-material';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../firebase'; // Ajuste o caminho conforme necessário
+import { auth } from '../../firebase';
+import { getIdToken } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import axios from 'axios';
+import LoadingOverlay from '../components/LoadingOverlay';
 
 interface Event {
-  id: number;
+  id: string;
   name: string;
   status: string;
   imageUrl: string;
@@ -37,15 +41,20 @@ interface Event {
   location: string;
 }
 
+interface UserInfo {
+  name: string;
+  email: string;
+  birth_date: string; // Data formatada
+  phone_number: string;
+}
+
 const MinhaContaPage = () => {
-  const [user, loading, error] = useAuthState(auth);
-  const [userInfo, setUserInfo] = useState({
-    displayName: '',
+  const [user, loadingAuth, errorAuth] = useAuthState(auth);
+  const [userInfo, setUserInfo] = useState<UserInfo>({
+    name: '',
     email: '',
-    photoURL: '',
-    birthDate: '-', // Inicializado com '-'
-    phoneNumber: '-', // Inicializado com '-'
-    userType: 'Participante', // Tipo de usuário de exemplo
+    birth_date: '-', // Inicializado com '-'
+    phone_number: '-', // Inicializado com '-'
   });
   const [events, setEvents] = useState<Event[]>([]); // Lista de eventos
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -54,44 +63,78 @@ const MinhaContaPage = () => {
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
-      // Carregar informações do usuário do Firebase ou do backend
-      setUserInfo({
-        displayName: user.displayName || 'Usuário',
-        email: user.email || '-',
-        photoURL: user.photoURL || '/default-profile.png',
-        birthDate: '1990-01-01', // Data de nascimento pode vir de um banco de dados
-        phoneNumber: '(27) 99999-9999', // Telefone pode vir de um banco de dados
-        userType: 'Participante', // Tipo de usuário pode vir de um banco de dados
-      });
+    const fetchUserInfo = async () => {
+      if (user) {
+        try {
+          const token = await getIdToken(user);
+          const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${user.uid}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
 
-      // Simular carregamento de eventos (pode vir de uma API)
-      setEvents([
-        {
-          id: 1,
-          name: 'Evento de Ciclismo',
-          status: 'Concluído',
-          imageUrl:
-            'https://cdn.ticketsports.com.br/ticketagora/images/thumb/483WWR31GJPW13HS9PEVE18NGD17U0CVUJ1NMRTOUOGKFBUW4H.png',
-          date: '15 de Outubro de 2024',
-          dateObj: new Date('2024-10-15'),
-          registrationDate: new Date('2024-10-05'),
-          location: 'São Paulo, SP',
-        },
-        {
-          id: 2,
-          name: 'Corrida 10K',
-          status: 'Inscrito',
-          imageUrl:
-            'https://cdn.ticketsports.com.br/ticketagora/images/7R80BOJT9CNC85MFPNY1I8HZD8PVWQNL2CWLU9O2IE811M3WJM.png',
-          date: '22 de Outubro de 2024',
-          dateObj: new Date('2024-10-22'),
-          registrationDate: new Date('2024-10-01'),
-          location: 'Rio de Janeiro, RJ',
-        },
-        // Você pode adicionar mais eventos conforme necessário
-      ]);
-    }
+            const { name, email, birth_date, phone_number } = response.data as UserInfo;
+
+          setUserInfo({
+            name: name || 'Atleta',
+            email: email || '-',
+            birth_date: birth_date || '-',
+            phone_number: phone_number || '-',
+          });
+
+          // Temporariamente mantendo os eventos como dados mockados
+          setEvents([
+            {
+              id: '1',
+              name: 'Evento de Ciclismo',
+              status: 'Concluído',
+              imageUrl:
+                'https://cdn.ticketsports.com.br/ticketagora/images/thumb/483WWR31GJPW13HS9PEVE18NGD17U0CVUJ1NMRTOUOGKFBUW4H.png',
+              date: '15 de Outubro de 2024',
+              dateObj: new Date('2024-10-15'),
+              registrationDate: new Date('2024-10-05'),
+              location: 'São Paulo, SP',
+            },
+            {
+              id: '2',
+              name: 'Corrida 10K',
+              status: 'Inscrito',
+              imageUrl:
+                'https://cdn.ticketsports.com.br/ticketagora/images/7R80BOJT9CNC85MFPNY1I8HZD8PVWQNL2CWLU9O2IE811M3WJM.png',
+              date: '22 de Outubro de 2024',
+              dateObj: new Date('2024-10-22'),
+              registrationDate: new Date('2024-10-01'),
+              location: 'Rio de Janeiro, RJ',
+            },
+            // Você pode adicionar mais eventos mockados conforme necessário
+          ]);
+
+          // Caso o endpoint de eventos esteja pronto no futuro, descomente a linha abaixo
+          // fetchUserEvents(user.uid, token);
+        } catch (err) {
+          setLoadError('Falha ao carregar informações da conta.');
+        }
+      }
+    };
+
+    // Função para buscar eventos do usuário via backend (temporariamente comentada)
+    /*
+    const fetchUserEvents = async (userId: string, token: string) => {
+      try {
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${userId}/events`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        setEvents((response.data as { events: Event[] }).events);
+      } catch (err) {
+        setLoadError('Falha ao carregar eventos.');
+      }
+    };
+    */
+
+    fetchUserInfo();
   }, [user]);
 
   const handleEditProfile = () => {
@@ -127,7 +170,6 @@ const MinhaContaPage = () => {
   };
 
   const handleEventAction = (action: string, event: Event) => {
-    // Lidar com diferentes ações baseadas no parâmetro 'action'
     switch (action) {
       case 'info':
         router.push(`/evento/${event.id}`);
@@ -144,9 +186,8 @@ const MinhaContaPage = () => {
         const { canCancel, message } = canCancelRegistration(event);
         if (canCancel) {
           // Lógica para cancelar inscrição
-          // Aqui você deve implementar a lógica real de cancelamento
-          alert('Inscrição cancelada com sucesso.');
-          // Opcional: Atualizar o estado dos eventos ou fazer uma chamada para a API
+          // Implementar a lógica real de cancelamento via API
+          cancelRegistration(event.id);
         } else {
           // Exibir popup com a mensagem
           setPopupMessage(message || 'Não é possível cancelar a inscrição.');
@@ -158,6 +199,38 @@ const MinhaContaPage = () => {
     }
   };
 
+  const cancelRegistration = async (eventId: string) => {
+    try {
+      const token = await getIdToken(user!);
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events/${eventId}/cancel`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        setPopupMessage('Inscrição cancelada com sucesso.');
+        setPopupOpen(true);
+        // Atualizar a lista de eventos
+        setEvents((prevEvents) =>
+          prevEvents.map((event) =>
+            event.id === eventId ? { ...event, status: 'Cancelado' } : event
+          )
+        );
+      } else {
+        setPopupMessage('Falha ao cancelar a inscrição.');
+        setPopupOpen(true);
+      }
+    } catch (err) {
+      setPopupMessage('Erro ao cancelar a inscrição.');
+      setPopupOpen(true);
+    }
+  };
+
   return (
     <Box
       sx={{
@@ -166,10 +239,10 @@ const MinhaContaPage = () => {
         justifyContent: 'center',
         alignItems: 'center',
         padding: { xs: '20px', md: '40px' },
-        backgroundImage: 'url("/cycling.jpg")', // Imagem de fundo
-        backgroundSize: 'cover', // Cobrir toda a área
-        backgroundPosition: 'center', // Centralizar a imagem
-        backgroundRepeat: 'no-repeat', // Não repetir a imagem
+        backgroundImage: 'url("/cycling.jpg")',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
       }}
     >
       <Card
@@ -177,19 +250,19 @@ const MinhaContaPage = () => {
           maxWidth: '800px',
           width: '100%',
           padding: '30px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)', // Sombra mais forte
+          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)',
           borderRadius: '12px',
-          backgroundColor: '#ffffff', // Fundo branco sólido para legibilidade
+          backgroundColor: '#ffffff',
           position: 'relative',
         }}
       >
-        {loading ? (
+        {loadingAuth ? (
           <Box sx={{ textAlign: 'center' }}>
             <CircularProgress />
           </Box>
-        ) : error || loadError ? (
+        ) : errorAuth || loadError ? (
           <Typography color="error" sx={{ textAlign: 'center' }}>
-            {error?.message || loadError}
+            {errorAuth?.message || loadError}
           </Typography>
         ) : (
           <>
@@ -217,38 +290,35 @@ const MinhaContaPage = () => {
             {/* User Info */}
             <Box
               sx={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '40px',
-                flexDirection: { xs: 'column', md: 'row' },
+              display: 'flex',
+              alignItems: 'center',
+              marginBottom: '40px',
+              flexDirection: { xs: 'column', md: 'row' },
               }}
             >
               <Avatar
-                src={userInfo.photoURL}
-                alt="Foto de perfil"
-                sx={{
-                  width: 120,
-                  height: 120,
-                  marginRight: { md: '30px', xs: '0' },
-                  marginBottom: { xs: '20px', md: '0' },
-                }}
+              src={user?.photoURL || ''}
+              alt="Foto de perfil"
+              sx={{
+                width: 120,
+                height: 120,
+                marginRight: { md: '30px', xs: '0' },
+                marginBottom: { xs: '20px', md: '0' },
+              }}
               />
               <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" sx={{ marginBottom: '10px' }}>
-                  {userInfo.displayName}
-                </Typography>
-                <Typography variant="body1" color="textSecondary">
-                  <strong>E-mail:</strong> {userInfo.email}
-                </Typography>
-                <Typography variant="body1" color="textSecondary">
-                  <strong>Data de Nascimento:</strong> {userInfo.birthDate}
-                </Typography>
-                <Typography variant="body1" color="textSecondary">
-                  <strong>Telefone:</strong> {userInfo.phoneNumber}
-                </Typography>
-                <Typography variant="body1" color="textSecondary">
-                  <strong>Tipo de Usuário:</strong> {userInfo.userType}
-                </Typography>
+              <Typography variant="h6" sx={{ marginBottom: '10px' }}>
+                {userInfo.name}
+              </Typography>
+              <Typography variant="body1" color="textSecondary">
+                <strong>E-mail:</strong> {userInfo.email}
+              </Typography>
+              <Typography variant="body1" color="textSecondary">
+                <strong>Data de Nascimento:</strong> {new Date(new Date(userInfo.birth_date).setDate(new Date(userInfo.birth_date).getDate() + 1)).toLocaleDateString('pt-BR')}
+              </Typography>
+              <Typography variant="body1" color="textSecondary">
+                <strong>Telefone:</strong> {userInfo.phone_number}
+              </Typography>
               </Box>
             </Box>
 
@@ -301,10 +371,10 @@ const MinhaContaPage = () => {
                       </CardContent>
                       <CardActions
                         sx={{
-                          justifyContent: 'flex-start', // Alinhar na esquerda
+                          justifyContent: 'flex-start',
                           paddingBottom: '16px',
                           flexWrap: 'wrap',
-                          gap: '8px', // Espaçamento entre os botões
+                          gap: '8px',
                         }}
                       >
                         <Button
@@ -350,7 +420,7 @@ const MinhaContaPage = () => {
                 anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
               >
                 <Alert onClose={() => setLoadError(null)} severity="error">
-                  Falha ao carregar informações.
+                  {loadError}
                 </Alert>
               </Snackbar>
             )}
