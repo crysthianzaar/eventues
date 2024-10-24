@@ -1,7 +1,7 @@
 // components/LoginPage.tsx
-"use client"; // Marca o componente como Client Component
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   Box,
   Button,
@@ -22,7 +22,7 @@ import {
 } from 'firebase/auth';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../firebase';
-import { useRouter } from 'next/navigation'; // Usar o router para redirecionamento
+import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 
 const LoginPage = () => {
@@ -35,27 +35,15 @@ const LoginPage = () => {
   const [resetEmailSent, setResetEmailSent] = useState(false);
   const [signupSuccess, setSignupSuccess] = useState(false);
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
-  const router = useRouter(); // Inicializar o router para redirecionamento
-
-  // Função para obter o caminho de redirecionamento após o login
-  const getRedirectPath = () => {
-    if (typeof window !== 'undefined') {
-      const path = localStorage.getItem('redirectPath');
-      console.log('Redirect path:', path);
-      if (path) {
-        return path;
-      }
-    }
-    return '/'; // Padrão para a home se nenhum caminho estiver salvo
-  };
+  const router = useRouter();
 
   // Função para login com Google
   const signInWithGoogle = async () => {
     setSigningIn(true);
     try {
       await signInWithPopup(auth, provider);
-      const redirectPath = getRedirectPath();
-      router.push(redirectPath); // Redireciona para o caminho salvo ou home
+      // Redirecionar para o callback
+      router.push('/callback');
     } catch (err) {
       console.error(err);
       setAuthError('Falha ao tentar fazer login com Google.');
@@ -69,8 +57,8 @@ const LoginPage = () => {
     setSigningIn(true);
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      const redirectPath = getRedirectPath();
-      router.push(redirectPath); // Redireciona para o caminho salvo ou home
+      // Redirecionar para o callback
+      router.push('/callback');
     } catch (err) {
       console.error(err);
       setAuthError('Falha ao tentar fazer login com e-mail e senha.');
@@ -84,10 +72,10 @@ const LoginPage = () => {
     setSigningIn(true);
     try {
       await createUserWithEmailAndPassword(auth, email, password);
-      setSignupSuccess(true); // Mostra a notificação de sucesso
+      setSignupSuccess(true);
       setTimeout(() => {
-        const redirectPath = getRedirectPath();
-        router.push(redirectPath); // Redireciona para o caminho salvo ou home
+        // Redirecionar para o callback
+        router.push('/callback');
       }, 3000);
     } catch (err) {
       console.error(err);
@@ -112,16 +100,8 @@ const LoginPage = () => {
     }
   };
 
-  // Se o usuário já estiver logado, redireciona para a home ou para o caminho salvo
-  useEffect(() => {
-    if (user && !loading) {
-      const redirectPath = getRedirectPath();
-      router.push(redirectPath);
-    }
-  }, [user, loading, router]);
-
   return (
-    <Box
+      <Box
       sx={{
         display: 'flex',
         justifyContent: 'center',
@@ -398,7 +378,7 @@ const LoginPage = () => {
           </>
         )}
       </Card>
-    </Box>
+      </Box>
   );
 };
 

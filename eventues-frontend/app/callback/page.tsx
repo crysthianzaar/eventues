@@ -1,10 +1,11 @@
+// pages/callback.tsx
 'use client';
 
 import React, { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { fetchAuthSession, signOut } from '@aws-amplify/auth';
 import axios from 'axios';
-import './../configureAmplify'; // Importe a configuração do Amplify
+import { auth } from '../../firebase'; // Certifique-se de que este caminho está correto
+import { useAuthState } from 'react-firebase-hooks/auth';
 import LoadingOverlay from '../components/LoadingOverlay';
 
 interface AuthResponse {
@@ -13,104 +14,95 @@ interface AuthResponse {
 
 const CallbackPage: React.FC = () => {
   const router = useRouter();
-  const [hasFetched, setHasFetched] = useState(false);
+  const [user, loading, error] = useAuthState(auth);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const from = typeof window !== 'undefined' ? localStorage.getItem('from') || '/' : '/';
 
-  console.log('from em Callback (localStorage):', from);
+  console.log('from no Callback (localStorage):', from);
 
   const handleLogout = useCallback(async () => {
-    await signOut();
+    await auth.signOut();
     router.push('/login');
   }, [router]);
 
-  const handleCallback = useCallback(async () => {
-    console.log('handleCallback foi chamado');
-    try {
-      const token = await getToken();
-      console.log('Token obtido:', token);
-  
-      if (!token) {
-        console.log('Token não obtido, chamando handleLogout');
-        setErrorMessage('Erro ao obter o token de autenticação.');
-        await handleLogout();
-        return;
-      }
-  
-      const email = typeof token.payload?.email === 'string' ? token.payload.email : '';
-      const uuid = typeof token.payload?.sub === 'string' ? token.payload.sub : '';
-  
-      console.log('Email extraído do token:', email);
-      console.log('UUID extraído do token:', uuid);
-  
-      if (!email || !uuid) {
-        console.log('Email ou UUID inválidos, chamando handleLogout');
-        setErrorMessage('Erro: Email ou UUID inválidos.');
-        await handleLogout();
-        return;
-      }
-  
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('user_id', uuid);
-      }
-  
-      console.log('Chamando authenticateUser com:', { email, uuid });
-      const isAuthenticated = await authenticateUser({ email, uuid });
-      console.log('Resultado de authenticateUser:', isAuthenticated);
-  
-      if (isAuthenticated) {
-        console.log('Redirecionando para:', from);
-        router.replace(from);
-  
-        if (typeof window !== 'undefined') {
-          localStorage.removeItem('from');
-        }
-      } else {
-        console.log('Autenticação falhou, chamando handleLogout');
-        setErrorMessage('Erro ao autenticar o usuário.');
-        await handleLogout();
-      }
-    } catch (error) {
-      console.error('Erro no handleCallback:', error);
-      setErrorMessage('Ocorreu um erro inesperado durante o processo de login.');
-      await handleLogout();
-    }
-  }, [router, handleLogout, from]);
-  
-
   useEffect(() => {
-    if (hasFetched) return;
+    const authenticateUser = async (userData: { email: string; id: string }) => {
+      console.log('Entrou em authenticateUser com:', userData);
+      try {
+        const response = await axios.post<AuthResponse>('http://127.0.0.1:8000/auth', userData);
+        console.log('Resposta da API:', response);
+        return response.status === 201;
+      } catch (error) {
+        console.error('Erro ao autenticar o usuário:', error);
+        return false;
+      }
+    };
+
+    const handleCallback = async () => {
+      console.log('handleCallback foi chamado');
+      try {
+        if (loading) {
+          // Ainda carregando, não faz nada
+          return;
+        }
+
+        if (error) {
+          console.error('Erro com a autenticação:', error);
+          setErrorMessage('Ocorreu um erro com a autenticação.');
+          await handleLogout();
+          return;
+        }
+
+        if (!user) {
+          console.log('Nenhum usuário autenticado, chamando handleLogout');
+          setErrorMessage('Nenhum usuário autenticado.');
+          await handleLogout();
+          return;
+        }
+
+        const email = user.email || '';
+        const id = user.uid || '';
+
+        console.log('Email do usuário:', email);
+        console.log('id do usuário:', id);
+
+        if (!email || !id) {
+          console.log('Email ou id inválidos, chamando handleLogout');
+          setErrorMessage('Erro: Email ou id inválidos.');
+          await handleLogout();
+          return;
+        }
+
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user_id', id);
+        }
+
+        console.log('Chamando authenticateUser com:', { email, id });
+        const isAuthenticated = await authenticateUser({ email, id });
+        console.log('Resultado de authenticateUser:', isAuthenticated);
+
+        if (isAuthenticated) {
+          console.log('Redirecionando para:', from);
+          router.replace(from);
+
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('from');
+          }
+        } else {
+          console.log('Autenticação falhou, chamando handleLogout');
+          setErrorMessage('Falha ao autenticar o usuário.');
+          await handleLogout();
+        }
+      } catch (error) {
+        console.error('Erro no handleCallback:', error);
+        setErrorMessage('Ocorreu um erro inesperado durante o processo de login.');
+        await handleLogout();
+      }
+    };
 
     handleCallback();
-    setHasFetched(true);
-  }, [hasFetched, handleCallback]);
-
-  const getToken = async () => {
-    try {
-      console.log('Chamando fetchAuthSession');
-      const { tokens } = await fetchAuthSession();
-      console.log('Tokens obtidos:', tokens);
-      return tokens?.idToken || null;
-    } catch (error) {
-      console.error('Erro ao obter o token JWT:', error);
-      return null;
-    }
-  };
-  
-  
-
-  const authenticateUser = async (userData: { email: string; uuid: string }) => {
-    console.log('Entrou em authenticateUser com:', userData);
-    try {
-      const response = await axios.post<AuthResponse>('http://localhost:8000/auth', userData);
-      console.log('Resposta da API:', response);
-      return response.status === 201;
-    } catch (error) {
-      console.error('Erro ao autenticar o usuário:', error);
-      return false;
-    }
-  };
+  }, [user, loading, error, router, handleLogout, from]);
 
   return (
     <div style={{ /* estilos */ }}>
