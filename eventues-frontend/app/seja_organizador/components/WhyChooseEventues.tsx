@@ -346,24 +346,17 @@ const WhyChooseEventues: React.FC = () => {
         <Container>
           <Grid container spacing={4} alignItems="center">
             <Grid item xs={12} md={6}>
-              <Box
-                sx={{
-                  position: "relative",
-                  width: "100%",
-                  height: { xs: "250px", md: "350px" },
-                }}
-              >
-                <Image
-                  src="/organizador.jpg"
-                  alt="Organizadores satisfeitos"
-                  layout="fill"
-                  objectFit="cover"
-                  style={{
-                    borderRadius: "12px",
-                    boxShadow: "10px 10px 30px rgba(0, 0, 0, 0.3)",
-                  }}
-                />
-              </Box>
+              <div style={{ padding: "56.25% 0 0 0", position: "relative", borderRadius: "12px", boxShadow: "10px 10px 30px rgba(0, 0, 0, 0.3)" }}>
+              <iframe
+                src="https://player.vimeo.com/video/1023743624?badge=0&autopause=0&player_id=0&app_id=58479&title=0&byline=0&portrait=0"
+                frameBorder="0"
+                allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
+                style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                title="Seja um Organizador | Eventues"
+                allowFullScreen
+              ></iframe>
+              </div>
+              <script src="https://player.vimeo.com/api/player.js"></script>
             </Grid>
             <Grid item xs={12} md={6}>
                 <Typography

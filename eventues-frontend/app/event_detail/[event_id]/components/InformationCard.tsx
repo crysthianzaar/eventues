@@ -1,3 +1,5 @@
+// src/components/InformationCard.tsx
+
 "use client";
 
 import React, { useState, useRef, useEffect, MouseEvent, useCallback } from "react";
@@ -17,10 +19,18 @@ import {
 } from "@mui/material";
 import { Save, PhotoCamera } from "@mui/icons-material";
 import { styled } from "@mui/system";
-import axios from "axios";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import ImageCropperModal from "./ImageCropperModal"; // Certifique-se de que este caminho está correto
+import ImageCropperModal from "./ImageCropperModal";
+import {
+  uploadDocumentFile,
+  deleteDocumentFile,
+  getEventDetails,
+  getEventDocuments,
+  updateEventDetails,
+  UploadResponse,
+  DocumentData,
+} from "../apis/api";
 
 // Carregamento dinâmico do ReactQuill
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -55,7 +65,7 @@ const SaveButton = styled(Button)(({ theme }) => ({
 }));
 
 // Configurações do Quill Editor
-const modules = {
+const quillModules = {
   toolbar: [
     [{ header: [1, 2, false] }],
     ["bold", "italic", "underline"],
@@ -66,7 +76,7 @@ const modules = {
   ],
 };
 
-const formats = [
+const quillFormats = [
   "header",
   "bold",
   "italic",
@@ -79,33 +89,14 @@ const formats = [
   "color",
 ];
 
-// Interfaces
-interface EventDetail {
-  name: string;
-  event_category: string;
-  start_date: string;
-  start_time: string;
-  end_date: string;
-  end_time: string;
-  state: string;
-  city: string;
-  address: string;
-  address_complement: string;
-  address_detail: string;
-  organization_name: string;
-  organization_contact: string;
-  event_status: string;
-  event_type: string;
-  event_description?: string;
-  banner_image?: string; // URL do banner
-}
-
+// Interface para estados
 interface Estado {
   id: number;
   sigla: string;
   nome: string;
 }
 
+// Template inicial para descrição
 const initialDescriptionTemplate = `
 <h2>Informações do Evento</h2>
 <ul>
@@ -123,7 +114,10 @@ const initialDescriptionTemplate = `
 
 const InformationCard: React.FC = () => {
   const params = useParams();
-  const { event_id } = params;
+  const rawEventId = params.event_id;
+
+  // Garantir que event_id seja uma string
+  const event_id = Array.isArray(rawEventId) ? rawEventId[0] : rawEventId;
 
   // Estados
   const [formData, setFormData] = useState({
@@ -145,28 +139,24 @@ const InformationCard: React.FC = () => {
     eventDescription: initialDescriptionTemplate,
   });
   const [bannerImage, setBannerImage] = useState<string | null>(null);
-  const [bannerS3Key, setBannerS3Key] = useState<string | null>(null); // Armazenamento separado do s3_key
+  const [firebaseBannerPath, setFirebaseBannerPath] = useState<string | null>(null);
   const [openModal, setOpenModal] = useState(false);
-  const [isReplacingBanner, setIsReplacingBanner] = useState(false); // Novo estado para rastrear substituição
+  const [isReplacingBanner, setIsReplacingBanner] = useState(false);
   const [estados, setEstados] = useState<Estado[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isClient, setIsClient] = useState(false); // Controle para renderização do Quill
-  const [attachments, setAttachments] = useState<any[]>([]); // Ajuste o tipo conforme necessário
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "warning" | "info",
+  });
+  const [attachments, setAttachments] = useState<DocumentData[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para o Menu de Opções
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
-
-  // Estado para Snackbar de Notificações
-  const [snackbar, setSnackbar] = useState({
-    open: false,
-    message: "",
-    severity: "success" as "success" | "error" | "warning" | "info",
-  });
 
   // Funções para abrir e fechar o Menu
   const handleMenuClick = (event: MouseEvent<HTMLElement>) => {
@@ -188,7 +178,7 @@ const InformationCard: React.FC = () => {
   };
 
   // Função para converter arquivo para base64
-  const convertToBase64 = (file: File): Promise<string> => {
+  const convertFileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
       reader.readAsDataURL(file);
@@ -204,26 +194,13 @@ const InformationCard: React.FC = () => {
   };
 
   // Função para fazer upload de arquivos (banner ou anexos)
-  const uploadFile = async (file: File, title: string) => {
+  const uploadFile = async (file: File, title: string): Promise<UploadResponse | null> => {
     try {
       // Converter arquivo para base64
-      const base64 = await convertToBase64(file);
-      const payload = {
-        file: base64,
-        title: title,
-      };
-      const response = await axios.post(
-        `http://127.0.0.1:8000/organizer_detail/${event_id}/upload_document_file`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
-      return response.data; // Deve retornar { url: string, s3_key: string }
+      const base64 = await convertFileToBase64(file);
+      const uploadResult = await uploadDocumentFile(event_id, base64, title);
+      return uploadResult;
     } catch (error) {
-      console.error("Erro ao fazer upload do arquivo:", error);
       setSnackbar({
         open: true,
         message: "Erro ao fazer upload do arquivo.",
@@ -239,53 +216,49 @@ const InformationCard: React.FC = () => {
     try {
       setLoading(true);
       // Buscar detalhes do evento
-      const eventResponse = await axios.get<EventDetail>(
-        `http://127.0.0.1:8000/organizer_detail/${event_id}`
-      );
-      const data = eventResponse.data;
+      const eventData = await getEventDetails(event_id);
       setFormData({
-        eventName: data.name,
-        eventCategory: data.event_category,
-        startDate: data.start_date.split("T")[0],
-        startTime: data.start_time,
-        endDate: data.end_date.split("T")[0],
-        endTime: data.end_time,
-        state: data.state,
-        city: data.city,
-        address: data.address,
-        addressComplement: data.address_complement,
-        addressDetail: data.address_detail,
-        organizationName: data.organization_name,
-        organizationContact: data.organization_contact,
-        eventType: data.event_type,
-        eventStatus: data.event_status,
-        eventDescription: data.event_description || initialDescriptionTemplate,
+        eventName: eventData.name,
+        eventCategory: eventData.event_category,
+        startDate: eventData.start_date.split("T")[0],
+        startTime: eventData.start_time,
+        endDate: eventData.end_date.split("T")[0],
+        endTime: eventData.end_time,
+        state: eventData.state,
+        city: eventData.city,
+        address: eventData.address,
+        addressComplement: eventData.address_complement,
+        addressDetail: eventData.address_detail,
+        organizationName: eventData.organization_name,
+        organizationContact: eventData.organization_contact,
+        eventType: eventData.event_type,
+        eventStatus: eventData.event_status,
+        eventDescription: eventData.event_description || initialDescriptionTemplate,
       });
 
       // Definir banner image se existir
-      if (data.banner_image) {
-        setBannerImage(`${data.banner_image}?t=${new Date().getTime()}`);
-        setBannerS3Key(data.banner_image.split('/').pop() || null); // Extrai o s3_key
+      if (eventData.banner_image) {
+        setBannerImage(`${eventData.banner_image}?t=${new Date().getTime()}`);
+        setFirebaseBannerPath(eventData.banner_image);
       } else {
         setBannerImage(null);
-        setBannerS3Key(null);
+        setFirebaseBannerPath(null);
       }
 
       // Buscar documentos do evento
-      const filesResponse = await axios.get(
-        `http://127.0.0.1:8000/organizer_detail/${event_id}/get_document_files`
+      const files = await getEventDocuments(event_id);
+      const banner = files.find(
+        (file) => file.file_name.toLowerCase() === "banner"
       );
-      const files = filesResponse.data as any[];
-
-      // Identificar o banner (supondo que o banner tenha um título específico, ex: 'banner')
-      const banner = files.find((file: any) => file.file_name.toLowerCase() === 'banner');
       if (banner) {
         setBannerImage(`${banner.url}?t=${new Date().getTime()}`);
-        setBannerS3Key(banner.s3_key); // Armazena o s3_key do banner
+        setFirebaseBannerPath(banner.firebase_path);
       }
 
       // Definir anexos excluindo o banner
-      const attachmentFiles = files.filter((file: any) => file.file_name.toLowerCase() !== 'banner');
+      const attachmentFiles = files.filter(
+        (file) => file.file_name.toLowerCase() !== "banner"
+      );
       setAttachments(attachmentFiles);
     } catch (err) {
       console.error("Erro ao carregar dados do evento:", err);
@@ -312,20 +285,10 @@ const InformationCard: React.FC = () => {
       }
 
       // Se estamos substituindo o banner, exclua o atual antes de fazer o upload
-      if (isReplacingBanner && bannerS3Key) {
-        const payload = { s3_key: bannerS3Key };
-        await axios.post(
-          `http://127.0.0.1:8000/organizer_detail/${event_id}/delete_document_file`,
-          payload,
-          {
-            headers: {
-              "Content-Type": "application/json",
-            },
-          }
-        );
-        // Atualizar o estado após exclusão
+      if (isReplacingBanner && firebaseBannerPath) {
+        await deleteDocumentFile(event_id, firebaseBannerPath);
         setBannerImage(null);
-        setBannerS3Key(null);
+        setFirebaseBannerPath(null);
         setIsReplacingBanner(false);
         setSnackbar({
           open: true,
@@ -339,12 +302,12 @@ const InformationCard: React.FC = () => {
       const file = new File([blob], "banner.png", { type: blob.type });
 
       // Fazer upload do banner
-      const uploadResult = await uploadFile(file, "banner") as { url: string, s3_key: string } | null;
+      const uploadResult = await uploadFile(file, "banner");
       if (uploadResult) {
         // Adicionar um parâmetro de cache-busting para forçar o reload
         const updatedUrl = `${uploadResult.url}?t=${new Date().getTime()}`;
         setBannerImage(updatedUrl);
-        setBannerS3Key(uploadResult.s3_key); // Armazenar o s3_key do banner
+        setFirebaseBannerPath(uploadResult.firebase_path);
         setSnackbar({
           open: true,
           message: "Banner atualizado com sucesso!",
@@ -365,29 +328,37 @@ const InformationCard: React.FC = () => {
   };
 
   // Função para lidar com mudanças nos campos de input
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Função para lidar com mudanças na descrição do evento
   const handleDescriptionChange = (value: string) => {
-    setFormData({ ...formData, eventDescription: value });
+    setFormData((prev) => ({ ...prev, eventDescription: value }));
   };
 
   // Função para adicionar arquivos (anexos)
   const handleFiles = async (files: File[]) => {
-    // Filtrar arquivos já anexados para evitar duplicatas
     const newFiles = files.filter(
-      (file) => !attachments.some((att) => att.s3_key === `${event_id}/${file.name}`)
+      (file) =>
+        !attachments.some(
+          (att) => att.firebase_path === `events/${event_id}/${file.name}`
+        )
     );
 
     for (const file of newFiles) {
       const uploadResult = await uploadFile(file, file.name);
       if (uploadResult) {
-        setAttachments((prev) => [...prev, uploadResult]);
+        // **Correção Principal**: Criar um objeto DocumentData a partir de UploadResponse e File
+        const document: DocumentData = {
+          file_name: file.name,
+          firebase_path: uploadResult.firebase_path,
+          url: uploadResult.url,
+          content_type: file.type,
+          size: file.size,
+        };
+        setAttachments((prev) => [...prev, document]); // Agora, estamos adicionando DocumentData
         setSnackbar({
           open: true,
           message: `Arquivo ${file.name} enviado com sucesso!`,
@@ -398,20 +369,12 @@ const InformationCard: React.FC = () => {
   };
 
   // Função para remover um anexo
-  const deleteFile = async (s3_key: string) => {
+  const deleteAttachment = async (firebasePath: string) => {
     try {
-      const payload = { s3_key };
-      await axios.post(
-        `http://127.0.0.1:8000/organizer_detail/${event_id}/delete_document_file`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
+      await deleteDocumentFile(event_id, firebasePath);
+      setAttachments((prev) =>
+        prev.filter((att) => att.firebase_path !== firebasePath)
       );
-      // Remover do estado
-      setAttachments((prev) => prev.filter((att) => att.s3_key !== s3_key));
       setSnackbar({
         open: true,
         message: "Anexo removido com sucesso!",
@@ -427,29 +390,15 @@ const InformationCard: React.FC = () => {
     }
   };
 
-  // Função para remover um anexo a partir do UI
-  const handleRemoveAttachment = (s3_key: string) => {
-    deleteFile(s3_key);
-  };
-
   // Função para deletar o banner
-  const handleDeleteBannerFunction = async () => {
+  const handleDeleteBanner = async () => {
     try {
-      if (!bannerS3Key) return;
+      if (!firebaseBannerPath) return;
 
-      const payload = { s3_key: bannerS3Key };
-      await axios.post(
-        `http://127.0.0.1:8000/organizer_detail/${event_id}/delete_document_file`,
-        payload,
-        {
-          headers: {
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      await deleteDocumentFile(event_id, firebaseBannerPath);
 
       setBannerImage(null);
-      setBannerS3Key(null);
+      setFirebaseBannerPath(null);
       setSnackbar({
         open: true,
         message: "Banner excluído com sucesso!",
@@ -462,19 +411,15 @@ const InformationCard: React.FC = () => {
         message: "Erro ao excluir o banner. Tente novamente.",
         severity: "error",
       });
+    } finally {
+      handleMenuClose();
     }
   };
 
   // Função para editar o banner (substituir)
   const handleEditBanner = () => {
-    setIsReplacingBanner(true); // Definir a flag de substituição
+    setIsReplacingBanner(true);
     handleOpenModal();
-    handleMenuClose();
-  };
-
-  // Função para deletar o banner via menu
-  const handleDeleteBanner = async () => {
-    await handleDeleteBannerFunction();
     handleMenuClose();
   };
 
@@ -482,39 +427,27 @@ const InformationCard: React.FC = () => {
   const handleSave = async () => {
     setSubmitting(true);
     try {
-      const formDataToSend = new FormData();
-      // Adicionar os dados do formulário
-      formDataToSend.append("name", formData.eventName);
-      formDataToSend.append("event_category", formData.eventCategory);
-      formDataToSend.append("start_date", formData.startDate);
-      formDataToSend.append("start_time", formData.startTime);
-      formDataToSend.append("end_date", formData.endDate);
-      formDataToSend.append("end_time", formData.endTime);
-      formDataToSend.append("state", formData.state);
-      formDataToSend.append("city", formData.city);
-      formDataToSend.append("address", formData.address);
-      formDataToSend.append("address_complement", formData.addressComplement);
-      formDataToSend.append("address_detail", formData.addressDetail);
-      formDataToSend.append("organization_name", formData.organizationName);
-      formDataToSend.append("organization_contact", formData.organizationContact);
-      formDataToSend.append("event_type", formData.eventType);
-      formDataToSend.append("event_status", formData.eventStatus);
-      formDataToSend.append("event_description", formData.eventDescription);
+      const dataToSend = {
+        name: formData.eventName,
+        event_category: formData.eventCategory,
+        start_date: formData.startDate,
+        start_time: formData.startTime,
+        end_date: formData.endDate,
+        end_time: formData.endTime,
+        state: formData.state,
+        city: formData.city,
+        address: formData.address,
+        address_complement: formData.addressComplement,
+        address_detail: formData.addressDetail,
+        organization_name: formData.organizationName,
+        organization_contact: formData.organizationContact,
+        event_type: formData.eventType,
+        event_status: formData.eventStatus,
+        event_description: formData.eventDescription,
+        banner_image: firebaseBannerPath || undefined,
+      };
 
-      // Opcional: Adicionar banner_image se estiver atualizado
-      if (bannerImage && bannerS3Key) {
-        formDataToSend.append("banner_image", bannerS3Key);
-      }
-
-      await axios.patch(
-        `http://127.0.0.1:8000/organizer_detail/${event_id}/details`,
-        formDataToSend,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        }
-      );
+      await updateEventDetails(event_id, dataToSend);
 
       setSnackbar({
         open: true,
@@ -535,21 +468,34 @@ const InformationCard: React.FC = () => {
 
   // useEffect para buscar dados do evento e estados
   useEffect(() => {
-    fetchEventData();
-
-    // Buscar estados
-    axios
-      .get("https://servicodados.ibge.gov.br/api/v1/localidades/estados")
-      .then((response) => setEstados(response.data as Estado[]))
-      .catch(() =>
+    const fetchEstados = async () => {
+      try {
+        const response = await fetch(
+          "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
+        );
+        const data = await response.json();
+        setEstados(data);
+      } catch (error) {
+        console.error("Erro ao carregar estados:", error);
         setSnackbar({
           open: true,
           message: "Erro ao carregar estados.",
           severity: "error",
-        })
-      );
+        });
+      }
+    };
 
-    setIsClient(true);
+    fetchEventData();
+    fetchEstados();
+
+    // Adding passive event listeners
+    window.addEventListener('scroll', () => {}, { passive: true });
+    window.addEventListener('touchstart', () => {}, { passive: true });
+
+    return () => {
+      window.removeEventListener('scroll', () => {});
+      window.removeEventListener('touchstart', () => {});
+    };
   }, [fetchEventData]);
 
   // Função para fechar o Snackbar
@@ -560,7 +506,7 @@ const InformationCard: React.FC = () => {
     if (reason === "clickaway") {
       return;
     }
-    setSnackbar({ ...snackbar, open: false });
+    setSnackbar((prev) => ({ ...prev, open: false }));
   };
 
   // Renderização Condicional
@@ -798,21 +744,19 @@ const InformationCard: React.FC = () => {
         {/* Descrição do Evento */}
         <Grid item xs={12}>
           <SectionHeader variant="h6">Descrição do Evento</SectionHeader>
-          {isClient && (
-            <ReactQuill
-              value={formData.eventDescription}
-              onChange={handleDescriptionChange}
-              modules={modules}
-              formats={formats}
-              placeholder="Adicione aqui as informações do seu evento..."
-              style={{
-                backgroundColor: colors.white,
-                borderRadius: "8px",
-                height: "300px",
-                marginBottom: "30px",
-              }}
-            />
-          )}
+          <ReactQuill
+            value={formData.eventDescription}
+            onChange={handleDescriptionChange}
+            modules={quillModules}
+            formats={quillFormats}
+            placeholder="Adicione aqui as informações do seu evento..."
+            style={{
+              backgroundColor: colors.white,
+              borderRadius: "8px",
+              height: "300px",
+              marginBottom: "30px",
+            }}
+          />
         </Grid>
 
         {/* Anexos do Evento */}
@@ -857,8 +801,8 @@ const InformationCard: React.FC = () => {
             {attachments.length > 0 && (
               <Box sx={{ mt: 3 }}>
                 <Grid container spacing={2}>
-                  {attachments.map((file, index) => (
-                    <Grid item xs={12} sm={6} md={4} key={file.s3_key}>
+                  {attachments.map((file) => (
+                    <Grid item xs={12} sm={6} md={4} key={file.firebase_path}>
                       <Card
                         variant="outlined"
                         sx={{
@@ -870,7 +814,7 @@ const InformationCard: React.FC = () => {
                       >
                         <Box sx={{ mr: 2 }}>
                           {/* Ícone baseado no tipo de arquivo */}
-                          {file.content_type.startsWith("image") ? (
+                          {file.content_type?.startsWith("image") ? (
                             <PhotoCamera />
                           ) : (
                             <Typography variant="h6">📄</Typography>
@@ -881,12 +825,12 @@ const InformationCard: React.FC = () => {
                             {file.file_name}
                           </Typography>
                           <Typography variant="caption" color="textSecondary">
-                            {(file.size / 1024).toFixed(2)} KB
+                            {file.size ? `${(file.size / 1024).toFixed(2)} KB` : ""}
                           </Typography>
                         </Box>
                         <IconButton
                           aria-label="Remover Anexo"
-                          onClick={() => handleRemoveAttachment(file.s3_key)}
+                          onClick={() => deleteAttachment(file.firebase_path)}
                         >
                           ✕
                         </IconButton>
@@ -928,8 +872,8 @@ const InformationCard: React.FC = () => {
         open={snackbar.open}
         autoHideDuration={6000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }} // Alterado para topo central
-        sx={{ mt: 2 }} // Adiciona margem superior
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+        sx={{ mt: 2 }}
       >
         <Alert
           onClose={handleCloseSnackbar}
