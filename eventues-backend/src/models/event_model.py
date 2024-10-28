@@ -1,9 +1,14 @@
 # src/models/event_model.py
 
 from dataclasses import dataclass, field
+from enum import Enum
 from pydantic import BaseModel, Field as PydanticField
 from datetime import datetime, time
 from typing import Optional
+
+
+class EventStatus(Enum):
+    RASCUNHO = 'Rascunho'
 
 @dataclass
 class EventModel:

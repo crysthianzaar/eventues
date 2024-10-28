@@ -1,10 +1,10 @@
 # api/event_api.py
 
+import base64
+import json
 from chalice import Blueprint, Response, CORSConfig
 from src.usecases.event_usecase import EventUseCase
-from src.models.event_model import EventModel
-
-from typing import List
+from src.utils.firebase import verify_token, storage, db
 
 cors_config = CORSConfig(
     allow_origin='*',
@@ -33,74 +33,119 @@ def create_event():
             headers={'Content-Type': 'application/json'}
         )
 
-@event_api.route('/events/{event_id}', methods=['GET'], cors=cors_config)
-def get_event(event_id):
-    event = use_case.get_event(event_id)
-    if event:
-        return event.to_dict()
-    else:
-        return Response(
-            body={'message': 'Event not found'},
-            status_code=404,
-            headers={'Content-Type': 'application/json'}
-        )
-
-@event_api.route('/events/{event_id}/update', methods=['PATCH'], cors=cors_config)
-def update_event(event_id):
-    request = event_api.current_request
-    event_data = request.json_body
-    event_data['event_id'] = event_id  # Assegura que o ID está correto
-    try:
-        updated_event = use_case.update_event(event_data)
-        if updated_event:
-            return Response(
-                body=updated_event.to_dict(),
-                status_code=200,
-                headers={'Content-Type': 'application/json'}
-            )
-        else:
-            return Response(
-                body={'message': 'Event not found'},
-                status_code=404,
-                headers={'Content-Type': 'application/json'}
-            )
-    except Exception as e:
-        return Response(
-            body={'error': str(e)},
-            status_code=400,
-            headers={'Content-Type': 'application/json'}
-        )
-
-@event_api.route('/events', methods=['GET'], cors=cors_config)
+@event_api.route('/list_events', methods=['GET'], cors=cors_config)
 def list_events():
     request = event_api.current_request
-    user_id = request.query_params.get('user_id')
-    if not user_id:
+    auth_header = request.headers.get('Authorization', '')
+
+    if not auth_header.startswith('Bearer '):
         return Response(
-            body={'error': 'user_id query parameter is required'},
-            status_code=400,
+            body=json.dumps({"error": "Token de autenticação ausente ou inválido."}),
+            status_code=401,
             headers={'Content-Type': 'application/json'}
         )
-    events = use_case.list_events_by_user(user_id)
-    events_list = [event.to_dict() for event in events]
-    return Response(
-        body=events_list,
-        status_code=200,
-        headers={'Content-Type': 'application/json'}
-    )
-
-@event_api.route('/events/{event_id}', methods=['DELETE'], cors=cors_config)
-def delete_event(event_id):
-    success = use_case.delete_event(event_id)
-    if success:
+    
+    token = auth_header.replace('Bearer ', '')
+    
+    try:
+        user_id = verify_token(token)
+    except ValueError as ve:
         return Response(
-            body={'message': 'Event deleted successfully'},
+            body=json.dumps({"error": str(ve)}),
+            status_code=401,
+            headers={'Content-Type': 'application/json'}
+        )
+    
+    try:
+        events = use_case.get_events_by_user(user_id)
+        events_dict = [event.to_dict() for event in events]
+        return Response(
+            body=json.dumps(events_dict),
             status_code=200,
             headers={'Content-Type': 'application/json'}
         )
-    else:
+    except Exception as e:
         return Response(
-            body={'message': 'Event not found'},
-            status_code=404,
+            body=json.dumps({"error": "Erro ao carregar eventos."}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}', methods=['GET'], cors=cors_config)
+def get_event_detail(event_id):
+    try:
+        event = use_case.get_event_by_id(event_id)
+        
+        if not event:
+            raise ValueError("Evento não encontrado.")
+
+        return Response(
+            body=event,
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": "Erro ao carregar detalhes do evento."}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+
+@event_api.route('/organizer_detail/{event_id}/upload_document_file', methods=['POST'], cors=cors_config)
+def upload_files(event_id):
+    try:
+        request = event_api.current_request
+        data = request.json_body
+        document_file = use_case.upload_event_file(event_id, data)
+        return Response(
+            body=document_file,
+            status_code=201,
+            headers={'Content-Type': 'application/json'}
+        )
+    
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+
+@event_api.route('/organizer_detail/{event_id}/get_document_files', methods=['GET'], cors=cors_config)
+def get_files(event_id):
+    try:
+        event_ref = db.collection('events').document(event_id)
+        documents = event_ref.collection('documents').stream()
+
+        files = [doc.to_dict() for doc in documents]
+        return Response(
+            body=json.dumps(files),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}/delete_document_file', methods=['POST'], cors=cors_config)
+def delete_file(event_id):
+    request = event_api.current_request
+    data = request.json_body
+    try:
+        use_case.delete_event_file(event_id, data)
+        return Response(
+            body=json.dumps({"message": "Arquivo deletado com sucesso."}),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
             headers={'Content-Type': 'application/json'}
         )

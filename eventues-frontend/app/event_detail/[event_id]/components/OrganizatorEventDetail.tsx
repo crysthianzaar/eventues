@@ -1,7 +1,8 @@
 // app/event_detail/[event_id]/components/OrganizatorEventDetail.tsx
+
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   CircularProgress,
@@ -42,9 +43,12 @@ import PolicyCard from "./PolicyCard";
 import ClientIngressosPage from "./ClientIngressosPage";
 import CriarIngressoPage from "./ClientIngressosPage";
 import Categories from "./Categories";
+import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
+import api from "../apis/api";
 
 interface EventDetail {
   event_id: string;
+  user_id: string; // Adicionado para verificar a propriedade
   name: string;
   category: string;
   start_date: string;
@@ -62,15 +66,11 @@ interface EventDetail {
     inf_basic: boolean;
     event_details: boolean;
     documents: boolean;
-    policies: boolean;
-    category_and_values: boolean;
+    ticket_and_values: boolean;
+    category: boolean;
     form: boolean;
     event_ready: boolean;
   };
-}
-
-interface OrganizatorEventDetailProps {
-  eventDetail: EventDetail;
 }
 
 const colors = {
@@ -85,18 +85,99 @@ const colors = {
   footerBackground: "#2D3748",
 };
 
-const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
-  eventDetail,
-}) => {
-  const [expandedCard, setExpandedCard] = useState<number | null>(0);
+const OrganizatorEventDetail: React.FC = () => {
+  const router = useRouter();
+  const params = useParams();
+  const { event_id } = params; // Obtém o event_id da URL
   const isSmallScreen = useMediaQuery("(max-width: 600px)");
 
-  // States for Snackbar
+  // Estados para gerenciamento de dados e UI
+  const [eventDetail, setEventDetail] = useState<EventDetail | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [expandedCard, setExpandedCard] = useState<number | null>(0);
+
+  // States para Snackbar
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<
     "success" | "error" | "info" | "warning"
   >("success");
+
+  useEffect(() => {
+    const fetchEventDetail = async () => {
+      try {
+        const response = await api.get(`/organizer_detail/${event_id}`);
+        setEventDetail(response.data as EventDetail);
+      } catch (err: any) {
+        if (err.response) {
+          // Erros retornados pelo backend
+          setError(err.response.data.error || "Erro ao carregar detalhes do evento.");
+        } else if (err.request) {
+          // Erros de rede
+          setError("Erro de rede. Tente novamente mais tarde.");
+        } else {
+          // Outros erros
+          setError("Ocorreu um erro inesperado.");
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (event_id) {
+      fetchEventDetail();
+    }
+  }, [event_id]);
+
+  if (loading) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          backgroundColor: "#F7F7F7",
+        }}
+      >
+        <CircularProgress sx={{ color: colors.primary }} />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          backgroundColor: "#F7F7F7",
+          padding: "20px",
+        }}
+      >
+        <Typography color="error">{error}</Typography>
+      </Box>
+    );
+  }
+
+  if (!eventDetail) {
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "center",
+          alignItems: "center",
+          minHeight: "100vh",
+          backgroundColor: "#F7F7F7",
+        }}
+      >
+        <Typography color="error">Evento não encontrado.</Typography>
+      </Box>
+    );
+  }
 
   const steps = [
     {
@@ -109,11 +190,11 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
     },
     {
       label: "Ingressos e Valores definidas",
-      status: eventDetail.stepper.policies,
+      status: eventDetail.stepper.ticket_and_values,
     },
     {
       label: "Categorias configurados",
-      status: eventDetail.stepper.category_and_values,
+      status: eventDetail.stepper.category,
     },
     {
       label: "Formulário de Inscrição configurado",
@@ -125,12 +206,12 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
     },
   ];
 
-  // Handler for expanding/collapsing cards
+  // Handler para expandir/recolher cards
   const handleExpand = (cardIndex: number) => {
     setExpandedCard(expandedCard === cardIndex ? null : cardIndex);
   };
 
-  // Stepper Icon Component
+  // Componente de Ícone para o Stepper
   const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
     const stepIndex = Number(icon) - 1;
     const stepStatus = steps[stepIndex]?.status;
@@ -142,7 +223,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
     );
   };
 
-  // Function to get the status icon for cards
+  // Função para obter o ícone de status para os cards
   const getStatusIcon = (status: boolean | null | undefined) => {
     if (status === null || status === undefined) return null;
     return status ? (
@@ -152,7 +233,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
     );
   };
 
-  // Notification Handler with Scroll-to-Top
+  // Handler para notificações com Scroll para o Topo
   const handleNotify = (
     message: string,
     severity: "success" | "error" | "info" | "warning"
@@ -161,7 +242,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
     setSnackbarSeverity(severity);
     setSnackbarOpen(true);
 
-    // Smooth scroll to top
+    // Scroll suave para o topo
     if (typeof window !== "undefined") {
       window.scrollTo({
         top: 0,
@@ -170,7 +251,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
     }
   };
 
-  // Function to redirect to the next incomplete step
+  // Função para redirecionar para o próximo passo incompleto
   const handleRedirectToNextIncompleteStep = () => {
     const firstIncompleteStep = steps.find((step) => !step.status);
 
@@ -178,12 +259,12 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       const stepIndex = steps.indexOf(firstIncompleteStep);
       setExpandedCard(stepIndex);
     } else {
-      // All steps are complete, redirect to summary
+      // Todos os passos estão completos, redirecionar para o resumo
       setExpandedCard(0);
     }
   };
 
-  // Combined Handler: Notify and Redirect
+  // Handler combinado: Notificar e Redirecionar
   const handleNotifyAndRedirect = (
     message: string,
     severity: "success" | "error" | "info" | "warning"
@@ -194,7 +275,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
 
   const cards = [
     {
-      icon: <DashboardIcon />, // Mantém o ícone de "dashboard" para o resumo
+      icon: <DashboardIcon />, // Ícone de "dashboard" para o resumo
       title: "Resumo",
       component: <SummaryCard />,
       description:
@@ -214,16 +295,14 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
       title: "Ingressos e Valores",
       component: <CriarIngressoPage />,
       description: "Configuração de ingressos e seus respectivos preços.",
-      status: eventDetail.stepper.category_and_values,
+      status: eventDetail.stepper.ticket_and_values,
     },
     {
       icon: <CategoryIcon />, // Ícone de categorias para o card de categorias
       title: "Categorias",
-      component: (
-        <Categories/>
-      ),
+      component: <Categories />,
       description: "Configuração das categorias, subcategorias e políticas.",
-      status: eventDetail.stepper.policies,
+      status: eventDetail.stepper.category,
     },
     {
       icon: <AssignmentIcon />, // Ícone de formulário para inscrição
@@ -232,7 +311,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
         <FormCard
           eventId={eventDetail.event_id} // Ajustar conforme necessário
           onNotify={handleNotifyAndRedirect}
-          onUpdate={() => {} /* Implementar se necessário */}
+          onUpdate={() => { /* Implementar se necessário */ }}
         />
       ),
       description:
@@ -244,7 +323,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
 
   return (
     <>
-      {/* Header with Banner and Event Status */}
+      {/* Header com Banner e Status do Evento */}
       <Box
         sx={{
           position: "relative",
@@ -255,7 +334,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
           boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
         }}
       >
-        {/* Next.js Image Component for Banner */}
+        {/* Componente Image do Next.js para o Banner */}
         <Image
           src={
             eventDetail.banner_image_url
@@ -265,10 +344,10 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
           alt={`Banner do evento ${eventDetail.name}`}
           fill
           style={{ objectFit: "cover", objectPosition: "center" }}
-          priority // Optional: prioritize loading
+          priority // Opcional: priorizar o carregamento
         />
 
-        {/* Overlay Content */}
+        {/* Conteúdo Overlay */}
         <Box
           sx={{
             position: "absolute",
@@ -280,7 +359,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
             flexDirection: "column",
             justifyContent: "center",
             alignItems: "center",
-            backgroundColor: "rgba(0, 0, 0, 0.3)", // Dark overlay for text readability
+            backgroundColor: "rgba(0, 0, 0, 0.3)", // Overlay escuro para legibilidade do texto
             color: colors.white,
           }}
         >
@@ -328,7 +407,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
         </Box>
       </Box>
 
-      {/* Stepper with Horizontal Scroll on Mobile */}
+      {/* Stepper com Scroll Horizontal em Mobile */}
       <Box
         sx={{
           marginTop: "20px",
@@ -372,7 +451,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
           ))}
         </Stepper>
 
-        {/* Publish Event Button */}
+        {/* Botão para Publicar Evento */}
         <Button
           variant="contained"
           color="primary"
@@ -385,12 +464,13 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
             height: "40px",
             alignSelf: isSmallScreen ? "flex-start" : "center",
           }}
+          onClick={() => router.push("/publicar_evento")} // Ajuste a rota conforme necessário
         >
           Publicar Evento
         </Button>
       </Box>
 
-      {/* Main Content Area */}
+      {/* Área Principal de Conteúdo */}
       <Box
         sx={{
           display: "flex",
@@ -399,7 +479,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
           padding: "15px",
         }}
       >
-        {/* Sidebar with Sections */}
+        {/* Sidebar com Seções */}
         <Box
           sx={{
             flexBasis: isSmallScreen ? "100%" : "20%",
@@ -451,7 +531,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
                 </Card>
               </Tooltip>
 
-              {/* Expanded Content for Mobile */}
+              {/* Conteúdo Expandido para Mobile */}
               {isSmallScreen && expandedCard === index && (
                 <Box
                   sx={{
@@ -469,7 +549,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
           ))}
         </Box>
 
-        {/* Expanded Content for Larger Screens */}
+        {/* Conteúdo Expandido para Telas Maiores */}
         {!isSmallScreen && expandedCard !== null && (
           <Box
             sx={{
@@ -486,7 +566,7 @@ const OrganizatorEventDetail: React.FC<OrganizatorEventDetailProps> = ({
         )}
       </Box>
 
-      {/* Snackbar for Notifications */}
+      {/* Snackbar para Notificações */}
       <Snackbar
         open={snackbarOpen}
         autoHideDuration={3000}
