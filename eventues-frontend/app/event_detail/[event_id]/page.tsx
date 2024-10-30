@@ -119,7 +119,7 @@ const EventDetailPage = async ({ params }: { params: { event_id: string } }) => 
     notFound(); // Redirect to 404 page if event not found
   }
 
-  return <OrganizadorEventDetail eventDetail={eventDetail} />;
+  return <OrganizadorEventDetail/>;
 };
 
 export default EventDetailPage;
