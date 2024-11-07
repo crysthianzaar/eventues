@@ -102,25 +102,22 @@ export const getEventDocuments = async (
 // Função para atualizar detalhes do evento
 export const updateEventDetails = async (
   eventId: string,
-  data: Partial<EventDetail> & { banner_image?: string }
+  data: Partial<EventDetail>
 ): Promise<void> => {
-  const formData = new FormData();
-  Object.entries(data).forEach(([key, value]) => {
-    if (value !== undefined && value !== null) {
-      formData.append(key, value as string);
-    }
-  });
+  // Remover banner_image do objeto de dados, se existir
+  const { banner_image, ...dataWithoutBanner } = data;
 
   await axios.patch(
     `${API_BASE_URL}/organizer_detail/${eventId}/details`,
-    formData,
+    dataWithoutBanner,
     {
       headers: {
-        "Content-Type": "multipart/form-data",
+        "Content-Type": "application/json",
       },
     }
   );
 };
+
 
 
 const api = axios.create({

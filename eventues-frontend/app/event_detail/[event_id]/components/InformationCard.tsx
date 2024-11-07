@@ -16,12 +16,21 @@ import {
   Snackbar,
   Alert,
   Menu,
+  Fab,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
 } from "@mui/material";
-import { Save, PhotoCamera } from "@mui/icons-material";
+import { Save, PhotoCamera, Add, Edit, Delete } from "@mui/icons-material";
 import { styled } from "@mui/system";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import ImageCropperModal from "./ImageCropperModal";
+import AttachmentModal from "./AttachmentModal"; // Importando o AttachmentModal
 import {
   uploadDocumentFile,
   deleteDocumentFile,
@@ -45,8 +54,6 @@ const colors = {
 
 // Estilização dos componentes
 const StyledCard = styled(Card)(({ theme }) => ({
-  marginBottom: theme.spacing(4),
-  borderRadius: theme.spacing(2),
   boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.1)",
 }));
 
@@ -56,11 +63,29 @@ const SectionHeader = styled(Typography)(({ theme }) => ({
   marginBottom: theme.spacing(2),
 }));
 
-const SaveButton = styled(Button)(({ theme }) => ({
+// Estilização do SaveButton para ser flutuante
+const SaveButton = styled(Fab)(({ theme }) => ({
   backgroundColor: colors.secondary,
   color: "#fff",
+  position: "fixed",
+  bottom: theme.spacing(4),
+  right: theme.spacing(4),
+  zIndex: 1000,
   "&:hover": {
     backgroundColor: "#56c078",
+  },
+}));
+
+// Estilização do Add Attachment Button
+const AddAttachmentButton = styled(Fab)(({ theme }) => ({
+  backgroundColor: colors.primary,
+  color: "#fff",
+  position: "fixed",
+  bottom: theme.spacing(4),
+  left: theme.spacing(4),
+  zIndex: 1000,
+  "&:hover": {
+    backgroundColor: "#4c51bf",
   },
 }));
 
@@ -96,7 +121,11 @@ interface Estado {
   nome: string;
 }
 
-// Template inicial para descrição
+// Interface para anexos com nome personalizado
+interface Attachment extends DocumentData {
+  name: string;
+}
+
 const initialDescriptionTemplate = `
 <h2>Informações do Evento</h2>
 <ul>
@@ -150,13 +179,17 @@ const InformationCard: React.FC = () => {
     message: "",
     severity: "success" as "success" | "error" | "warning" | "info",
   });
-  const [attachments, setAttachments] = useState<DocumentData[]>([]);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Estados para o Menu de Opções
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
+
+  // Estados para o Modal de Anexo
+  const [openAttachmentModal, setOpenAttachmentModal] = useState(false);
+  const [editingAttachment, setEditingAttachment] = useState<Attachment | null>(null);
 
   // Funções para abrir e fechar o Menu
   const handleMenuClick = (event: MouseEvent<HTMLElement>) => {
@@ -175,6 +208,47 @@ const InformationCard: React.FC = () => {
   // Função para fechar o modal de corte de imagem
   const handleCloseModal = () => {
     setOpenModal(false);
+  };
+
+  // Função para abrir o modal de anexo
+  const handleOpenAttachmentModal = () => {
+      setEditingAttachment(null); // Resetar qualquer edição anterior
+      setOpenAttachmentModal(true);
+  };
+  
+  // Função para editar o banner
+  const handleEditBanner = () => {
+      setIsReplacingBanner(true);
+      handleOpenModal();
+  };
+
+  // Função para excluir o banner
+  const handleDeleteBanner = async () => {
+    try {
+      if (firebaseBannerPath) {
+        await deleteDocumentFile(event_id, firebaseBannerPath);
+        setBannerImage(null);
+        setFirebaseBannerPath(null);
+        setSnackbar({
+          open: true,
+          message: "Banner excluído com sucesso!",
+          severity: "success",
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao excluir o banner:", error);
+      setSnackbar({
+        open: true,
+        message: "Erro ao excluir o banner. Tente novamente.",
+        severity: "error",
+      });
+    }
+  };
+
+  // Função para fechar o modal de anexo
+  const handleCloseAttachmentModal = () => {
+    setOpenAttachmentModal(false);
+    setEditingAttachment(null);
   };
 
   // Função para converter arquivo para base64
@@ -255,10 +329,13 @@ const InformationCard: React.FC = () => {
         setFirebaseBannerPath(banner.firebase_path);
       }
 
-      // Definir anexos excluindo o banner
-      const attachmentFiles = files.filter(
-        (file) => file.file_name.toLowerCase() !== "banner"
-      );
+      // Definir anexos excluindo o banner e mapear para incluir o nome personalizado
+      const attachmentFiles: Attachment[] = files
+        .filter((file) => file.file_name.toLowerCase() !== "banner")
+        .map((file) => ({
+          ...file,
+          name: file.file_name, // Usando o nome do arquivo como nome personalizado
+        }));
       setAttachments(attachmentFiles);
     } catch (err) {
       console.error("Erro ao carregar dados do evento:", err);
@@ -338,89 +415,104 @@ const InformationCard: React.FC = () => {
     setFormData((prev) => ({ ...prev, eventDescription: value }));
   };
 
-  // Função para adicionar arquivos (anexos)
-  const handleFiles = async (files: File[]) => {
-    const newFiles = files.filter(
-      (file) =>
-        !attachments.some(
-          (att) => att.firebase_path === `events/${event_id}/${file.name}`
-        )
-    );
-
-    for (const file of newFiles) {
-      const uploadResult = await uploadFile(file, file.name);
+  // Função para adicionar anexos com nome personalizado
+  const handleAddAttachment = async (name: string, file: File) => {
+    try {
+      // Upload do arquivo via backend
+      const uploadResult = await uploadFile(file, name);
       if (uploadResult) {
-        // **Correção Principal**: Criar um objeto DocumentData a partir de UploadResponse e File
-        const document: DocumentData = {
-          file_name: file.name,
+        // Criar o objeto Attachment
+        const newAttachment: Attachment = {
+          file_name: name, // Usando o nome personalizado
           firebase_path: uploadResult.firebase_path,
           url: uploadResult.url,
           content_type: file.type,
           size: file.size,
+          name: name, // Nome personalizado
         };
-        setAttachments((prev) => [...prev, document]); // Agora, estamos adicionando DocumentData
+        setAttachments((prev) => [...prev, newAttachment]);
         setSnackbar({
           open: true,
-          message: `Arquivo ${file.name} enviado com sucesso!`,
+          message: `Anexo "${name}" enviado com sucesso!`,
           severity: "success",
         });
       }
+    } catch (error) {
+      console.error("Erro ao adicionar anexo:", error);
+      setSnackbar({
+        open: true,
+        message: "Erro ao adicionar o anexo. Tente novamente.",
+        severity: "error",
+      });
+    }
+  };
+
+  // Função para editar um anexo
+  const handleEditAttachment = async (attachment: Attachment, newName: string, newFile?: File) => {
+    try {
+      let updatedPath = attachment.firebase_path;
+      let updatedUrl = attachment.url;
+      if (newFile) {
+        // Excluir o arquivo antigo
+        await deleteDocumentFile(event_id, attachment.firebase_path);
+
+        // Fazer upload do novo arquivo
+        const uploadResult = await uploadFile(newFile, newName);
+        if (uploadResult) {
+          updatedPath = uploadResult.firebase_path;
+          updatedUrl = `${uploadResult.url}?t=${new Date().getTime()}`;
+        }
+      } else if (newName !== attachment.name) {
+        // Atualizar apenas o nome (dependendo de como o backend trata isso)
+        // Se o backend permite renomear, você pode implementar essa lógica aqui
+        // Caso contrário, talvez seja necessário re-uploadar o arquivo com o novo nome
+        // Neste exemplo, assumiremos que renomear não altera o caminho no Firebase
+      }
+
+      // Atualizar o estado dos anexos
+      setAttachments((prev) =>
+        prev.map((att) =>
+          att.firebase_path === attachment.firebase_path
+            ? { ...att, name: newName, firebase_path: updatedPath, url: updatedUrl }
+            : att
+        )
+      );
+
+      setSnackbar({
+        open: true,
+        message: `Anexo "${newName}" atualizado com sucesso!`,
+        severity: "success",
+      });
+    } catch (error) {
+      console.error("Erro ao editar anexo:", error);
+      setSnackbar({
+        open: true,
+        message: "Erro ao editar o anexo. Tente novamente.",
+        severity: "error",
+      });
     }
   };
 
   // Função para remover um anexo
-  const deleteAttachment = async (firebasePath: string) => {
+  const handleRemoveAttachment = async (attachment: Attachment) => {
     try {
-      await deleteDocumentFile(event_id, firebasePath);
+      await deleteDocumentFile(event_id, attachment.firebase_path);
       setAttachments((prev) =>
-        prev.filter((att) => att.firebase_path !== firebasePath)
+        prev.filter((att) => att.firebase_path !== attachment.firebase_path)
       );
       setSnackbar({
         open: true,
-        message: "Anexo removido com sucesso!",
+        message: `Anexo "${attachment.name}" removido com sucesso!`,
         severity: "success",
       });
     } catch (error) {
-      console.error("Erro ao remover o anexo:", error);
+      console.error("Erro ao remover anexo:", error);
       setSnackbar({
         open: true,
         message: "Erro ao remover o anexo. Tente novamente.",
         severity: "error",
       });
     }
-  };
-
-  // Função para deletar o banner
-  const handleDeleteBanner = async () => {
-    try {
-      if (!firebaseBannerPath) return;
-
-      await deleteDocumentFile(event_id, firebaseBannerPath);
-
-      setBannerImage(null);
-      setFirebaseBannerPath(null);
-      setSnackbar({
-        open: true,
-        message: "Banner excluído com sucesso!",
-        severity: "success",
-      });
-    } catch (error) {
-      console.error("Erro ao excluir o banner:", error);
-      setSnackbar({
-        open: true,
-        message: "Erro ao excluir o banner. Tente novamente.",
-        severity: "error",
-      });
-    } finally {
-      handleMenuClose();
-    }
-  };
-
-  // Função para editar o banner (substituir)
-  const handleEditBanner = () => {
-    setIsReplacingBanner(true);
-    handleOpenModal();
-    handleMenuClose();
   };
 
   // Função para salvar os dados do evento
@@ -444,7 +536,6 @@ const InformationCard: React.FC = () => {
         event_type: formData.eventType,
         event_status: formData.eventStatus,
         event_description: formData.eventDescription,
-        banner_image: firebaseBannerPath || undefined,
       };
 
       await updateEventDetails(event_id, dataToSend);
@@ -454,6 +545,7 @@ const InformationCard: React.FC = () => {
         message: "Evento salvo com sucesso!",
         severity: "success",
       });
+      // onUpdate(); // Se você tiver uma prop onUpdate para atualizar os dados
     } catch (error) {
       console.error("Erro ao salvar o evento:", error);
       setSnackbar({
@@ -488,7 +580,7 @@ const InformationCard: React.FC = () => {
     fetchEventData();
     fetchEstados();
 
-    // Adding passive event listeners
+    // Adicionando listeners de eventos passivos
     window.addEventListener('scroll', () => {}, { passive: true });
     window.addEventListener('touchstart', () => {}, { passive: true });
 
@@ -761,110 +853,103 @@ const InformationCard: React.FC = () => {
 
         {/* Anexos do Evento */}
         <Grid item xs={12}>
-          <StyledCard>
             <SectionHeader variant="h6">Anexos do Evento</SectionHeader>
 
-            <Box
-              sx={{
-                border: `2px dashed ${colors.primary}`,
-                padding: "20px",
-                textAlign: "center",
-                cursor: "pointer",
-              }}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                const files = Array.from(e.dataTransfer.files);
-                handleFiles(files);
-              }}
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <input
-                type="file"
-                multiple
-                hidden
-                ref={fileInputRef}
-                onChange={(e) => {
-                  if (e.target.files) {
-                    const files = Array.from(e.target.files);
-                    handleFiles(files);
-                  }
-                }}
-              />
-              <PhotoCamera sx={{ fontSize: 40, color: colors.primary }} />
-              <Typography variant="body1" sx={{ mt: 2 }}>
-                Arraste e solte seus arquivos aqui ou clique para selecionar
-              </Typography>
+            {/* Botão para adicionar novo anexo */}
+            <Box display="flex" justifyContent="flex-end" mb={2}>
+              <Button
+                variant="contained"
+                startIcon={<Add />}
+                onClick={handleOpenAttachmentModal}
+                color="primary"
+              >
+                Adicionar Anexo
+              </Button>
             </Box>
 
-            {/* Lista de Anexos */}
-            {attachments.length > 0 && (
-              <Box sx={{ mt: 3 }}>
-                <Grid container spacing={2}>
-                  {attachments.map((file) => (
-                    <Grid item xs={12} sm={6} md={4} key={file.firebase_path}>
-                      <Card
-                        variant="outlined"
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          padding: "10px",
-                          backgroundColor: colors.white,
-                        }}
-                      >
-                        <Box sx={{ mr: 2 }}>
-                          {/* Ícone baseado no tipo de arquivo */}
-                          {file.content_type?.startsWith("image") ? (
-                            <PhotoCamera />
-                          ) : (
-                            <Typography variant="h6">📄</Typography>
-                          )}
-                        </Box>
-                        <Box sx={{ flexGrow: 1 }}>
-                          <Typography variant="body2" noWrap>
-                            {file.file_name}
-                          </Typography>
-                          <Typography variant="caption" color="textSecondary">
-                            {file.size ? `${(file.size / 1024).toFixed(2)} KB` : ""}
-                          </Typography>
-                        </Box>
-                        <IconButton
-                          aria-label="Remover Anexo"
-                          onClick={() => deleteAttachment(file.firebase_path)}
-                        >
-                          ✕
-                        </IconButton>
-                      </Card>
-                    </Grid>
-                  ))}
-                </Grid>
-              </Box>
+            {/* Tabela de Anexos */}
+            {attachments.length > 0 ? (
+              <TableContainer component={Paper}>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>Nome do Anexo</TableCell>
+                      <TableCell>Tipo</TableCell>
+                      <TableCell>Ações</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {attachments.map((attachment) => (
+                      <TableRow key={attachment.firebase_path}>
+                        <TableCell>{attachment.name}</TableCell>
+                        <TableCell>
+                          {(attachment.content_type ?? "").startsWith("image/")
+                            ? "Imagem"
+                            : "PDF"}
+                        </TableCell>
+                        <TableCell>
+                          <IconButton
+                            aria-label="Editar Anexo"
+                            onClick={() => {
+                              setEditingAttachment(attachment);
+                              setOpenAttachmentModal(true);
+                            }}
+                          >
+                            <Edit />
+                          </IconButton>
+                          <IconButton
+                            aria-label="Excluir Anexo"
+                            onClick={() => handleRemoveAttachment(attachment)}
+                          >
+                            <Delete />
+                          </IconButton>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            ) : (
+              <Typography variant="body2" color="textSecondary">
+                Nenhum anexo adicionado.
+              </Typography>
             )}
-          </StyledCard>
         </Grid>
       </Grid>
 
-      {/* Botão de Salvar */}
-      <Box display="flex" justifyContent="flex-end" mt={2}>
-        <SaveButton
-          variant="contained"
-          startIcon={<Save />}
-          onClick={handleSave}
-          disabled={submitting}
-        >
-          {submitting ? (
-            <CircularProgress size={24} sx={{ color: "#fff" }} />
-          ) : (
-            "Salvar"
-          )}
-        </SaveButton>
-      </Box>
+      {/* Botão de Salvar Flutuante */}
+      <SaveButton
+        variant="extended"
+        color="primary"
+        onClick={handleSave}
+      >
+        {submitting ? (
+          <CircularProgress size={24} sx={{ color: "#fff" }} />
+        ) : (
+          "Salvar Detalhes"
+        )}
+      </SaveButton>
 
       {/* Modal para recorte de imagem */}
       <ImageCropperModal
         open={openModal}
         onClose={handleCloseModal}
         onSave={handleBannerSave}
+      />
+
+      {/* Modal para adicionar/editar anexos */}
+      <AttachmentModal
+        open={openAttachmentModal}
+        onClose={handleCloseAttachmentModal}
+        onSave={
+          editingAttachment
+            ? async (name, file) => {
+                await handleEditAttachment(editingAttachment, name, file);
+              }
+            : handleAddAttachment
+        }
+        initialName={editingAttachment?.name}
+        initialFile={undefined} // Opcional: Implementar pré-visualização de arquivo se necessário
       />
 
       {/* Snackbar para notificações */}

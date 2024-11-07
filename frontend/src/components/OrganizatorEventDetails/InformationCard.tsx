@@ -1,4 +1,4 @@
-// src/components/InformationCard.jsx
+// src/components/InformationCard.tsx
 
 import React, { useState, useEffect } from "react";
 import {
@@ -9,6 +9,8 @@ import {
   Button,
   MenuItem,
   CircularProgress,
+  Snackbar,
+  Alert,
 } from "@mui/material";
 import SaveIcon from "@mui/icons-material/Save";
 import { styled } from "@mui/system";
@@ -48,7 +50,7 @@ const SectionHeader = styled(Typography)(({ theme }) => ({
   },
 }));
 
-const SaveButton = styled(Button)(({ theme }) => ({
+const SaveButtonStyled = styled(Button)(({ theme }) => ({
   backgroundColor: colors.secondary,
   color: "#fff",
   "&:hover": {
@@ -112,7 +114,10 @@ interface Estado {
 }
 
 interface InformationCardProps {
-  onNotify: (message: string, severity: "success" | "error" | "info" | "warning") => void;
+  onNotify: (
+    message: string,
+    severity: "success" | "error" | "info" | "warning"
+  ) => void;
   onUpdate: () => void;
 }
 
@@ -132,7 +137,8 @@ const initialDescriptionTemplate = `
 `;
 
 const InformationCard: React.FC<InformationCardProps> = ({
-  onNotify, onUpdate
+  onNotify,
+  onUpdate,
 }) => {
   const { event_id } = useParams<{ event_id: string }>();
   const [formData, setFormData] = useState({
@@ -193,18 +199,24 @@ const InformationCard: React.FC<InformationCardProps> = ({
       }
     };
 
-    fetchEventDetail();
-
-    // Load Brazilian states from IBGE
-    axios
-      .get("https://servicodados.ibge.gov.br/api/v1/localidades/estados")
-      .then((response) => {
-        setEstados(response.data as Estado[]);
-      })
-      .catch((error) => {
-        console.error("Erro ao carregar estados:", error);
+    const fetchEstados = async () => {
+      try {
+        const response = await axios.get<Estado[]>(
+          "https://servicodados.ibge.gov.br/api/v1/localidades/estados"
+        );
+        // Ordenar estados por nome
+        const sortedEstados = response.data.sort((a, b) =>
+          a.nome.localeCompare(b.nome)
+        );
+        setEstados(sortedEstados);
+      } catch (err) {
+        console.error("Erro ao carregar estados:", err);
         onNotify("Erro ao carregar estados.", "error");
-      });
+      }
+    };
+
+    fetchEventDetail();
+    fetchEstados();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [event_id, key]);
 
@@ -253,37 +265,56 @@ const InformationCard: React.FC<InformationCardProps> = ({
       setSubmitting(true);
 
       try {
-        await axios.patch(
+        const eventDetails = {
+          name: formData.eventName,
+          category: formData.eventCategory,
+          start_date: formData.startDate,
+          start_time: formData.startTime,
+          end_date: formData.endDate,
+          end_time: formData.endTime,
+          state: formData.state,
+          city: formData.city,
+          address: formData.address,
+          address_complement: formData.addressComplement,
+          address_detail: formData.addressDetail,
+          organization_name: formData.organizationName,
+          organization_contact: formData.organizationContact,
+          event_type: formData.eventType,
+          event_status: formData.eventStatus,
+          event_description: formData.eventDescription,
+        };
+
+        // Log para depuração
+        console.log("Dados a serem enviados:", eventDetails);
+
+        const response = await axios.patch(
           `http://127.0.0.1:8000/organizer_detail/${event_id}/details`,
+          eventDetails,
           {
-            name: formData.eventName,
-            category: formData.eventCategory,
-            start_date: formData.startDate,
-            start_time: formData.startTime,
-            end_date: formData.endDate,
-            end_time: formData.endTime,
-            state: formData.state,
-            city: formData.city,
-            address: formData.address,
-            address_complement: formData.addressComplement,
-            address_detail: formData.addressDetail,
-            organization_name: formData.organizationName,
-            organization_contact: formData.organizationContact,
-            event_type: formData.eventType,
-            event_status: formData.eventStatus,
-            event_description: formData.eventDescription,
+            headers: {
+              "Content-Type": "application/json",
+            },
           }
         );
+
+        // Log da resposta para depuração
+        console.log("Resposta do servidor:", response.data);
 
         setSubmitting(false);
         setKey((prevKey) => prevKey + 1);
 
         onNotify("Detalhes do evento atualizados com sucesso!", "success");
         onUpdate();
-      } catch (err) {
+      } catch (err: any) {
         setSubmitting(false);
         console.error("Erro ao enviar formulário:", err);
-        onNotify("Erro ao atualizar detalhes do evento.", "error");
+
+        // Verificar se o erro possui uma resposta do servidor
+        if (err.response && err.response.data && err.response.data.error) {
+          onNotify(`Erro: ${err.response.data.error}`, "error");
+        } else {
+          onNotify("Erro ao atualizar detalhes do evento.", "error");
+        }
       }
     } else {
       onNotify("Por favor, corrija os erros no formulário.", "error");
@@ -295,9 +326,7 @@ const InformationCard: React.FC<InformationCardProps> = ({
     setFormData({ ...formData, state: estadoSigla });
   };
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
@@ -306,7 +335,7 @@ const InformationCard: React.FC<InformationCardProps> = ({
     setFormData({ ...formData, eventDescription: value });
   };
 
-  // Helper function to get today's date in YYYY-MM-DD format
+  // Função auxiliar para obter a data de hoje no formato YYYY-MM-DD
   const getToday = (): string => {
     const today = new Date();
     const year = today.getFullYear();
@@ -317,17 +346,29 @@ const InformationCard: React.FC<InformationCardProps> = ({
 
   if (loading) {
     return (
-      <Box>
-        <Typography variant="h6" color={colors.primary}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          padding: "20px",
+        }}
+      >
+        <Typography variant="h6" color={colors.primary} gutterBottom>
           Carregando...
         </Typography>
+        <CircularProgress color="primary" />
       </Box>
     );
   }
 
   if (error) {
     return (
-      <Box>
+      <Box
+        sx={{
+          padding: "20px",
+        }}
+      >
         <Typography variant="h6" color="error">
           {error}
         </Typography>
@@ -336,7 +377,7 @@ const InformationCard: React.FC<InformationCardProps> = ({
   }
 
   return (
-    <Box>
+    <FormContainer>
       <Grid container spacing={6}>
         {/* Informações Básicas */}
         <Grid item xs={12} md={6}>
@@ -356,7 +397,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
             value={formData.eventName}
             onChange={handleInputChange}
             sx={{ marginBottom: "20px" }}
-            // Alteração para prevenir autocomplete
             autoComplete="new-event-name"
             error={!!errors.find((error) =>
               error.includes("Nome do evento")
@@ -364,6 +404,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
             helperText={errors.find((error) =>
               error.includes("Nome do evento")
             )}
+            inputProps={{
+              "aria-label": "Nome do Evento",
+            }}
           />
           <TextField
             label="Categoria do Evento"
@@ -373,7 +416,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
             value={formData.eventCategory}
             onChange={handleInputChange}
             sx={{ marginBottom: "20px" }}
-            // Alteração para prevenir autocomplete
             autoComplete="new-event-category"
             error={!!errors.find((error) =>
               error.includes("Categoria do evento")
@@ -381,6 +423,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
             helperText={errors.find((error) =>
               error.includes("Categoria do evento")
             )}
+            inputProps={{
+              "aria-label": "Categoria do Evento",
+            }}
           />
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
@@ -394,11 +439,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 sx={{ marginBottom: "20px" }}
-                // Restringe a data mínima para hoje
                 InputProps={{
                   inputProps: { min: getToday() },
                 }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-start-date"
                 error={!!errors.find((error) =>
                   error.includes("Data de início")
@@ -406,6 +449,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Data de início")
                 )}
+                inputProps={{
+                  "aria-label": "Data de Início",
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -419,7 +465,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 sx={{ marginBottom: "20px" }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-start-time"
                 error={!!errors.find((error) =>
                   error.includes("Hora de início")
@@ -427,6 +472,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Hora de início")
                 )}
+                inputProps={{
+                  "aria-label": "Hora de Início",
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -440,11 +488,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 sx={{ marginBottom: "20px" }}
-                // Restringe a data mínima para a data de início ou hoje
                 InputProps={{
                   inputProps: { min: formData.startDate || getToday() },
                 }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-end-date"
                 error={!!errors.find((error) =>
                   error.includes("Data de término")
@@ -452,6 +498,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Data de término")
                 )}
+                inputProps={{
+                  "aria-label": "Data de Término",
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -465,7 +514,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 sx={{ marginBottom: "20px" }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-end-time"
                 error={!!errors.find((error) =>
                   error.includes("Hora de término")
@@ -473,13 +521,16 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Hora de término")
                 )}
+                inputProps={{
+                  "aria-label": "Hora de Término",
+                }}
               />
             </Grid>
           </Grid>
         </Grid>
 
         {/* Localização do Evento */}
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <SectionHeader variant="h6">Onde o evento vai acontecer?</SectionHeader>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
@@ -492,7 +543,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 value={formData.state}
                 onChange={handleEstadoChange}
                 sx={{ marginBottom: "20px" }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-state"
                 error={!!errors.find((error) =>
                   error.includes("Estado")
@@ -500,6 +550,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Estado")
                 )}
+                inputProps={{
+                  "aria-label": "Estado",
+                }}
               >
                 {estados.map((estado) => (
                   <MenuItem key={estado.id} value={estado.sigla}>
@@ -517,7 +570,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 value={formData.city}
                 onChange={handleInputChange}
                 sx={{ marginBottom: "20px" }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-city"
                 error={!!errors.find((error) =>
                   error.includes("Cidade")
@@ -525,6 +577,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Cidade")
                 )}
+                inputProps={{
+                  "aria-label": "Cidade",
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -536,7 +591,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 value={formData.address}
                 onChange={handleInputChange}
                 sx={{ marginBottom: "20px" }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-address"
                 error={!!errors.find((error) =>
                   error.includes("Endereço")
@@ -544,6 +598,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Endereço")
                 )}
+                inputProps={{
+                  "aria-label": "Endereço",
+                }}
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -555,7 +612,6 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 value={formData.addressDetail}
                 onChange={handleInputChange}
                 sx={{ marginBottom: "20px" }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-address-detail"
                 error={!!errors.find((error) =>
                   error.includes("Nome do local")
@@ -563,6 +619,9 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 helperText={errors.find((error) =>
                   error.includes("Nome do local")
                 )}
+                inputProps={{
+                  "aria-label": "Nome do Local",
+                }}
               />
             </Grid>
             <Grid item xs={12}>
@@ -573,8 +632,10 @@ const InformationCard: React.FC<InformationCardProps> = ({
                 value={formData.addressComplement}
                 onChange={handleInputChange}
                 sx={{ marginBottom: "20px" }}
-                // Alteração para prevenir autocomplete
                 autoComplete="new-address-complement"
+                inputProps={{
+                  "aria-label": "Complemento",
+                }}
               />
             </Grid>
           </Grid>
@@ -584,6 +645,7 @@ const InformationCard: React.FC<InformationCardProps> = ({
         <Grid item xs={12}>
           <SectionHeader variant="h6">Descrição do Evento</SectionHeader>
           <ReactQuill
+            key={key} // Para forçar re-render após submissão
             value={formData.eventDescription}
             onChange={handleDescriptionChange}
             modules={modules}
@@ -607,20 +669,32 @@ const InformationCard: React.FC<InformationCardProps> = ({
           marginTop: "20px",
         }}
       >
-        <SaveButton
+        <SaveButtonStyled
           variant="contained"
           onClick={handleSubmit}
           startIcon={<SaveIcon />}
           disabled={submitting}
+          aria-label="Salvar Detalhes do Evento"
         >
           {submitting ? (
             <CircularProgress size={24} sx={{ color: "#fff" }} />
           ) : (
             "Salvar"
           )}
-        </SaveButton>
+        </SaveButtonStyled>
       </Box>
-    </Box>
+
+      {/* Exibir erros de validação */}
+      {errors.length > 0 && (
+        <Box sx={{ marginTop: "20px" }}>
+          {errors.map((error, index) => (
+            <Typography key={index} variant="body2" color="error">
+              - {error}
+            </Typography>
+          ))}
+        </Box>
+      )}
+    </FormContainer>
   );
 };
 
