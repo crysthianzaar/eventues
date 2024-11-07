@@ -93,6 +93,30 @@ def get_event_detail(event_id):
         )
 
 
+@event_api.route('/organizer_detail/{event_id}/details', methods=['PATCH'], cors=cors_config)
+def update_event_detail(event_id):
+    try:
+        request = event_api.current_request
+        event_data = request.json_body
+        event = use_case.update_event_detail(event_id, event_data)
+        
+        if not event:
+            raise ValueError("Evento não encontrado.")
+
+        return Response(
+            body=event.to_dict(),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+
 @event_api.route('/organizer_detail/{event_id}/upload_document_file', methods=['POST'], cors=cors_config)
 def upload_files(event_id):
     try:

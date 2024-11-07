@@ -64,3 +64,13 @@ class EventUseCase:
         if not firebase_path:
             return {"error": "Caminho do arquivo não fornecido."}
         return self.event_repository.delete_event_file(event_id, firebase_path)
+
+    def update_event_detail(self, event_id: str, event_data: dict) -> EventModel:
+        event = self.event_repository.find_event_by_id(event_id)
+        if not event:
+            raise ValueError("Evento não encontrado.")
+        
+        event_data = EventModel.from_dict(event_data)
+        updated_event = self.event_repository.update_event(event_data)
+        
+        return updated_event
