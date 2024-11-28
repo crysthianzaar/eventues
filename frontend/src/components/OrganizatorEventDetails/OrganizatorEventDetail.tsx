@@ -64,6 +64,7 @@ const colors = {
 
 interface EventDetail {
   name: string;
+  event_id: string;
   category: string;
   start_date: string;
   end_date: string;

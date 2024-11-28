@@ -36,8 +36,8 @@ class EventUseCase:
 
     def get_organizer_event_details(self, event: EventModel) -> dict:
         return all([
-            event.name, event.category, event.start_date, event.start_time, 
-            event.end_date, event.end_time, event.event_type, event.event_category, 
+            event.name, event.category, event.start_date,
+            event.end_date, event.event_type, event.event_category, 
             event.state, event.city, event.address, event.organization_name, event.organization_contact
         ])
 
