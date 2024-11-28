@@ -25,8 +25,6 @@ class EventModel:
     address: str
     organization_name: str
     organization_contact: str
-    start_time: Optional[time] = None
-    end_time: Optional[time] = None
     address_complement: Optional[str] = None
     address_detail: Optional[str] = None
     event_status: Optional[str] = None
@@ -42,9 +40,7 @@ class EventModel:
             name=data.get('name'),
             category=data.get('category'),
             start_date=datetime.fromisoformat(data.get('start_date')),
-            start_time=datetime.strptime(data.get('start_time'), '%H:%M').time() if data.get('start_time') else None,
             end_date=datetime.fromisoformat(data.get('end_date')),
-            end_time=datetime.strptime(data.get('end_time'), '%H:%M').time() if data.get('end_time') else None,
             event_type=data.get('event_type'),
             event_category=data.get('event_category'),
             state=data.get('state'),
@@ -67,9 +63,7 @@ class EventModel:
             'name': self.name,
             'category': self.category,
             'start_date': self.start_date.isoformat(),
-            'start_time': self.start_time.isoformat() if self.start_time else None,
             'end_date': self.end_date.isoformat(),
-            'end_time': self.end_time.isoformat() if self.end_time else None,
             'event_type': self.event_type,
             'event_category': self.event_category,
             'state': self.state,

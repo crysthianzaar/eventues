@@ -11,6 +11,7 @@ export interface UploadResponse {
 // Interface para detalhes do evento
 export interface EventDetail {
   name: string;
+  event_id: string;
   event_category: string;
   start_date: string;
   start_time: string;

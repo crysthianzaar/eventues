@@ -153,9 +153,7 @@ const InformationCard: React.FC = () => {
     eventName: "",
     eventCategory: "",
     startDate: "",
-    startTime: "",
     endDate: "",
-    endTime: "",
     state: "",
     city: "",
     address: "",
@@ -295,9 +293,7 @@ const InformationCard: React.FC = () => {
         eventName: eventData.name,
         eventCategory: eventData.event_category,
         startDate: eventData.start_date.split("T")[0],
-        startTime: eventData.start_time,
         endDate: eventData.end_date.split("T")[0],
-        endTime: eventData.end_time,
         state: eventData.state,
         city: eventData.city,
         address: eventData.address,
@@ -520,12 +516,11 @@ const InformationCard: React.FC = () => {
     setSubmitting(true);
     try {
       const dataToSend = {
+        event_id: event_id,
         name: formData.eventName,
         event_category: formData.eventCategory,
         start_date: formData.startDate,
-        start_time: formData.startTime,
         end_date: formData.endDate,
-        end_time: formData.endTime,
         state: formData.state,
         city: formData.city,
         address: formData.address,
@@ -725,38 +720,12 @@ const InformationCard: React.FC = () => {
             </Grid>
             <Grid item xs={12} sm={6}>
               <TextField
-                label="Hora de Início"
-                type="time"
-                fullWidth
-                required
-                name="startTime"
-                value={formData.startTime}
-                onChange={handleInputChange}
-                InputLabelProps={{ shrink: true }}
-                sx={{ marginBottom: "20px" }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
                 label="Data de Término"
                 type="date"
                 fullWidth
                 required
                 name="endDate"
                 value={formData.endDate}
-                onChange={handleInputChange}
-                InputLabelProps={{ shrink: true }}
-                sx={{ marginBottom: "20px" }}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                label="Hora de Término"
-                type="time"
-                fullWidth
-                required
-                name="endTime"
-                value={formData.endTime}
                 onChange={handleInputChange}
                 InputLabelProps={{ shrink: true }}
                 sx={{ marginBottom: "20px" }}

@@ -21,7 +21,7 @@ class EventRepository:
     def update_event(self, event: EventModel) -> EventModel:
         event_dict = filter_none_values(event.to_dict())
         self.events_collection.document(event.event_id).set(event_dict, merge=True)
-        return event
+        return event_dict
 
     def find_event_by_id(self, event_id: str) -> Optional[EventModel]:
         event_document = self.events_collection.document(event_id).get()
