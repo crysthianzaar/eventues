@@ -6,7 +6,29 @@ export interface UploadResponse {
   firebase_path: string;
 }
 
-// Outras interfaces e funções permanecem inalteradas
+// Defina a interface Lote
+export interface Lote {
+  valor: number;
+  quantidade: number;
+  viradaProximoLote: {
+    data: string;
+    quantidade: number;
+  };
+}
+
+// Interface para o Ingresso
+export interface Ingresso {
+  id: string;
+  nome: string;
+  tipo: 'Simples' | 'Lotes' | 'Gratuito';
+  valor: number;
+  lotes?: Lote[];
+  taxaServico: 'absorver' | 'repassar';
+  visibilidade: 'publico' | 'privado';
+  totalIngressos: number;
+  fimVendas: string;
+  inicioVendas: string;
+}
 
 // Interface para detalhes do evento
 export interface EventDetail {
@@ -119,7 +141,43 @@ export const updateEventDetails = async (
   );
 };
 
+// Função para criar ingresso
+export const createTicket = async (
+  eventId: string,
+  data: any
+): Promise<Ingresso> => {
+  const response = await axios.post<Ingresso>(
+    `${API_BASE_URL}/organizer_detail/${eventId}/create_ticket`,
+    data,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    }
+  );
+  return response.data;
+};
 
+// Função para obter ingressos
+export const getTickets = async (
+  eventId: string
+): Promise<Ingresso[]> => {
+  const response = await axios.get<Ingresso[]>(
+    `${API_BASE_URL}/organizer_detail/${eventId}/get_tickets`
+  );
+  return response.data;
+};
+
+// Função para atualizar um ingresso
+export const updateTicket = async (eventId: string, ingressoId: string, ingresso: Partial<Ingresso>): Promise<Ingresso> => {
+  const response = await axios.put<Ingresso>(`${API_BASE_URL}/organizer_detail/${eventId}/tickets/${ingressoId}`, ingresso);
+  return response.data;
+};
+
+// Função para excluir um ingresso
+export const deleteTicket = async (eventId: string, ingressoId: string): Promise<void> => {
+  await axios.delete(`${API_BASE_URL}/organizer_detail/${eventId}/tickets/${ingressoId}`);
+};
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_BACKEND_API_URL, // Substitua pela URL do seu backend

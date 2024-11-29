@@ -2,6 +2,7 @@
 from google.cloud.firestore_v1 import FieldFilter
 from typing import List, Optional
 import uuid
+from src.models.ingresso import Ingresso
 from src.utils.firebase import db
 from src.models.event_model import EventModel, EventStatus
 from src.models.tables import Table
@@ -17,6 +18,23 @@ class EventRepository:
         event.event_status = EventStatus.RASCUNHO.value
         self.events_collection.document(event.event_id).set(event.to_dict())
         return event
+
+    def add_ticket(self, event_id: str, ticket: Ingresso) -> Ingresso:
+        event_ref = db.collection('events').document(event_id)
+        ticket_id = str(uuid.uuid4())
+        new_ticket = ticket.to_dict()
+        new_ticket['id'] = ticket_id
+        # Remove a lista de lotes do documento principal
+        lotes = new_ticket.pop('lotes', [])
+        event_ref.collection('tickets').document(ticket_id).set(new_ticket)
+        
+        if lotes is not None:
+            for lote in lotes:
+                lote_id = str(uuid.uuid4())
+                lote['ticket_id'] = ticket_id  # Associação explícita
+                event_ref.collection('tickets').document(ticket_id).collection('lotes').document(lote_id).set(lote)
+        
+        return ticket
 
     def update_event(self, event: EventModel) -> EventModel:
         event_dict = filter_none_values(event.to_dict())

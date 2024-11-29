@@ -40,7 +40,7 @@ import BannerDocumentCard from "../utils/BannerDocumentCard";
 import TicketsCard from "../utils/TicketsCard";
 import FormCard from "./FormCard";
 import PolicyCard from "../utils/PolicyCard";
-import ClientIngressosPage from "./TicketsAndValues";
+import TicketsAndValues from "./TicketsAndValues";
 import CriarIngressoPage from "./TicketsAndValues";
 import Categories from "./Categories";
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota

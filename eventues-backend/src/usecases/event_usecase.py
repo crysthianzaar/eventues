@@ -1,6 +1,7 @@
 # src/usecases/event_usecase.py
 
 import base64
+from src.models.ingresso import Ingresso
 from src.repositories.event_repository import EventRepository
 from src.models.event_model import EventModel
 from typing import Optional, List
@@ -13,6 +14,10 @@ class EventUseCase:
     def create_event(self, event_data: dict) -> EventModel:
         event = EventModel.from_dict(event_data)
         return self.event_repository.add_event(event)
+
+    def create_ticket(self, event_id: str, ticket_data: dict) -> Ingresso:
+        ticket = Ingresso.from_dict(ticket_data)
+        return self.event_repository.add_ticket(event_id, ticket)
 
     def get_event(self, event_id: str) -> Optional[EventModel]:
         return self.event_repository.find_event_by_id(event_id)
