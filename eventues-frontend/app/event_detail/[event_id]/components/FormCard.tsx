@@ -172,7 +172,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
   const fetchFormFields = async () => {
     try {
       const response = await fetch(
-        `http://127.0.0.1:8000/organizer_detail/${eventId}/get_form`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/get_form`,
         {
           method: 'GET',
           headers: {
@@ -243,7 +243,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
       };
 
       const response = await fetch(
-        `http://127.0.0.1:8000/organizer_detail/${eventId}/create_form`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/create_form`,
         {
           method: 'POST',
           headers: {

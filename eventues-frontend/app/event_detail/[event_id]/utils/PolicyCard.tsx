@@ -115,12 +115,12 @@ const PolicyCard: React.FC<PolicyCardProps> = ({ eventId, onUpdate, handleNotify
 
   // API Functions
   const fetchEventPolicy = async (eventId: string): Promise<GetPolicyResponse> => {
-    const response = await axios.get(`http://127.0.0.1:8000/organizer_detail/${eventId}/get_policy`);
+    const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/get_policy`);
     return response.data as GetPolicyResponse;
   };
 
   const updateEventPolicy = async (eventId: string, policyData: any): Promise<void> => {
-    await axios.patch(`http://127.0.0.1:8000/organizer_detail/${eventId}/policy`, policyData);
+    await axios.patch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/policy`, policyData);
   };
 
   // Fetch Policy Data on Mount

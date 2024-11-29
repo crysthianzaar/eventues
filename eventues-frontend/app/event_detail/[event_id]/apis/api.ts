@@ -39,7 +39,7 @@ export interface DocumentData {
   size?: number;
 }
 
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL;
 
 // Função para upload de documento
 export const uploadDocumentFile = async (

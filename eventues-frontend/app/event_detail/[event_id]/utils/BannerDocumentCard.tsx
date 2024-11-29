@@ -150,7 +150,7 @@ const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({
           title?: string;
           url?: string;
         }[]
-      >(`http://127.0.0.1:8000/organizer_detail/${eventId}/get_document_files`);
+      >(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/get_document_files`);
 
       let existingFiles: FileData[] = [];
 
@@ -229,7 +229,7 @@ const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({
       };
 
       const response = await axios.post(
-        `http://127.0.0.1:8000/organizer_detail/${eventId}/upload_document_file`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/upload_document_file`,
         data
       );
 
@@ -261,7 +261,7 @@ const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({
       };
 
       const response = await axios.post(
-        `http://127.0.0.1:8000/organizer_detail/${eventId}/update_document_title`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/update_document_title`,
         data
       );
 
@@ -340,7 +340,7 @@ const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({
     if (s3_key) {
       try {
         const response = await axios.post(
-          `http://127.0.0.1:8000/organizer_detail/${eventId}/delete_document_file`,
+          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/delete_document_file`,
           { s3_key }
         );
 
@@ -380,7 +380,7 @@ const BannerDocumentCard: React.FC<BannerDocumentCardProps> = ({
     if (s3_key) {
       try {
         const response = await axios.post(
-          `http://127.0.0.1:8000/organizer_detail/${eventId}/delete_document_file`,
+          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/delete_document_file`,
           { s3_key }
         );
 

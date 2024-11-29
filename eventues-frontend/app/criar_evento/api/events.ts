@@ -7,7 +7,7 @@ export interface EventResponse {
 export const createEvent = async (payload: any): Promise<EventResponse> => {
   try {
     const response = await axios.post<EventResponse>(
-      'http://127.0.0.1:8000/events',
+      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events`,
       payload
     );
     return response.data;

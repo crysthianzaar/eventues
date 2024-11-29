@@ -3,7 +3,7 @@
 import React from "react";
 import { Metadata } from "next";
 import axios from "axios";
-import OrganizadorEventDetail from "./components/OrganizatorEventDetail"; // Client Component
+import EventDetails from "./components/EventDetails"; // Client Component
 import { notFound } from "next/navigation";
 import Image from "next/image"; // Next.js Image component
 
@@ -38,7 +38,7 @@ interface EventDetail {
 const fetchEventDetail = async (event_id: string): Promise<EventDetail | null> => {
   try {
     const response = await axios.get<EventDetail>(
-      `http://127.0.0.1:8000/organizer_detail/${event_id}`
+      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${event_id}`
     );
     return response.data;
   } catch (error) {
@@ -119,7 +119,7 @@ const EventDetailPage = async ({ params }: { params: { event_id: string } }) => 
     notFound(); // Redirect to 404 page if event not found
   }
 
-  return <OrganizadorEventDetail/>;
+  return <EventDetails/>;
 };
 
 export default EventDetailPage;
