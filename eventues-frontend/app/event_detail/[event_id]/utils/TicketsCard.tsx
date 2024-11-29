@@ -529,7 +529,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({
       setFetchError(null);
       try {
         const response = await axios.get(
-          `http://127.0.0.1:8000/organizer_detail/${eventId}/get_categories`
+          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/get_categories`
         );
 
         if (response.status === 200) {
@@ -678,7 +678,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({
 
     try {
       const response = await axios.post(
-        `http://127.0.0.1:8000/organizer_detail/${eventId}/categories`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${eventId}/categories`,
         dataToSend
       );
 

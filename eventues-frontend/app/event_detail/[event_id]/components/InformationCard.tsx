@@ -29,8 +29,8 @@ import { Save, PhotoCamera, Add, Edit, Delete } from "@mui/icons-material";
 import { styled } from "@mui/system";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
-import ImageCropperModal from "./ImageCropperModal";
-import AttachmentModal from "./AttachmentModal"; // Importando o AttachmentModal
+import ImageCropperModal from "../utils/ImageCropperModal";
+import AttachmentModal from "../utils/AttachmentModal"; // Importando o AttachmentModal
 import {
   uploadDocumentFile,
   deleteDocumentFile,

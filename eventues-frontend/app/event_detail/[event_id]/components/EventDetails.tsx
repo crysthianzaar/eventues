@@ -34,14 +34,14 @@ import CategoryIcon from "@mui/icons-material/Category"; // Para categorias
 import AssignmentIcon from "@mui/icons-material/Assignment"; // Para formulários de inscrição
 import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/resumo
 import Image from "next/image"; // Next.js Image component
-import SummaryCard from "./SummaryCard";
+import SummaryCard from "./Summary";
 import InformationCard from "./InformationCard";
-import BannerDocumentCard from "./BannerDocumentCard";
-import TicketsCard from "./TicketsCard";
+import BannerDocumentCard from "../utils/BannerDocumentCard";
+import TicketsCard from "../utils/TicketsCard";
 import FormCard from "./FormCard";
-import PolicyCard from "./PolicyCard";
-import ClientIngressosPage from "./ClientIngressosPage";
-import CriarIngressoPage from "./ClientIngressosPage";
+import PolicyCard from "../utils/PolicyCard";
+import ClientIngressosPage from "./TicketsAndValues";
+import CriarIngressoPage from "./TicketsAndValues";
 import Categories from "./Categories";
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
 import api from "../apis/api";
