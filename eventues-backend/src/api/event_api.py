@@ -173,3 +173,61 @@ def delete_file(event_id):
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
+
+@event_api.route('/organizer_detail/{event_id}/create_ticket', methods=['POST'], cors=cors_config)
+def create_ticket(event_id):
+    request = event_api.current_request
+    data = request.json_body
+    try:
+        use_case.create_ticket(event_id, data)
+        return Response(
+            body=json.dumps({"message": "Ingresso criado com sucesso."}),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}/get_tickets', methods=['GET'], cors=cors_config)
+def get_tickets(event_id):
+    try:
+        event_ref = db.collection('events').document(event_id)
+        tickets = event_ref.collection('tickets').stream()
+
+        tickets = [ticket.to_dict() for ticket in tickets]
+        return Response(
+            body=json.dumps(tickets),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}/tickets/{ticket_id}', methods=['DELETE'], cors=cors_config)
+def delete_ticket(event_id, ticket_id):
+    try:
+        event_ref = db.collection('events').document(event_id)
+        ticket_ref = event_ref.collection('tickets').document(ticket_id)
+        ticket = ticket_ref.get()
+        if not ticket.exists:
+            raise ValueError("Ingresso não encontrado.")
+        ticket_ref.delete()
+        return Response(
+            body=json.dumps({"message": "Ingresso deletado com sucesso."}),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
