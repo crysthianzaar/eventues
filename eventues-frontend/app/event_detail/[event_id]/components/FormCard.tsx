@@ -36,15 +36,12 @@ import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SaveIcon from '@mui/icons-material/Save';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { styled } from '@mui/system';
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from 'react-beautiful-dnd';
+import { DndContext, closestCenter, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
+import { SortableContext, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
+import SortableRow from './SortableRow'; // Importando o componente SortableRow
 import { v4 as uuidv4 } from 'uuid';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 
 // Define your color palette
 const colors = {
@@ -59,16 +56,8 @@ const colors = {
   rowEvenBg: "#FFFFFF",    // Cor de fundo para linhas pares
 };
 
-// List of 'Selection' type fields that should not allow option editing
+// List of 'Seleção' type fields that should not allow option editing
 const fixedSelectionFields = ['Cidade', 'Estado'];
-
-// Function to reorder the list after drag and drop
-const reorder = (list: any[], startIndex: number, endIndex: number): any[] => {
-  const result = Array.from(list);
-  const [removed] = result.splice(startIndex, 1);
-  result.splice(endIndex, 0, removed);
-  return result;
-};
 
 // Styled components
 const FormContainer = styled(Box)(({ theme }) => ({
@@ -168,7 +157,16 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
   const [currentOptions, setCurrentOptions] = useState<string[]>([]);
   const [currentFieldId, setCurrentFieldId] = useState<string | null>(null);
 
-  // Function to fetch form fields from the backend
+  // Sensores para o DnD Kit
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
+
+  // Função para buscar os campos do formulário do backend
   const fetchFormFields = async () => {
     try {
       const response = await fetch(
@@ -183,26 +181,26 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
       if (response.ok) {
         const data: FormField[] = await response.json();
         if (data.length === 0) {
-          // If no fields, load default fields
+          // Se não houver campos, carregar os campos padrão
           loadDefaultFields();
         } else {
-          // Sort received fields
+          // Ordenar os campos recebidos
           const sortedData = data.sort((a, b) => a.order - b.order);
           setFields(sortedData);
         }
       } else {
-        console.error('Error fetching form:', await response.text());
-        // Optionally, load default fields in case of error
+        console.error('Erro ao buscar formulário:', await response.text());
+        // Opcionalmente, carregar campos padrão em caso de erro
         loadDefaultFields();
       }
     } catch (error) {
-      console.error('Error fetching form:', error);
-      // Optionally, load default fields in case of error
+      console.error('Erro ao buscar formulário:', error);
+      // Opcionalmente, carregar campos padrão em caso de erro
       loadDefaultFields();
     }
   };
 
-  // Function to load default fields
+  // Função para carregar campos padrão
   const loadDefaultFields = () => {
     const defaultFields: FormField[] = [
       { id: uuidv4(), label: 'Nome Completo', required: true, type: 'Texto', order: 1 },
@@ -222,13 +220,13 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
     setFields(defaultFields);
   };
 
-  // Fetch form fields when the component mounts
+  // Buscar os campos do formulário quando o componente monta
   useEffect(() => {
     fetchFormFields();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [eventId]);
 
-  // Function to save changes to the backend
+  // Função para salvar os campos do formulário no backend
   const saveFormFields = async () => {
     try {
       const payload = {
@@ -261,18 +259,18 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
         onUpdate();
       } else {
         const errorData = await response.json();
-        console.error('Error saving form:', errorData);
+        console.error('Erro ao salvar formulário:', errorData);
         onNotify('Erro ao salvar alterações.', 'error');
         onUpdate();
       }
     } catch (error) {
-      console.error('Error saving form:', error);
+      console.error('Erro ao salvar formulário:', error);
       onNotify('Erro ao salvar alterações.', 'error');
       onUpdate();
     }
   };
 
-  // Function to add a new question
+  // Função para adicionar uma nova pergunta
   const handleAddQuestion = () => {
     if (newQuestion.trim()) {
       const newField: FormField = {
@@ -291,7 +289,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
     setNewQuestionVisible(false);
   };
 
-  // Function to delete a question
+  // Função para deletar uma pergunta
   const handleDelete = (id: string) => {
     const updatedFields = fields
       .filter((field) => field.id !== id)
@@ -302,33 +300,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
     setFields(updatedFields);
   };
 
-  // Function called after drag and drop
-  const onDragEnd = (result: DropResult) => {
-    const { source, destination } = result;
-
-    if (!destination) {
-      return;
-    }
-
-    if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) {
-      return;
-    }
-
-    const reorderedFields = reorder(fields, source.index, destination.index);
-
-    // Update order property
-    const updatedFields = reorderedFields.map((field, index) => ({
-      ...field,
-      order: index + 1,
-    }));
-
-    setFields(updatedFields);
-  };
-
-  // Functions to manage options for 'Seleção' type fields
+  // Funções para gerenciar opções de campos do tipo 'Seleção'
   const handleOpenOptionsDialog = (fieldId: string, currentOptions: string[]) => {
     setCurrentFieldId(fieldId);
     setCurrentOptions(currentOptions);
@@ -370,123 +342,130 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
     setCurrentOptions(updatedOptions);
   };
 
+  // Função chamada quando o drag termina
+  const handleDragEnd = (event: any) => {
+    const { active, over } = event;
+
+    if (active.id !== over.id) {
+      const oldIndex = fields.findIndex((field) => field.id === active.id);
+      const newIndex = fields.findIndex((field) => field.id === over.id);
+
+      const newFields = arrayMove(fields, oldIndex, newIndex).map((field, index) => ({
+        ...field,
+        order: index + 1,
+      }));
+
+      setFields(newFields);
+    }
+  };
+
   return (
     <FormContainer>
       <SectionHeader variant="h6">Configuração dos Campos</SectionHeader>
 
-      {/* List of configurable fields as a table with Drag and Drop */}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <StyledTableContainer>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <StyledTableHeadCell>Ordenar</StyledTableHeadCell>
-                <StyledTableHeadCell>Campo</StyledTableHeadCell>
-                <StyledTableHeadCell>Tipo</StyledTableHeadCell>
-                <StyledTableHeadCell>Obrigatório</StyledTableHeadCell>
-                <StyledTableHeadCell>Excluir</StyledTableHeadCell>
-              </TableRow>
-            </TableHead>
-            <Droppable droppableId="fields">
-              {(provided) => (
-                <TableBody
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                >
-                  {fields.map((field, index) => (
-                    <Draggable key={field.id} draggableId={field.id} index={index}>
-                      {(provided, snapshot) => (
-                        <TableRow
-                          ref={provided.innerRef}
-                          {...provided.draggableProps}
-                          sx={{
-                            backgroundColor:
-                              index % 2 === 0 ? colors.rowEvenBg : colors.rowOddBg,
-                          }}
-                        >
-                          <StyledTableCell {...provided.dragHandleProps}>
-                            <DragIndicatorIcon style={{ cursor: 'grab' }} />
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            {field.type === 'Seleção' ? (
-                              <Box display="flex" alignItems="center">
-                                {field.label}
-                                {!fixedSelectionFields.includes(field.label) && (
-                                  <Tooltip title="Editar Opções">
-                                    <Button
-                                      size="small"
-                                      onClick={() =>
-                                        handleOpenOptionsDialog(
-                                          field.id,
-                                          field.options || []
-                                        )
-                                      }
-                                      sx={{ marginLeft: 1 }}
-                                    >
-                                      Editar Opções
-                                    </Button>
-                                  </Tooltip>
-                                )}
-                                {fixedSelectionFields.includes(field.label) && (
-                                  <Tooltip title="Opções fixas e não editáveis">
-                                    <Typography
-                                      variant="caption"
-                                      color="textSecondary"
-                                      sx={{ marginLeft: 1 }}
-                                    >
-                                      (Opções fixas)
-                                    </Typography>
-                                  </Tooltip>
-                                )}
-                              </Box>
-                            ) : (
-                              field.label
-                            )}
-                          </StyledTableCell>
-                          <StyledTableCell>{field.type}</StyledTableCell>
-                          <StyledTableCell>
-                            <Switch
-                              checked={field.required}
-                              onChange={() => {
-                                const updatedFields = fields.map((f, idx) =>
-                                  idx === index
-                                    ? { ...f, required: !f.required }
-                                    : f
-                                );
-                                setFields(updatedFields);
-                              }}
-                              size="small"
-                              sx={{
-                                '& .MuiSwitch-switchBase.Mui-checked': {
-                                  color: colors.primary,
-                                },
-                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                  backgroundColor: colors.primary,
-                                },
-                              }}
-                            />
-                          </StyledTableCell>
-                          <StyledTableCell>
-                            <IconButton
-                              color="error"
-                              onClick={() => handleDelete(field.id)}
-                            >
-                              <DeleteIcon />
-                            </IconButton>
-                          </StyledTableCell>
-                        </TableRow>
+      {/* Lista de campos configuráveis como uma tabela com Drag and Drop */}
+      <DndContext
+        collisionDetection={closestCenter}
+        onDragEnd={handleDragEnd}
+        sensors={sensors}
+      >
+        <SortableContext
+          items={fields.map((field) => field.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          <StyledTableContainer>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <StyledTableHeadCell>Ordenar</StyledTableHeadCell>
+                  <StyledTableHeadCell>Campo</StyledTableHeadCell>
+                  <StyledTableHeadCell>Tipo</StyledTableHeadCell>
+                  <StyledTableHeadCell>Obrigatório</StyledTableHeadCell>
+                  <StyledTableHeadCell>Excluir</StyledTableHeadCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {fields.map((field) => (
+                  <SortableRow key={field.id} id={field.id}>
+                    <StyledTableCell>
+                      <DragIndicatorIcon style={{ cursor: 'grab' }} />
+                    </StyledTableCell>
+                    <StyledTableCell>
+                      {field.type === 'Seleção' ? (
+                        <Box display="flex" alignItems="center">
+                          {field.label}
+                          {!fixedSelectionFields.includes(field.label) && (
+                            <Tooltip title="Editar Opções">
+                              <Button
+                                size="small"
+                                onClick={() =>
+                                  handleOpenOptionsDialog(
+                                    field.id,
+                                    field.options || []
+                                  )
+                                }
+                                sx={{ marginLeft: 1 }}
+                              >
+                                Editar Opções
+                              </Button>
+                            </Tooltip>
+                          )}
+                          {fixedSelectionFields.includes(field.label) && (
+                            <Tooltip title="Opções fixas e não editáveis">
+                              <Typography
+                                variant="caption"
+                                color="textSecondary"
+                                sx={{ marginLeft: 1 }}
+                              >
+                                (Opções fixas)
+                              </Typography>
+                            </Tooltip>
+                          )}
+                        </Box>
+                      ) : (
+                        field.label
                       )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </TableBody>
-              )}
-            </Droppable>
-          </Table>
-        </StyledTableContainer>
-      </DragDropContext>
+                    </StyledTableCell>
+                    <StyledTableCell>{field.type}</StyledTableCell>
+                    <StyledTableCell>
+                      <Switch
+                        checked={field.required}
+                        onChange={() => {
+                          const updatedFields = fields.map((f) =>
+                            f.id === field.id
+                              ? { ...f, required: !f.required }
+                              : f
+                          );
+                          setFields(updatedFields);
+                        }}
+                        size="small"
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': {
+                            color: colors.primary,
+                          },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                            backgroundColor: colors.primary,
+                          },
+                        }}
+                      />
+                    </StyledTableCell>
+                    <StyledTableCell>
+                      <IconButton
+                        color="error"
+                        onClick={() => handleDelete(field.id)}
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </StyledTableCell>
+                  </SortableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </StyledTableContainer>
+        </SortableContext>
+      </DndContext>
 
-      {/* Add Custom Question */}
+      {/* Adicionar Nova Pergunta */}
       {newQuestionVisible && (
         <Box
           sx={{
@@ -550,7 +529,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
         </Box>
       )}
 
-      {/* Bottom Buttons */}
+      {/* Botões na parte inferior */}
       <Box
         sx={{
           display: 'flex',
@@ -586,7 +565,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
         )}
       </Box>
 
-      {/* Modal for Form Preview */}
+      {/* Modal para Visualização do Formulário */}
       <Modal open={modalOpen} onClose={() => setModalOpen(false)}>
         <Box
           sx={{
@@ -605,7 +584,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
           {/* Disclaimer */}
           <Box sx={{ marginBottom: '1rem' }}>
             <Typography variant="body2" color="textSecondary">
-              Veja abaixo como os inscritos visualizarão o formulário de inscrição com os campos que você configurou.
+              Veja abaixo como os participantes visualizarão o formulário com os campos que você configurou.
             </Typography>
           </Box>
 
@@ -719,7 +698,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
         </Box>
       </Modal>
 
-      {/* Dialog to edit 'Seleção' options */}
+      {/* Dialog para editar opções de campos do tipo 'Seleção' */}
       <Dialog open={optionsDialogOpen} onClose={handleCloseOptionsDialog}>
         <DialogTitle>Editar Opções</DialogTitle>
         <DialogContent>

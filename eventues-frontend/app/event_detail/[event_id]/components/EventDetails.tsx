@@ -11,12 +11,13 @@ import {
   Tooltip,
   useMediaQuery,
   Button,
-  Stepper,
-  Step,
-  StepLabel,
-  StepIconProps,
   Snackbar,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import {
   Image as ImageIcon,
@@ -30,7 +31,6 @@ import {
 import EventIcon from "@mui/icons-material/Event"; // Para eventos em geral
 import InfoIcon from "@mui/icons-material/Info"; // Para detalhes do evento
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn"; // Para ingressos e valores
-import CategoryIcon from "@mui/icons-material/Category"; // Para categorias
 import AssignmentIcon from "@mui/icons-material/Assignment"; // Para formulários de inscrição
 import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/resumo
 import Image from "next/image"; // Next.js Image component
@@ -62,15 +62,7 @@ interface EventDetail {
   event_status: string;
   description: string;
   banner_image_url: string;
-  stepper: {
-    inf_basic: boolean;
-    event_details: boolean;
-    documents: boolean;
-    ticket_and_values: boolean;
-    category: boolean;
-    form: boolean;
-    event_ready: boolean;
-  };
+  // Removemos o stepper
 }
 
 const colors = {
@@ -103,6 +95,9 @@ const OrganizatorEventDetail: React.FC = () => {
   const [snackbarSeverity, setSnackbarSeverity] = useState<
     "success" | "error" | "info" | "warning"
   >("success");
+
+  // States para Dialog de confirmação de exclusão
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchEventDetail = async () => {
@@ -179,48 +174,9 @@ const OrganizatorEventDetail: React.FC = () => {
     );
   }
 
-  const steps = [
-    {
-      label: "Informações essenciais inseridas",
-      status: eventDetail.stepper.inf_basic,
-    },
-    {
-      label: "Detalhes do evento preenchidos",
-      status: eventDetail.stepper.event_details,
-    },
-    {
-      label: "Ingressos e Valores definidas",
-      status: eventDetail.stepper.ticket_and_values,
-    },
-    {
-      label: "Categorias configurados",
-      status: eventDetail.stepper.category,
-    },
-    {
-      label: "Formulário de Inscrição configurado",
-      status: eventDetail.stepper.form,
-    },
-    {
-      label: "Evento pronto para publicação",
-      status: eventDetail.stepper.event_ready,
-    },
-  ];
-
   // Handler para expandir/recolher cards
   const handleExpand = (cardIndex: number) => {
     setExpandedCard(expandedCard === cardIndex ? null : cardIndex);
-  };
-
-  // Componente de Ícone para o Stepper
-  const StepIconComponent: React.FC<StepIconProps> = ({ icon }) => {
-    const stepIndex = Number(icon) - 1;
-    const stepStatus = steps[stepIndex]?.status;
-
-    return stepStatus ? (
-      <CheckCircleIcon sx={{ color: colors.green }} />
-    ) : (
-      <ErrorIcon sx={{ color: colors.yellowDark }} />
-    );
   };
 
   // Função para obter o ícone de status para os cards
@@ -251,26 +207,46 @@ const OrganizatorEventDetail: React.FC = () => {
     }
   };
 
-  // Função para redirecionar para o próximo passo incompleto
-  const handleRedirectToNextIncompleteStep = () => {
-    const firstIncompleteStep = steps.find((step) => !step.status);
+  // Handler combinado: Notificar e realizar ação
+  const handleNotifyAndAction = (
+    message: string,
+    severity: "success" | "error" | "info" | "warning",
+    action: () => void
+  ) => {
+    handleNotify(message, severity);
+    action();
+  };
 
-    if (firstIncompleteStep) {
-      const stepIndex = steps.indexOf(firstIncompleteStep);
-      setExpandedCard(stepIndex);
-    } else {
-      // Todos os passos estão completos, redirecionar para o resumo
-      setExpandedCard(0);
+  // Função para publicar o evento
+  const handlePublishEvent = async () => {
+    try {
+      // Chamada à API para publicar o evento
+      const response = await api.post(`/publish_event/${event_id}`);
+      if (response.status === 200) {
+        handleNotify("Evento publicado com sucesso!", "success");
+        // Atualiza o status do evento localmente
+        setEventDetail((prev) =>
+          prev ? { ...prev, event_status: "Publicado" } : prev
+        );
+      }
+    } catch (err: any) {
+      handleNotify("Erro ao publicar o evento.", "error");
     }
   };
 
-  // Handler combinado: Notificar e Redirecionar
-  const handleNotifyAndRedirect = (
-    message: string,
-    severity: "success" | "error" | "info" | "warning"
-  ) => {
-    handleNotify(message, severity);
-    handleRedirectToNextIncompleteStep();
+  // Função para excluir o evento
+  const handleDeleteEvent = async () => {
+    try {
+      // Chamada à API para excluir o evento
+      const response = await api.delete(`/delete_event/${event_id}`);
+      if (response.status === 200) {
+        handleNotify("Evento excluído com sucesso!", "success");
+        // Redireciona após a exclusão
+        router.push("/meus_eventos"); // Ajuste conforme a rota dos seus eventos
+      }
+    } catch (err: any) {
+      handleNotify("Erro ao excluir o evento.", "error");
+    }
   };
 
   const cards = [
@@ -280,7 +256,6 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <SummaryCard />,
       description:
         "Visão geral do evento, status atual, principais métricas e ações rápidas.",
-      status: eventDetail.stepper.inf_basic,
     },
     {
       icon: <InfoIcon />, // Ícone informativo para detalhes do evento
@@ -288,35 +263,27 @@ const OrganizatorEventDetail: React.FC = () => {
       component: <InformationCard />,
       description:
         "Informações completas sobre o evento (nome, local, data, descrição).",
-      status: eventDetail.stepper.event_details,
     },
     {
       icon: <MonetizationOnIcon />, // Ícone de dinheiro para ingressos e valores
       title: "Ingressos e Valores",
       component: <CriarIngressoPage />,
       description: "Configuração de ingressos e seus respectivos preços.",
-      status: eventDetail.stepper.ticket_and_values,
-    },
-    {
-      icon: <CategoryIcon />, // Ícone de categorias para o card de categorias
-      title: "Categorias",
-      component: <Categories />,
-      description: "Configuração das categorias, subcategorias e políticas.",
-      status: eventDetail.stepper.category,
     },
     {
       icon: <AssignmentIcon />, // Ícone de formulário para inscrição
-      title: "Formulário de Inscrição",
+      title: "Formulário",
       component: (
         <FormCard
           eventId={eventDetail.event_id} // Ajustar conforme necessário
-          onNotify={handleNotifyAndRedirect}
+          onNotify={(message, severity) =>
+            handleNotifyAndAction(message, severity, () => {})
+          }
           onUpdate={() => { /* Implementar se necessário */ }}
         />
       ),
       description:
         "Personalização do formulário que os participantes devem preencher ao se inscrever.",
-      status: eventDetail.stepper.form,
     },
     // Adicione mais cards conforme necessário...
   ];
@@ -407,7 +374,7 @@ const OrganizatorEventDetail: React.FC = () => {
         </Box>
       </Box>
 
-      {/* Stepper com Scroll Horizontal em Mobile */}
+      {/* Área de Botões de Ação */}
       <Box
         sx={{
           marginTop: "20px",
@@ -415,58 +382,45 @@ const OrganizatorEventDetail: React.FC = () => {
           width: "100%",
           display: "flex",
           flexDirection: isSmallScreen ? "column" : "row",
-          alignItems: isSmallScreen ? "unset" : "center",
-          justifyContent: isSmallScreen ? "unset" : "center",
-          overflowX: isSmallScreen ? "scroll" : "unset",
-          whiteSpace: isSmallScreen ? "nowrap" : "normal",
-          gap: isSmallScreen ? "20px" : "unset",
+          alignItems: "center",
+          justifyContent: "center", // Centraliza os botões
+          gap: "10px",
         }}
       >
-        <Stepper
-          alternativeLabel
+        <Button
+          variant="outlined"
+          color="primary"
+          startIcon={<EventIcon />}
+          onClick={() => router.push(`/event_page/${event_id}`)} // Ajuste a rota conforme necessário
           sx={{
-            minWidth: isSmallScreen ? "600px" : "unset",
-            whiteSpace: "normal",
-            justifyContent: "center",
-            marginBottom: "10px",
+        fontSize: isSmallScreen ? "12px" : "14px",
           }}
         >
-          {steps.map((step, index) => (
-            <Step key={index}>
-              <StepLabel
-                StepIconComponent={StepIconComponent}
-                sx={{
-                  "& .MuiStepLabel-label": {
-                    display: "block",
-                    fontSize: isSmallScreen ? "12px" : "14px",
-                    maxWidth: "160px",
-                    textAlign: "center",
-                    whiteSpace: "normal",
-                  },
-                }}
-              >
-                {step.label}
-              </StepLabel>
-            </Step>
-          ))}
-        </Stepper>
+          Visualizar Página do Evento
+        </Button>
 
-        {/* Botão para Publicar Evento */}
         <Button
           variant="contained"
           color="primary"
-          disabled={!steps.every((step) => step.status)}
+          startIcon={<MonetizationOnIcon />}
+          onClick={handlePublishEvent}
           sx={{
-            display: "block",
-            fontSize: isSmallScreen ? "12px" : "14px",
-            textAlign: "center",
-            whiteSpace: "normal",
-            height: "40px",
-            alignSelf: isSmallScreen ? "flex-start" : "center",
+        fontSize: isSmallScreen ? "12px" : "14px",
           }}
-          onClick={() => router.push("/publicar_evento")} // Ajuste a rota conforme necessário
         >
           Publicar Evento
+        </Button>
+
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<ErrorIcon />}
+          onClick={() => setDeleteDialogOpen(true)}
+          sx={{
+        fontSize: isSmallScreen ? "12px" : "14px",
+          }}
+        >
+          Excluir Evento
         </Button>
       </Box>
 
@@ -526,7 +480,7 @@ const OrganizatorEventDetail: React.FC = () => {
                         {card.title}
                       </Typography>
                     </Box>
-                    {getStatusIcon(card.status)}
+                    {/* Removemos o ícone de status */}
                   </Box>
                 </Card>
               </Tooltip>
@@ -581,6 +535,37 @@ const OrganizatorEventDetail: React.FC = () => {
           {snackbarMessage}
         </Alert>
       </Snackbar>
+
+      {/* Dialog de Confirmação para Exclusão */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+        aria-labelledby="alert-dialog-title"
+        aria-describedby="alert-dialog-description"
+      >
+        <DialogTitle id="alert-dialog-title">
+          {"Confirmar Exclusão do Evento"}
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText id="alert-dialog-description">
+            Tem certeza de que deseja excluir este evento? Essa ação não pode ser
+            desfeita.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancelar</Button>
+          <Button
+            onClick={() => {
+              handleDeleteEvent();
+              setDeleteDialogOpen(false);
+            }}
+            color="error"
+            autoFocus
+          >
+            Excluir
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 };

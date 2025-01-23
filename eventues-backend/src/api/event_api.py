@@ -104,7 +104,7 @@ def update_event_detail(event_id):
             raise ValueError("Evento não encontrado.")
 
         return Response(
-            body=event.to_dict(),
+            body=event,
             status_code=200,
             headers={'Content-Type': 'application/json'}
         )

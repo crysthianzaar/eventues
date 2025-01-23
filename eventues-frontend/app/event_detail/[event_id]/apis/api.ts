@@ -25,7 +25,7 @@ export interface Ingresso {
   lotes?: Lote[];
   taxaServico: 'absorver' | 'repassar';
   visibilidade: 'publico' | 'privado';
-  totalIngressos: number;
+  totalIngressos: string;
   fimVendas: string;
   inicioVendas: string;
 }

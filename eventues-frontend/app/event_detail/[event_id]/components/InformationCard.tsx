@@ -40,6 +40,7 @@ import {
   UploadResponse,
   DocumentData,
 } from "../apis/api";
+import debounce from "lodash.debounce"; // Importando debounce
 
 // Carregamento dinâmico do ReactQuill
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
@@ -63,33 +64,6 @@ const SectionHeader = styled(Typography)(({ theme }) => ({
   marginBottom: theme.spacing(2),
 }));
 
-// Estilização do SaveButton para ser flutuante
-const SaveButton = styled(Fab)(({ theme }) => ({
-  backgroundColor: colors.secondary,
-  color: "#fff",
-  position: "fixed",
-  bottom: theme.spacing(4),
-  right: theme.spacing(4),
-  zIndex: 1000,
-  "&:hover": {
-    backgroundColor: "#56c078",
-  },
-}));
-
-// Estilização do Add Attachment Button
-const AddAttachmentButton = styled(Fab)(({ theme }) => ({
-  backgroundColor: colors.primary,
-  color: "#fff",
-  position: "fixed",
-  bottom: theme.spacing(4),
-  left: theme.spacing(4),
-  zIndex: 1000,
-  "&:hover": {
-    backgroundColor: "#4c51bf",
-  },
-}));
-
-// Configurações do Quill Editor
 const quillModules = {
   toolbar: [
     [{ header: [1, 2, false] }],
@@ -135,7 +109,6 @@ const initialDescriptionTemplate = `
   <li><b>Contato:</b> Informe como os participantes podem tirar dúvidas</li>
   <li><b>Premiação:</b> Detalhe sobre prêmios ou brindes que serão oferecidos</li>
   <li><b>Entregas de kit:</b> Forneça informações sobre locais e horários de entrega de kits</li>
-  <li><b>Categoria:</b> Enumere as categorias participantes do evento</li>
   <li><b>Viradas de lote:</b> Informações sobre as datas e preços de lotes de ingressos</li>
   <li><b>Informações adicionais:</b> Outras informações importantes</li>
 </ul>
@@ -210,14 +183,14 @@ const InformationCard: React.FC = () => {
 
   // Função para abrir o modal de anexo
   const handleOpenAttachmentModal = () => {
-      setEditingAttachment(null); // Resetar qualquer edição anterior
-      setOpenAttachmentModal(true);
+    setEditingAttachment(null); // Resetar qualquer edição anterior
+    setOpenAttachmentModal(true);
   };
-  
+
   // Função para editar o banner
   const handleEditBanner = () => {
-      setIsReplacingBanner(true);
-      handleOpenModal();
+    setIsReplacingBanner(true);
+    handleOpenModal();
   };
 
   // Função para excluir o banner
@@ -511,47 +484,59 @@ const InformationCard: React.FC = () => {
     }
   };
 
-  // Função para salvar os dados do evento
-  const handleSave = async () => {
-    setSubmitting(true);
-    try {
-      const dataToSend = {
-        event_id: event_id,
-        name: formData.eventName,
-        event_category: formData.eventCategory,
-        start_date: formData.startDate,
-        end_date: formData.endDate,
-        state: formData.state,
-        city: formData.city,
-        address: formData.address,
-        address_complement: formData.addressComplement,
-        address_detail: formData.addressDetail,
-        organization_name: formData.organizationName,
-        organization_contact: formData.organizationContact,
-        event_type: formData.eventType,
-        event_status: formData.eventStatus,
-        event_description: formData.eventDescription,
-      };
+  // Função para salvar os dados do evento (Auto-Save)
+  const handleAutoSave = useCallback(
+    debounce(async (updatedData: typeof formData) => {
+      setSubmitting(true);
+      try {
+        const dataToSend = {
+          event_id: event_id,
+          name: updatedData.eventName,
+          event_category: updatedData.eventCategory,
+          start_date: updatedData.startDate,
+          end_date: updatedData.endDate,
+          state: updatedData.state,
+          city: updatedData.city,
+          address: updatedData.address,
+          address_complement: updatedData.addressComplement,
+          address_detail: updatedData.addressDetail,
+          organization_name: updatedData.organizationName,
+          organization_contact: updatedData.organizationContact,
+          event_type: updatedData.eventType,
+          event_status: updatedData.eventStatus,
+          event_description: updatedData.eventDescription,
+        };
 
-      await updateEventDetails(event_id, dataToSend);
+        await updateEventDetails(event_id, dataToSend);
 
-      setSnackbar({
-        open: true,
-        message: "Evento salvo com sucesso!",
-        severity: "success",
-      });
-      // onUpdate(); // Se você tiver uma prop onUpdate para atualizar os dados
-    } catch (error) {
-      console.error("Erro ao salvar o evento:", error);
-      setSnackbar({
-        open: true,
-        message: "Erro ao salvar o evento. Tente novamente.",
-        severity: "error",
-      });
-    } finally {
-      setSubmitting(false);
+        setSnackbar({
+          open: true,
+          message: "Detalhes do evento atualizados!",
+          severity: "success",
+        });
+        setTimeout(() => {
+          setSnackbar((prev) => ({ ...prev, open: false }));
+        }, 2000);
+            } catch (error) {
+        console.error("Erro ao salvar o evento:", error);
+        setSnackbar({
+          open: true,
+          message: "Erro ao salvar os detalhes do evento.",
+          severity: "error",
+        });
+            } finally {
+        setSubmitting(false);
+            }
+          }, 1000),
+    [event_id]
+  );
+
+  useEffect(() => {
+    // Evita salvar se estiver carregando os dados iniciais
+    if (!loading) {
+      handleAutoSave(formData);
     }
-  };
+  }, [formData, handleAutoSave, loading]);
 
   // useEffect para buscar dados do evento e estados
   useEffect(() => {
@@ -695,15 +680,22 @@ const InformationCard: React.FC = () => {
             autoComplete="off"
           />
           <TextField
-            label="Categoria do Evento"
+            select
+            label="Tipo de Evento"
             fullWidth
             required
-            name="eventCategory"
-            value={formData.eventCategory}
+            name="eventType"
+            value={formData.eventType}
             onChange={handleInputChange}
             sx={{ marginBottom: "20px" }}
             autoComplete="off"
-          />
+          >
+            {["Esportivo", "Musical", "Cultural", "Outro"].map((option) => (
+              <MenuItem key={option} value={option}>
+                {option}
+              </MenuItem>
+            ))}
+          </TextField>
           <Grid container spacing={4}>
             <Grid item xs={12} sm={6}>
               <TextField
@@ -822,82 +814,69 @@ const InformationCard: React.FC = () => {
 
         {/* Anexos do Evento */}
         <Grid item xs={12}>
-            <SectionHeader variant="h6">Anexos do Evento</SectionHeader>
+          <SectionHeader variant="h6">Anexos do Evento</SectionHeader>
 
-            {/* Botão para adicionar novo anexo */}
-            <Box display="flex" justifyContent="flex-end" mb={2}>
-              <Button
-                variant="contained"
-                startIcon={<Add />}
-                onClick={handleOpenAttachmentModal}
-                color="primary"
-              >
-                Adicionar Anexo
-              </Button>
-            </Box>
+          {/* Botão para adicionar novo anexo */}
+          <Box display="flex" justifyContent="flex-end" mb={2}>
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={handleOpenAttachmentModal}
+              color="primary"
+            >
+              Adicionar Anexo
+            </Button>
+          </Box>
 
-            {/* Tabela de Anexos */}
-            {attachments.length > 0 ? (
-              <TableContainer component={Paper}>
-                <Table>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell>Nome do Anexo</TableCell>
-                      <TableCell>Tipo</TableCell>
-                      <TableCell>Ações</TableCell>
+          {/* Tabela de Anexos */}
+          {attachments.length > 0 ? (
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>Nome do Anexo</TableCell>
+                    <TableCell>Tipo</TableCell>
+                    <TableCell>Ações</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {attachments.map((attachment) => (
+                    <TableRow key={attachment.firebase_path}>
+                      <TableCell>{attachment.name}</TableCell>
+                      <TableCell>
+                        {(attachment.content_type ?? "").startsWith("image/")
+                          ? "Imagem"
+                          : "PDF"}
+                      </TableCell>
+                      <TableCell>
+                        <IconButton
+                          aria-label="Editar Anexo"
+                          onClick={() => {
+                            setEditingAttachment(attachment);
+                            setOpenAttachmentModal(true);
+                          }}
+                        >
+                          <Edit />
+                        </IconButton>
+                        <IconButton
+                          aria-label="Excluir Anexo"
+                          onClick={() => handleRemoveAttachment(attachment)}
+                        >
+                          <Delete />
+                        </IconButton>
+                      </TableCell>
                     </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {attachments.map((attachment) => (
-                      <TableRow key={attachment.firebase_path}>
-                        <TableCell>{attachment.name}</TableCell>
-                        <TableCell>
-                          {(attachment.content_type ?? "").startsWith("image/")
-                            ? "Imagem"
-                            : "PDF"}
-                        </TableCell>
-                        <TableCell>
-                          <IconButton
-                            aria-label="Editar Anexo"
-                            onClick={() => {
-                              setEditingAttachment(attachment);
-                              setOpenAttachmentModal(true);
-                            }}
-                          >
-                            <Edit />
-                          </IconButton>
-                          <IconButton
-                            aria-label="Excluir Anexo"
-                            onClick={() => handleRemoveAttachment(attachment)}
-                          >
-                            <Delete />
-                          </IconButton>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            ) : (
-              <Typography variant="body2" color="textSecondary">
-                Nenhum anexo adicionado.
-              </Typography>
-            )}
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography variant="body2" color="textSecondary">
+              Nenhum anexo adicionado.
+            </Typography>
+          )}
         </Grid>
       </Grid>
-
-      {/* Botão de Salvar Flutuante */}
-      <SaveButton
-        variant="extended"
-        color="primary"
-        onClick={handleSave}
-      >
-        {submitting ? (
-          <CircularProgress size={24} sx={{ color: "#fff" }} />
-        ) : (
-          "Salvar Detalhes"
-        )}
-      </SaveButton>
 
       {/* Modal para recorte de imagem */}
       <ImageCropperModal

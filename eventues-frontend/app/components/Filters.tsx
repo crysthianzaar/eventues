@@ -34,36 +34,11 @@ const estados = [
   { label: 'Tocantins (TO)' },
 ];
 
-const modalidades = [
-  { label: 'Artes Marciais' },
-  { label: 'Atletismo' },
-  { label: 'Automobilismo' },
-  { label: 'Badminton' },
-  { label: 'Caminhada' },
-  { label: 'Canoagem' },
-  { label: 'Ciclismo' },
-  { label: 'Corrida de Rua' },
-  { label: 'Enduro' },
-  { label: 'Escalada Esportiva' },
-  { label: 'Kitesurf' },
-  { label: 'Motociclismo' },
-  { label: 'Motocross' },
-  { label: 'Mountain Bike' },
-  { label: 'Natação' },
-  { label: 'Off Road' },
-  { label: 'Parapente' },
-  { label: 'Parkour' },
-  { label: 'Rafting' },
-  { label: 'Skate' },
-  { label: 'Stand Up Paddle' },
-  { label: 'Surf' },
-  { label: 'Tênis' },
-  { label: 'Tiro com Arco' },
-  { label: 'Trail Run' },
-  { label: 'Triatlo' },
-  { label: 'Vôlei de Praia' },
-  { label: 'Windsurf' },
-  { label: 'Outras' },
+const tipo_de_evento = [
+  { label: 'Esportivo' },
+  { label: 'Musical' },
+  { label: 'Cultural' },
+  { label: 'Outro' }
 ];
 
 const Filters: React.FC = () => {
@@ -124,10 +99,10 @@ const Filters: React.FC = () => {
         />
 
         <Autocomplete
-          options={modalidades}
+          options={tipo_de_evento}
           getOptionLabel={(option) => option.label}
           renderInput={(params) => (
-            <TextField {...params} label="Modalidades" variant="outlined" size="small" />
+            <TextField {...params} label="Tipo de Evento" variant="outlined" size="small" />
           )}
           sx={{
             borderRadius: '20px',
