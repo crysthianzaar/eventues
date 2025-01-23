@@ -683,7 +683,7 @@ const TicketsCard: React.FC<TicketsCardProps> = ({
       );
 
       if (response.status === 200 || response.status === 201) {
-        onNotify('Categorias e valores salvos com sucesso!', 'success');
+        onNotify('valores salvos com sucesso!', 'success');
         onUpdate();
       } else {
         const errorMsg = `Erro: ${response.statusText}`;

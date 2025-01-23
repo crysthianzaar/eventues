@@ -146,10 +146,10 @@ const TicketsAndValues: React.FC = () => {
         <Alert severity="error" sx={{ mb: 2 }}>
           {error}
         </Alert>
-      )}
+        )}
 
-      {/* Botão para adicionar mais ingressos */}
-      <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 2 }}>
+        {/* Botão para adicionar mais ingressos */}
+        <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 2 }}>
         <Button
           onClick={handleCreate}
           variant="contained"
@@ -157,7 +157,7 @@ const TicketsAndValues: React.FC = () => {
         >
           Adicionar Ingresso
         </Button>
-      </Box>
+        </Box>
 
       {ingressos.length === 0 ? (
         <Box
@@ -174,20 +174,6 @@ const TicketsAndValues: React.FC = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>
             Você ainda não criou ingressos
           </Typography>
-          <Button
-            onClick={handleCreate}
-            variant="contained"
-            sx={{
-              fontWeight: 'bold',
-              borderRadius: '8px',
-              padding: '10px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
-            Criar Ingresso
-          </Button>
         </Box>
       ) : (
         <IngressosList ingressos={ingressos} onEdit={handleEdit} onDelete={handleDelete} />
@@ -330,8 +316,8 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
 
   // Estados para capturar os valores do formulário
   const [nome, setNome] = useState('');
-  const [totalIngressos, setTotalIngressos] = useState<number>(0);
-  const [valor, setValor] = useState<string>('0');
+  const [totalIngressos, setTotalIngressos] = useState<string>('');
+  const [valor, setValor] = useState<string>('');
   const [inicioVendas, setInicioVendas] = useState<string>('');
   const [fimVendas, setFimVendas] = useState<string>('');
   const [absorverTaxa, setAbsorverTaxa] = useState<boolean>(true);
@@ -341,7 +327,7 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
   useEffect(() => {
     if (isEditMode && editIngresso) {
       setNome(editIngresso.nome);
-      setTotalIngressos(editIngresso.totalIngressos || 0);
+      setTotalIngressos(editIngresso.totalIngressos || '');
       setValor(editIngresso.valor.toString().replace('.', ','));
       setInicioVendas(editIngresso.inicioVendas || '');
       setFimVendas(editIngresso.fimVendas || '');
@@ -357,8 +343,8 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
     } else {
       // Resetar campos ao criar um novo ingresso
       setNome('');
-      setTotalIngressos(0);
-      setValor('0');
+      setTotalIngressos('');
+      setValor('');
       setInicioVendas('');
       setFimVendas('');
       setAbsorverTaxa(true);
@@ -477,6 +463,7 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
             <TextField
               fullWidth
               label="Nome do Ingresso"
+              placeholder="Ex: Lote 1"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               sx={{ mb: 2 }}
@@ -486,14 +473,16 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
               fullWidth
               label="Total de ingressos disponíveis"
               type="number"
+              placeholder="Ex: 1000"
               value={totalIngressos}
-              onChange={(e) => setTotalIngressos(parseInt(e.target.value, 10))}
+              onChange={(e) => setTotalIngressos(e.target.value)}
               sx={{ mb: 2 }}
               InputLabelProps={{ shrink: true }}
             />
             <TextField
               fullWidth
               label="Valor do Ingresso"
+              placeholder="Ex: 90,00"
               type="text"
               value={valor}
               onChange={(e) => {
@@ -715,6 +704,7 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
             <TextField
               fullWidth
               label="Nome do Ingresso"
+              placeholder="Ex: Lote 1"
               value={nome}
               onChange={(e) => setNome(e.target.value)}
               sx={{ mb: 2 }}
@@ -724,14 +714,16 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
               fullWidth
               label="Total de ingressos disponíveis"
               type="number"
+              placeholder="Ex: 1000"
               value={totalIngressos}
-              onChange={(e) => setTotalIngressos(parseInt(e.target.value, 10))}
+              onChange={(e) => setTotalIngressos(e.target.value)}
               sx={{ mb: 2 }}
               InputLabelProps={{ shrink: true }}
             />
             <TextField
               fullWidth
               label="Valor do Ingresso"
+              placeholder="Ex: 90,00"
               type="text"
               value={valor}
               onChange={(e) => {
@@ -816,57 +808,116 @@ const IngressoModal: React.FC<IngressoModalProps> = ({
 
         {step === 1 && ingressoType === 'Gratuito' && (
           <Box>
-            <TextField
-              fullWidth
-              label="Nome do Ingresso"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label="Total de ingressos disponíveis"
-              type="number"
-              value={totalIngressos}
-              onChange={(e) => setTotalIngressos(parseInt(e.target.value, 10))}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label="Disponível a partir de"
-              type="date"
-              value={inicioVendas}
-              onChange={(e) => setInicioVendas(e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-            <TextField
-              fullWidth
-              label="Encerrar em"
-              type="date"
-              value={fimVendas}
-              onChange={(e) => setFimVendas(e.target.value)}
-              sx={{ mb: 2 }}
-              InputLabelProps={{ shrink: true }}
-            />
-
-            {/* Seleção de Visibilidade */}
-            <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel id="visibilidade-label">Visibilidade</InputLabel>
-              <Select
-                labelId="visibilidade-label"
-                id="visibilidade"
-                value={visibilidade}
-                label="Visibilidade"
-                onChange={(e) => setVisibilidade(e.target.value as 'publico' | 'privado')}
-              >
-                <MenuItem value="publico">Público</MenuItem>
-                <MenuItem value="privado">Privado</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
+          <TextField
+            fullWidth
+            label="Nome do Ingresso"
+            placeholder="Ex: Lote 1"
+            value={nome}
+            onChange={(e) => setNome(e.target.value)}
+            sx={{ mb: 2 }}
+            InputLabelProps={{ shrink: true }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Total de ingressos disponíveis"
+            type="number"
+            placeholder="Ex: 1000"
+            value={totalIngressos}
+            onChange={(e) => setTotalIngressos(e.target.value)}
+            sx={{ mb: 2 }}
+            InputLabelProps={{ shrink: true }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Valor do Ingresso"
+            type="text"
+            placeholder="Ex: 90,00"
+            value={valor}
+            onChange={(e) => {
+              let value = e.target.value.replace('.', ',');
+              const regex = /^\d*(,\d{0,2})?$/;
+              if (regex.test(value)) {
+                setValor(value);
+              }
+            }}
+            sx={{ mb: 2 }}
+            InputProps={{
+              startAdornment: <InputAdornment position="start">R$</InputAdornment>,
+            }}
+            InputLabelProps={{ shrink: true }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Início das vendas"
+            type="date"
+            placeholder="Ex: 2025-02-01"
+            value={inicioVendas}
+            onChange={(e) => setInicioVendas(e.target.value)}
+            sx={{ mb: 2 }}
+            InputLabelProps={{ shrink: true }}
+          />
+          
+          <TextField
+            fullWidth
+            label="Fim das vendas"
+            type="date"
+            placeholder="Ex: 2025-03-01"
+            value={fimVendas}
+            onChange={(e) => setFimVendas(e.target.value)}
+            sx={{ mb: 2 }}
+            InputLabelProps={{ shrink: true }}
+          />
+        
+          {/* Seleção de Visibilidade */}
+          <FormControl fullWidth sx={{ mb: 2 }}>
+            <InputLabel id="visibilidade-label">Visibilidade</InputLabel>
+            <Select
+              labelId="visibilidade-label"
+              id="visibilidade"
+              value={visibilidade}
+              label="Visibilidade"
+              onChange={(e) => setVisibilidade(e.target.value as 'publico' | 'privado')}
+            >
+              <MenuItem value="publico">Público</MenuItem>
+              <MenuItem value="privado">Privado</MenuItem>
+            </Select>
+          </FormControl>
+        
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={absorverTaxa}
+                onChange={(e) => {
+                  setAbsorverTaxa(e.target.checked);
+                  if (e.target.checked) {
+                    setRepassarTaxa(false);
+                  }
+                }}
+              />
+            }
+            label="Absorver taxa"
+            sx={{ mb: 2 }}
+          />
+          
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={repassarTaxa}
+                onChange={(e) => {
+                  setRepassarTaxa(e.target.checked);
+                  if (e.target.checked) {
+                    setAbsorverTaxa(false);
+                  }
+                }}
+              />
+            }
+            label="Repassar taxa para o comprador"
+            sx={{ mb: 2 }}
+          />
+        </Box>        
         )}
       </DialogContent>
       <DialogActions>

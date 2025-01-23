@@ -170,10 +170,7 @@ const CreateEvent: React.FC = () => {
       // Validação da Etapa 1: Tipo de Evento
       if (!formValues.event_type)
         newErrors.push("Tipo de evento é obrigatório.");
-      if (!formValues.categoria)
-        newErrors.push("Categoria é obrigatória.");
     } else if (step === 2) {
-      // Validação da Etapa 2: Localização e Contato
       if (!formValues.estado)
         newErrors.push("Estado é obrigatório.");
       if (!formValues.cidade)
@@ -193,8 +190,8 @@ const CreateEvent: React.FC = () => {
 
     if (!formValues.nomeEvento)
       newErrors.push("Nome do evento é obrigatório.");
-    if (!formValues.categoria)
-      newErrors.push("Categoria é obrigatória.");
+    if (!formValues.event_type)
+      newErrors.push("Tipo de Evento é obrigatório.");
     if (!formValues.dataInicio)
       newErrors.push("Data de início é obrigatória.");
 
@@ -450,32 +447,14 @@ const CreateEvent: React.FC = () => {
                   error.includes("Tipo de evento")
                 )}
               >
-                <MenuItem value="presencial">Presencial</MenuItem>
-                <MenuItem value="virtual">Virtual</MenuItem>
-                <MenuItem value="hibrido">Híbrido</MenuItem>
-              </TextField>
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                select
-                label="Categoria do Evento"
-                variant="outlined"
-                fullWidth
-                required
-                name="categoria"
-                value={formValues.categoria}
-                onChange={handleChange}
-                autoComplete="new-categoria"
-                error={!!errors.find((error) =>
-                  error.includes("Categoria")
-                )}
-                helperText={errors.find((error) =>
-                  error.includes("Categoria")
-                )}
-              >
-                {modalidades.map((modalidade, index) => (
-                  <MenuItem key={index} value={modalidade.label}>
-                    {modalidade.label}
+                {[
+                  { label: 'Esportivo' },
+                  { label: 'Musical' },
+                  { label: 'Cultural' },
+                  { label: 'Outro' }
+                ].map((option, index) => (
+                  <MenuItem key={index} value={option.label}>
+                  {option.label}
                   </MenuItem>
                 ))}
               </TextField>

@@ -8,19 +8,19 @@ const Hero: React.FC = () => {
 
   const items = [
     {
-      word: 'Encontre',
+      eventType: 'esportivo',
       color: '#2C3BBA',
-      backgroundImage: 'url(https://cdn.pixabay.com/photo/2016/11/18/22/24/woman-1837158_960_720.jpg)',
+      backgroundImage: 'url("/event_esportivo.jpg")',
     },
     {
-      word: 'Desbrave',
+      eventType: 'musical',
       color: '#68D391',
-      backgroundImage: 'url(https://cdn.pixabay.com/photo/2015/03/07/18/24/cycle-663342_960_720.jpg)',
+      backgroundImage: 'url("/event_musical.jpg")',
     },
     {
-      word: 'Acompanhe',
-      color: '#000000',
-      backgroundImage: 'url(https://cdn.pixabay.com/photo/2022/02/10/01/30/swimming-7004451_1280.jpg)',
+      eventType: 'cultural',
+      color: '#FF5733',
+      backgroundImage: 'url("/event_cultural.jpg")',
     },
   ];
 
@@ -33,9 +33,15 @@ const Hero: React.FC = () => {
   }, [items.length]);
 
   return (
-      <Box
+    <Box
       sx={{
-        height: { xs: '30vh', sm: '39vh', md: '49vh', lg: '54vh', xl: '49vh' },  // Altura ajustada para diferentes tamanhos de tela
+        height: {
+          xs: '30vh',
+          sm: '39vh',
+          md: '49vh',
+          lg: '54vh',
+          xl: '49vh',
+        }, // Altura ajustada para diferentes tamanhos de tela
         display: 'flex',
         justifyContent: 'center',
         alignItems: 'center',
@@ -79,22 +85,29 @@ const Hero: React.FC = () => {
             margin: 0, // Remove margem no Typography
           }}
         >
-          {/* Texto que troca de cor e palavra */}
-            <span
-            style={{
-              color: items[currentIndex].color,
-              textShadow: '4px 4px 4px #000000', // Sombra preta
-            }}
-            >
-            {items[currentIndex].word}
-          </span>{' '}
+          {/* Texto fixo + Texto dinâmico */}
           <span
             style={{
               color: '#FFFFFF',
               textShadow: '4px 4px 4px #000000', // Sombra preta
             }}
           >
-            o seu evento esportivo.
+            Encontre o seu evento{' '}
+          </span>
+          <span
+            style={{
+              color: items[currentIndex].color,
+              textShadow: '4px 4px 4px #000000', // Sombra preta
+            }}
+          >
+            {items[currentIndex].eventType}
+          </span>
+          <span
+            style={{
+              color: '#FFFFFF',
+              textShadow: '4px 4px 4px #000000', // Sombra preta
+            }}>
+            .
           </span>
         </Typography>
       </Box>

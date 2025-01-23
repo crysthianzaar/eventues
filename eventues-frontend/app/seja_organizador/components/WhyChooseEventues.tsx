@@ -175,7 +175,7 @@ const WhyChooseEventues: React.FC = () => {
         variant={isMobile ? "body1" : "h5"}
         sx={{ mb: 3, textShadow: "4px 4px 4px rgba(0.5, 0.5, 0.5, 0.5)" }}
           >
-        Somos mais que uma plataforma de inscrições, somos seu parceiro completo na gestão de eventos. Com preços competitivos e suporte dedicado, oferecemos todas as ferramentas e recursos que você precisa para organizar e promover seus eventos com facilidade e eficiência.
+        Somos mais que uma plataforma de inscrições e venda de ingressos, somos seu parceiro completo na gestão de eventos. Com preços competitivos e suporte dedicado, oferecemos todas as ferramentas e recursos que você precisa para organizar e promover seus eventos com facilidade e eficiência.
           </Typography>
           <Box
         sx={{
