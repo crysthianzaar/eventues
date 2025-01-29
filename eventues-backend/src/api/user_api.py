@@ -3,9 +3,9 @@ from chalice import Blueprint, Response, CORSConfig
 from src.usecases.user_usecase import UserUseCase
 
 cors_config = CORSConfig(
-    allow_origin='*',
-    allow_headers=['Authorization', 'Content-Type'],
-    max_age=600
+    allow_origin='https://www.eventues.com',  # Substitua pelo domínio exato do frontend
+    allow_headers=['Authorization', 'Content-Type'],  # Headers permitidos
+    max_age=600  # Cache da resposta OPTIONS
 )
 
 user_api = Blueprint(__name__)

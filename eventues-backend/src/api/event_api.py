@@ -7,9 +7,9 @@ from src.usecases.event_usecase import EventUseCase
 from src.utils.firebase import verify_token, storage, db
 
 cors_config = CORSConfig(
-    allow_origin='*',
-    allow_headers=['Authorization', 'Content-Type'],
-    max_age=600
+    allow_origin='https://www.eventues.com',  # Substitua pelo domínio exato do frontend
+    allow_headers=['Authorization', 'Content-Type'],  # Headers permitidos
+    max_age=600  # Cache da resposta OPTIONS
 )
 
 event_api = Blueprint(__name__)
