@@ -15,7 +15,7 @@
       "name": "rest_api",
       "resource_type": "rest_api",
       "rest_api_id": "obc5v0hl83",
-      "rest_api_url": "https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com/api/"
+      "rest_api_url": "https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com/api"
     }
   ],
   "schema_version": "2.0",
