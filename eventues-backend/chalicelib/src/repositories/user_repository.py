@@ -1,8 +1,8 @@
 # repositories/user_repository.py
-from src.utils.firebase import db
-from src.models.user_model import UserModel
-from src.models.tables import Table
-from src.utils.utils import filter_none_values
+from chalicelib.src.utils.firebase import db
+from chalicelib.src.models.user_model import UserModel
+from chalicelib.src.models.tables import Table
+from chalicelib.src.utils.utils import filter_none_values
 
 class UserRepository:
     def __init__(self):

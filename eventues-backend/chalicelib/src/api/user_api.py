@@ -1,6 +1,6 @@
 # api/user_api.py
 from chalice import Blueprint, Response, CORSConfig
-from src.usecases.user_usecase import UserUseCase
+from chalicelib.src.usecases.user_usecase import UserUseCase
 
 cors_config = CORSConfig(
     allow_origin='*',

@@ -1,5 +1,5 @@
-from src.repositories.user_repository import UserRepository
-from src.models.user_model import UserModel
+from chalicelib.src.repositories.user_repository import UserRepository
+from chalicelib.src.models.user_model import UserModel
 
 class UserUseCase:
     def __init__(self):

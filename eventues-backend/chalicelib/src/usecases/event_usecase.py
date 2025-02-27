@@ -1,9 +1,9 @@
 # src/usecases/event_usecase.py
 
 import base64
-from src.models.ingresso import Ingresso
-from src.repositories.event_repository import EventRepository
-from src.models.event_model import EventModel
+from chalicelib.src.models.ingresso import Ingresso
+from chalicelib.src.repositories.event_repository import EventRepository
+from chalicelib.src.models.event_model import EventModel
 from typing import Optional, List
 
 

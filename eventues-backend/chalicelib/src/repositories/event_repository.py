@@ -2,12 +2,12 @@
 from google.cloud.firestore_v1 import FieldFilter
 from typing import List, Optional
 import uuid
-from src.models.ingresso import Ingresso
-from src.utils.firebase import db
-from src.models.event_model import EventModel, EventStatus
-from src.models.tables import Table
-from src.utils.utils import filter_none_values
-from src.utils.firebase import storage, db
+from chalicelib.src.models.ingresso import Ingresso
+from chalicelib.src.utils.firebase import db
+from chalicelib.src.models.event_model import EventModel, EventStatus
+from chalicelib.src.models.tables import Table
+from chalicelib.src.utils.utils import filter_none_values
+from chalicelib.src.utils.firebase import storage, db
 
 class EventRepository:
     def __init__(self):

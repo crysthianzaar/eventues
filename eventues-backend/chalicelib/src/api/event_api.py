@@ -3,8 +3,8 @@
 import base64
 import json
 from chalice import Blueprint, Response, CORSConfig
-from src.usecases.event_usecase import EventUseCase
-from src.utils.firebase import verify_token, storage, db
+from chalicelib.src.usecases.event_usecase import EventUseCase
+from chalicelib.src.utils.firebase import verify_token, storage, db
 
 cors_config = CORSConfig(
     allow_origin='*',
