@@ -69,10 +69,6 @@ const Navbar: React.FC = () => {
     router.push("/meus_eventos");
   };
 
-  const handleBlog = () => {
-    router.push("/blog");
-  };
-
   const handleAccountSettings = () => {
     router.push("/minha_conta");
     handleMenuClose();
@@ -112,12 +108,6 @@ const Navbar: React.FC = () => {
       path: "/contato",
       icon: <ContactMailIcon />,
       action: () => router.push("/contato"),
-    },
-    {
-      label: "Blog",
-      path: "/blog",
-      icon: <ArticleIcon />,
-      action: () => handleBlog(),
     },
     {
       label: "Criar Evento",

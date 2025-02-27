@@ -8,17 +8,14 @@ const Hero: React.FC = () => {
 
   const items = [
     {
-      eventType: 'esportivo',
       color: '#2C3BBA',
-      backgroundImage: 'url("/event_esportivo.jpg")',
+      backgroundImage: 'url("/event_esportivo.png")',
     },
     {
-      eventType: 'musical',
       color: '#68D391',
       backgroundImage: 'url("/event_musical.jpg")',
     },
     {
-      eventType: 'cultural',
       color: '#FF5733',
       backgroundImage: 'url("/event_cultural.jpg")',
     },
@@ -85,23 +82,22 @@ const Hero: React.FC = () => {
             margin: 0, // Remove margem no Typography
           }}
         >
-          {/* Texto fixo + Texto dinâmico */}
-          <span
+            {/* Texto fixo + Texto dinâmico */}
+            <span
             style={{
               color: '#FFFFFF',
-              textShadow: '4px 4px 4px #000000', // Sombra preta
+              textShadow: '4px 4px 4px #2C3BBA', // Sombra azul
             }}
-          >
-            Encontre o seu evento{' '}
-          </span>
-          <span
+            >
+            Encontre o seu evento
+            </span>
+            <span
             style={{
               color: items[currentIndex].color,
-              textShadow: '4px 4px 4px #000000', // Sombra preta
+              textShadow: '4px 4px 4px #2C3BBA', // Sombra azul
             }}
-          >
-            {items[currentIndex].eventType}
-          </span>
+            >
+            </span>
           <span
             style={{
               color: '#FFFFFF',
