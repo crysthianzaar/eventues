@@ -17,6 +17,7 @@ class EventModel:
     event_id: str
     user_id: str
     name: str
+    slug: str
     category: str
     start_date: datetime
     end_date: datetime
@@ -27,6 +28,7 @@ class EventModel:
     address: str
     organization_name: str
     organization_contact: str
+    banner_url: Optional[str] = None
     address_complement: Optional[str] = None
     address_detail: Optional[str] = None
     event_status: Optional[str] = None
@@ -40,6 +42,8 @@ class EventModel:
             event_id=data.get('event_id'),
             user_id=data.get('user_id'),
             name=data.get('name'),
+            slug=data.get('slug'),
+            banner_url=data.get('banner_url'),
             category=data.get('category'),
             start_date=datetime.fromisoformat(data.get('start_date')),
             end_date=datetime.fromisoformat(data.get('end_date')),

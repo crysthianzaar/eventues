@@ -361,7 +361,22 @@ def list_public_events():
     
     try:
         events, next_cursor = use_case.get_public_events(cursor, limit)
-        events_dict = [event.to_dict() for event in events]
+        events_dict = []
+        
+        for event in events:
+            card_info = {
+                'event_id': event.event_id,
+                'name': event.name,
+                'slug': event.slug,
+                'banner_url': event.banner_url,
+                'start_date': event.start_date.isoformat() if event.start_date else None,
+                'end_date': event.end_date.isoformat() if event.end_date else None,
+                'event_type': event.event_type,
+                'event_category': event.event_category,
+                'state': event.state,
+                'city': event.city
+            }
+            events_dict.append(card_info)
         
         response = {
             "events": events_dict,

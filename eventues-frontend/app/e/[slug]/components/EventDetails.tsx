@@ -187,17 +187,17 @@ export default function EventDetails({ event }: EventDetailsProps) {
               size="large"
               href={`/e/${event.slug}/tickets`}
               sx={{
-                px: 4,
-                py: 1.5,
-                borderRadius: 2,
-                fontSize: '1.1rem',
-                bgcolor: colors.primary,
-                '&:hover': {
-                  bgcolor: '#4C5BC0'
-                }
+              px: 4,
+              py: 1.5,
+              borderRadius: 2,
+              fontSize: '1.1rem',
+              bgcolor: colors.primary,
+              '&:hover': {
+                bgcolor: '#4C5BC0'
+              }
               }}
             >
-              Garantir Ingresso
+              {event.event_type.toLowerCase() === 'esportivo' ? 'Se Inscrever' : 'Garantir Ingresso'}
             </Button>
 
             <Button
