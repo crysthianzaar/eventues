@@ -89,3 +89,42 @@ class EventRepository:
         documents = event_ref.collection('documents').where('firebase_path', '==', firebase_path).stream()
         for doc in documents:
             doc.reference.delete()
+
+    def get_public_events(self, cursor: Optional[str] = None, limit: int = 10) -> tuple[List[EventModel], Optional[str]]:
+        # Base query: get published events ordered by creation date
+        query = self.events_collection.where(
+            filter=FieldFilter('event_status', '==', EventStatus.PUBLICADO.value)
+        ).order_by('created_at', direction='DESCENDING')
+
+        try:
+            # Apply cursor pagination if provided
+            if cursor:
+                cursor_doc = self.events_collection.document(cursor).get()
+                if cursor_doc.exists:
+                    query = query.start_after(cursor_doc)
+
+            # Get documents
+            docs = list(query.limit(limit + 1).stream())
+            
+            # Process results
+            events = []
+            next_cursor = None
+            
+            # Check if we have more results
+            has_more = len(docs) > limit
+            
+            # Process only up to the limit
+            for doc in docs[:limit]:
+                event_data = doc.to_dict()
+                if event_data:  # Ensure we have valid data
+                    events.append(EventModel.from_dict(event_data))
+            
+            # Set the next cursor if we have more results
+            if has_more and events:
+                next_cursor = docs[limit - 1].id
+            
+            return events, next_cursor
+            
+        except Exception as e:
+            print(f"Error fetching public events: {str(e)}")
+            return [], None

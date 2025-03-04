@@ -3,7 +3,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, List
 from enum import Enum
-from datetime import datetime, date
 
 # Enums for various fields
 class TipoIngresso(str, Enum):
@@ -27,7 +26,7 @@ class ViradaProximoLote(BaseModel):
     @classmethod
     def from_dict(cls, data: dict):
         return cls(
-            data=data.get('data') if data.get('data') else None,
+            data=data.get('data'),
             quantidade=data.get('quantidade')
         )
 
@@ -48,7 +47,7 @@ class Lote(BaseModel):
         return cls(
             valor=data.get('valor'),
             quantidade=data.get('quantidade'),
-            viradaProximoLote=ViradaProximoLote.from_dict(data.get('viradaProximoLote'))
+            viradaProximoLote=ViradaProximoLote.from_dict(data.get('viradaProximoLote', {}))
         )
 
     def to_dict(self):
@@ -59,23 +58,33 @@ class Lote(BaseModel):
         }
 
 class Ingresso(BaseModel):
-    id: Optional[str] = None  # Assuming 'id' might not be provided when creating a new ticket
+    id: Optional[str] = None
     nome: str
     tipo: TipoIngresso
     valor: float
+    totalIngressos: Optional[int] = None
+    inicioVendas: Optional[str] = None
+    fimVendas: Optional[str] = None
     lotes: Optional[List[Lote]] = None
     taxaServico: TaxaServico
     visibilidade: Visibilidade
 
     @classmethod
     def from_dict(cls, data: dict):
-        lotes_data = data.get('lotes')
+        if not data:
+            return None
+            
+        lotes_data = data.get('lotes', [])
         lotes = [Lote.from_dict(lote) for lote in lotes_data] if lotes_data else None
+        
         return cls(
             id=data.get('id'),
             nome=data.get('nome'),
             tipo=TipoIngresso(data.get('tipo')),
-            valor=data.get('valor'),
+            valor=float(data.get('valor', 0)),
+            totalIngressos=int(data.get('totalIngressos')) if data.get('totalIngressos') else None,
+            inicioVendas=data.get('inicioVendas'),
+            fimVendas=data.get('fimVendas'),
             lotes=lotes,
             taxaServico=TaxaServico(data.get('taxaServico')),
             visibilidade=Visibilidade(data.get('visibilidade'))
@@ -87,41 +96,10 @@ class Ingresso(BaseModel):
             'nome': self.nome,
             'tipo': self.tipo.value,
             'valor': self.valor,
+            'totalIngressos': self.totalIngressos,
+            'inicioVendas': self.inicioVendas,
+            'fimVendas': self.fimVendas,
             'lotes': [lote.to_dict() for lote in self.lotes] if self.lotes else None,
             'taxaServico': self.taxaServico.value,
             'visibilidade': self.visibilidade.value
         }
-        totalIngressos: int
-        fimVendas: datetime
-        inicioVendas: datetime
-
-        @classmethod
-        def from_dict(cls, data: dict):
-            lotes_data = data.get('lotes')
-            lotes = [Lote.from_dict(lote) for lote in lotes_data] if lotes_data else None
-            return cls(
-                id=data.get('id'),
-                nome=data.get('nome'),
-                tipo=TipoIngresso(data.get('tipo')),
-                valor=data.get('valor'),
-                lotes=lotes,
-                taxaServico=TaxaServico(data.get('taxaServico')),
-                visibilidade=Visibilidade(data.get('visibilidade')),
-                totalIngressos=data.get('totalIngressos'),
-                fimVendas=datetime.strptime(data.get('fimVendas'), '%Y-%m-%dT%H:%M:%S'),
-                inicioVendas=datetime.strptime(data.get('inicioVendas'), '%Y-%m-%dT%H:%M:%S')
-            )
-
-        def to_dict(self):
-            return {
-                'id': self.id,
-                'nome': self.nome,
-                'tipo': self.tipo.value,
-                'valor': self.valor,
-                'lotes': [lote.to_dict() for lote in self.lotes] if self.lotes else None,
-                'taxaServico': self.taxaServico.value,
-                'visibilidade': self.visibilidade.value,
-                'totalIngressos': self.totalIngressos,
-                'fimVendas': self.fimVendas.isoformat(),
-                'inicioVendas': self.inicioVendas.isoformat()
-            }

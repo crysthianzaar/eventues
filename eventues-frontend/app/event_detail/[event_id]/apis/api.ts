@@ -170,8 +170,32 @@ export const getTickets = async (
 
 // Função para atualizar um ingresso
 export const updateTicket = async (eventId: string, ingressoId: string, ingresso: Partial<Ingresso>): Promise<Ingresso> => {
-  const response = await axios.put<Ingresso>(`${API_BASE_URL}/organizer_detail/${eventId}/tickets/${ingressoId}`, ingresso);
-  return response.data;
+  try {
+    const payload = {
+      ...ingresso,
+      valor: typeof ingresso.valor === 'string' ? parseFloat(ingresso.valor) : ingresso.valor,
+      totalIngressos: ingresso.totalIngressos?.toString(),
+      inicioVendas: ingresso.inicioVendas || '',
+      fimVendas: ingresso.fimVendas || ''
+    };
+
+    const response = await axios.patch<Ingresso>(
+      `${API_BASE_URL}/organizer_detail/${eventId}/tickets/${ingressoId}`,
+      payload,
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    const axiosError = error as { response?: { data?: { error?: string } } };
+    if (axiosError.response?.data?.error) {
+      throw new Error(axiosError.response.data.error);
+    }
+    throw new Error('Erro ao atualizar ingresso');
+  }
 };
 
 // Função para excluir um ingresso

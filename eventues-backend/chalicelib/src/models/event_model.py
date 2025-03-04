@@ -9,6 +9,8 @@ from typing import Optional
 
 class EventStatus(Enum):
     RASCUNHO = 'Rascunho'
+    PUBLICADO = 'Publicado'
+    CANCELADO = 'Cancelado'
 
 @dataclass
 class EventModel:

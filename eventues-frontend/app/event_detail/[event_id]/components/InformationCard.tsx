@@ -145,6 +145,7 @@ const InformationCard: React.FC = () => {
   const [estados, setEstados] = useState<Estado[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -306,6 +307,9 @@ const InformationCard: React.FC = () => {
           name: file.file_name, // Usando o nome do arquivo como nome personalizado
         }));
       setAttachments(attachmentFiles);
+      
+      // Marcar que o carregamento inicial foi concluído
+      setIsInitialLoad(false);
     } catch (err) {
       console.error("Erro ao carregar dados do evento:", err);
       setSnackbar({
@@ -376,11 +380,17 @@ const InformationCard: React.FC = () => {
   // Função para lidar com mudanças nos campos de input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    if (!loading) {
+      handleAutoSave({ ...formData, [name]: value });
+    }
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   // Função para lidar com mudanças na descrição do evento
   const handleDescriptionChange = (value: string) => {
+    if (!loading) {
+      handleAutoSave({ ...formData, eventDescription: value });
+    }
     setFormData((prev) => ({ ...prev, eventDescription: value }));
   };
 
@@ -487,7 +497,8 @@ const InformationCard: React.FC = () => {
   // Função para salvar os dados do evento (Auto-Save)
   const handleAutoSave = useCallback(
     debounce(async (updatedData: typeof formData) => {
-      setSubmitting(true);
+      if (loading) return;
+
       try {
         const dataToSend = {
           event_id: event_id,
@@ -508,35 +519,26 @@ const InformationCard: React.FC = () => {
         };
 
         await updateEventDetails(event_id, dataToSend);
-
         setSnackbar({
           open: true,
-          message: "Detalhes do evento atualizados!",
+          message: "Alterações salvas com sucesso!",
           severity: "success",
         });
-        setTimeout(() => {
-          setSnackbar((prev) => ({ ...prev, open: false }));
-        }, 2000);
-            } catch (error) {
+      } catch (error) {
         console.error("Erro ao salvar o evento:", error);
         setSnackbar({
           open: true,
-          message: "Erro ao salvar os detalhes do evento.",
+          message: "Erro ao salvar as alterações. Tente novamente.",
           severity: "error",
         });
-            } finally {
-        setSubmitting(false);
-            }
-          }, 1000),
-    [event_id]
+      }
+    }, 1000),
+    [event_id, loading]
   );
 
   useEffect(() => {
-    // Evita salvar se estiver carregando os dados iniciais
-    if (!loading) {
-      handleAutoSave(formData);
-    }
-  }, [formData, handleAutoSave, loading]);
+    fetchEventData();
+  }, [fetchEventData]);
 
   // useEffect para buscar dados do evento e estados
   useEffect(() => {
@@ -557,7 +559,6 @@ const InformationCard: React.FC = () => {
       }
     };
 
-    fetchEventData();
     fetchEstados();
 
     // Adicionando listeners de eventos passivos
@@ -568,7 +569,7 @@ const InformationCard: React.FC = () => {
       window.removeEventListener('scroll', () => {});
       window.removeEventListener('touchstart', () => {});
     };
-  }, [fetchEventData]);
+  }, []);
 
   // Função para fechar o Snackbar
   const handleCloseSnackbar = (

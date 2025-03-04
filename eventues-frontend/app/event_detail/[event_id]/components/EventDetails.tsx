@@ -50,6 +50,7 @@ interface EventDetail {
   event_id: string;
   user_id: string; // Adicionado para verificar a propriedade
   name: string;
+  slug: string; // Adicionando slug à interface
   category: string;
   start_date: string;
   end_date: string;
@@ -63,6 +64,29 @@ interface EventDetail {
   description: string;
   banner_image_url: string;
   // Removemos o stepper
+}
+
+interface EventDetail {
+  event_id: string;
+  user_id: string;
+  name: string;
+  slug: string;
+  category: string;
+  start_date: string;
+  end_date: string;
+  start_time: string;
+  end_time: string;
+  state: string;
+  city: string;
+  address: string;
+  address_complement: string;
+  address_detail: string;
+  organization_name: string;
+  organization_contact: string;
+  event_status: string;
+  event_type: string;
+  event_description?: string;
+  banner_image?: string;
 }
 
 const colors = {
@@ -391,10 +415,8 @@ const OrganizatorEventDetail: React.FC = () => {
           variant="outlined"
           color="primary"
           startIcon={<EventIcon />}
-          onClick={() => router.push(`/event_page/${event_id}`)} // Ajuste a rota conforme necessário
-          sx={{
-        fontSize: isSmallScreen ? "12px" : "14px",
-          }}
+          onClick={() => router.push(`/e/${eventDetail.slug}`)}
+          sx={{ fontSize: isSmallScreen ? "12px" : "14px" }}
         >
           Visualizar Página do Evento
         </Button>
@@ -405,7 +427,7 @@ const OrganizatorEventDetail: React.FC = () => {
           startIcon={<MonetizationOnIcon />}
           onClick={handlePublishEvent}
           sx={{
-        fontSize: isSmallScreen ? "12px" : "14px",
+            fontSize: isSmallScreen ? "12px" : "14px",
           }}
         >
           Publicar Evento
@@ -417,7 +439,7 @@ const OrganizatorEventDetail: React.FC = () => {
           startIcon={<ErrorIcon />}
           onClick={() => setDeleteDialogOpen(true)}
           sx={{
-        fontSize: isSmallScreen ? "12px" : "14px",
+            fontSize: isSmallScreen ? "12px" : "14px",
           }}
         >
           Excluir Evento

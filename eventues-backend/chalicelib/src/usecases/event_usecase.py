@@ -79,3 +79,6 @@ class EventUseCase:
         updated_event = self.event_repository.update_event(event_data)
         
         return updated_event
+
+    def get_public_events(self, cursor: Optional[str] = None, limit: int = 10) -> tuple[List[EventModel], Optional[str]]:
+        return self.event_repository.get_public_events(cursor, limit)
