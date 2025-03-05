@@ -119,11 +119,9 @@ class EventRepository:
                 if event_data:  # Ensure we have valid data
                     # Get banner from documents subcollection
                     documents = list(doc.reference.collection('documents').stream())
-                    for document in documents:
-                        doc_data = document.to_dict()
-                        if doc_data.get('file_name', '').lower().startswith('banner'):
-                            event_data['banner_url'] = doc_data.get('url')
-                            break
+                    banners = [doc.to_dict() for doc in documents if doc.to_dict().get('file_name', '').lower().startswith('banner')]
+                    if banners:
+                        event_data['banner_url'] = banners[-1].get('url')
                     
                     events.append(EventModel.from_dict(event_data))
             

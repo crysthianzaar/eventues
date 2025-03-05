@@ -241,20 +241,30 @@ const OrganizatorEventDetail: React.FC = () => {
     action();
   };
 
-  // Função para publicar o evento
+  // Função para publicar/despublicar o evento
   const handlePublishEvent = async () => {
     try {
-      // Chamada à API para publicar o evento
-      const response = await api.post(`/publish_event/${event_id}`);
+      // Define o novo status baseado no status atual
+      const newStatus = eventDetail?.event_status === "Rascunho" ? "Publicado" : "Rascunho";
+      
+      // Chamada à API para alterar o status do evento
+      const response = await api.patch(`/publish_event/${event_id}/${newStatus}`);
+      
       if (response.status === 200) {
-        handleNotify("Evento publicado com sucesso!", "success");
+        const message = newStatus === "Publicado" 
+          ? "Evento publicado com sucesso!" 
+          : "Evento despublicado com sucesso!";
+        
+        handleNotify(message, "success");
+        
         // Atualiza o status do evento localmente
         setEventDetail((prev) =>
-          prev ? { ...prev, event_status: "Publicado" } : prev
+          prev ? { ...prev, event_status: newStatus } : prev
         );
       }
     } catch (err: any) {
-      handleNotify("Erro ao publicar o evento.", "error");
+      const action = eventDetail?.event_status === "Rascunho" ? "publicar" : "despublicar";
+      handleNotify(`Erro ao ${action} o evento.`, "error");
     }
   };
 
@@ -421,6 +431,8 @@ const OrganizatorEventDetail: React.FC = () => {
           Visualizar Página do Evento
         </Button>
 
+        {eventDetail.event_status === "Rascunho" ? (
+          <>
         <Button
           variant="contained"
           color="primary"
@@ -444,6 +456,20 @@ const OrganizatorEventDetail: React.FC = () => {
         >
           Excluir Evento
         </Button>
+          </>
+        ) : (
+          <Button
+        variant="contained"
+        color="warning"
+        startIcon={<MonetizationOnIcon />}
+        onClick={handlePublishEvent}
+        sx={{
+          fontSize: isSmallScreen ? "12px" : "14px",
+        }}
+          >
+        Despublicar Evento
+          </Button>
+        )}
       </Box>
 
       {/* Área Principal de Conteúdo */}

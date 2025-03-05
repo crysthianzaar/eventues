@@ -51,36 +51,36 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEventClick }) => {
     >
   <CardActionArea onClick={() => onEventClick(event.slug)}>
     <CardMedia
-   component="img"
-   image={event.banner_url || "/images/default_banner.jpg"}
-   alt={event.name}
-   sx={{
-    height: '200px',
-    objectFit: 'cover',
-   }}
+      component="img"
+      image={`${event.banner_url || "/images/default_banner.jpg"}?t=${Date.now()}`}
+      alt={event.name}
+      sx={{
+        height: '200px',
+        objectFit: 'cover',
+      }}
     />
     <CardContent sx={{ height: '150px', overflow: 'hidden' }}>
-   <Chip 
-    label={event.event_type} 
-    color="primary" 
-    sx={{ marginBottom: '10px', marginRight: '5px' }} 
-   />
-   {event.event_category && (
-    <Chip 
-      label={event.event_category} 
-      variant="outlined" 
-      sx={{ marginBottom: '10px' }} 
-    />
-   )}
-   <Typography variant="h6" component="h3" gutterBottom>
-    {event.name}
-   </Typography>
-   <Typography variant="body2" color="textSecondary">
-    <i className="bi bi-calendar"></i> {formattedDate}
-   </Typography>
-   <Typography variant="body2" color="textSecondary">
-    <i className="bi bi-geo-alt"></i> {event.city}, {event.state}
-   </Typography>
+      <Chip 
+        label={event.event_type} 
+        color="primary" 
+        sx={{ marginBottom: '10px', marginRight: '5px' }} 
+      />
+      {event.event_category && (
+        <Chip 
+          label={event.event_category} 
+          variant="outlined" 
+          sx={{ marginBottom: '10px' }} 
+        />
+      )}
+      <Typography variant="h6" component="h3" gutterBottom>
+        {event.name}
+      </Typography>
+      <Typography variant="body2" color="textSecondary">
+        <i className="bi bi-calendar"></i> {formattedDate}
+      </Typography>
+      <Typography variant="body2" color="textSecondary">
+        <i className="bi bi-geo-alt"></i> {event.city}, {event.state}
+      </Typography>
     </CardContent>
   </CardActionArea>
    <Box sx={{ padding: '10px' }}>

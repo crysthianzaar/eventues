@@ -425,3 +425,19 @@ def get_public_event_by_slug(slug):
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
+
+@event_api.route('/publish_event/{event_id}/{status}', methods=['PATCH'], cors=cors_config)
+def publish_event(event_id, status):
+    try:
+        event = use_case.publish_event(event_id, status)
+        return Response(
+            body=event,
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )

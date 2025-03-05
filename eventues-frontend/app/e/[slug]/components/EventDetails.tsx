@@ -94,6 +94,14 @@ export default function EventDetails({ event }: EventDetailsProps) {
     }
   };
 
+  // Add a state for cache busting
+  const [cacheBuster, setCacheBuster] = useState(() => Date.now());
+
+  // Update the useEffect to reset the cache buster when bannerUrl changes
+  useEffect(() => {
+    setCacheBuster(Date.now());
+  }, [bannerUrl]);
+
   return (
     <Container maxWidth="lg" sx={{ mt: -8, position: 'relative', zIndex: 1 }}>
       <Grid container spacing={4}>
@@ -110,7 +118,7 @@ export default function EventDetails({ event }: EventDetailsProps) {
             <CardMedia
               component="img"
               height="400"
-              image={bannerUrl}
+              image={`${bannerUrl}?v=${cacheBuster}`}
               alt={`Banner do evento ${event.name}`}
               sx={{
                 objectFit: 'cover',
@@ -166,8 +174,6 @@ export default function EventDetails({ event }: EventDetailsProps) {
             </Box>
           </Card>
         </Grid>
-
-        {/* Ações */}
         <Grid item xs={12}>
           <Paper 
             elevation={2}

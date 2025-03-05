@@ -81,3 +81,11 @@ class EventUseCase:
         document_data = self.event_repository.upload_event_file(event_id, decoded_file, firebase_file_path, content_type, file_name)
 
         return document_data
+
+    def publish_event(self, event_id: str, event_status: str) -> EventModel:
+        event = self.event_repository.find_event_by_id(event_id)
+        if not event:
+            raise ValueError("Evento não encontrado.")
+
+        event.event_status = event_status
+        return self.event_repository.update_event(event)
