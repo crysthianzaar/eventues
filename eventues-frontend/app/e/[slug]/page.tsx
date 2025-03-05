@@ -45,7 +45,7 @@ interface PublicEventDetail {
 const fetchPublicEventDetail = async (slug: string): Promise<PublicEventDetail | null> => {
   try {
     const response = await axios.get<PublicEventDetail>(
-      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events/${slug}`
+      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events/slug/${slug}`
     );
     return response.data;
   } catch (error) {

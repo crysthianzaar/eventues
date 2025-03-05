@@ -13,57 +13,33 @@ cors_config = CORSConfig(
     max_age=600
 )
 
-@public_api.route('/events/{slug}', methods=['GET'], cors=cors_config)
-def get_public_event(slug):
+@public_api.route('/events/slug/{slug}', methods=['GET'], cors=cors_config)
+def get_public_event_by_slug(slug):
     try:
         # Buscar evento pelo slug
         events_ref = db.collection('events')
-        query = events_ref.where(filter=firestore.FieldFilter('slug', '==', slug)).limit(1)
-        events = query.get()
-
-        if not events:
+        query = events_ref.where('slug', '==', slug)
+        docs = list(query.stream())
+        
+        if not docs:
             return Response(
                 body=json.dumps({"error": "Evento não encontrado"}),
                 status_code=404,
                 headers={'Content-Type': 'application/json'}
             )
-
-        event = events[0]
+            
+        event = docs[0]
         event_data = event.to_dict()
         event_data['event_id'] = event.id
-
-        # Buscar ingressos disponíveis
-        tickets_ref = event.reference.collection('tickets')
-        tickets = tickets_ref.get()
-
-        available_tickets = []
-        for ticket in tickets:
-            ticket_data = ticket.to_dict()
-            
-            # Calcular ingressos disponíveis
-            total = int(ticket_data.get('totalIngressos', 0))
-            vendidos_ref = ticket.reference.collection('vendidos').get()
-            vendidos = len(vendidos_ref)
-            
-            ticket_data['id'] = ticket.id
-            ticket_data['ingressosDisponiveis'] = str(total - vendidos)
-            
-            # Só incluir ingressos que estão visíveis
-            if ticket_data.get('visibilidade') == 'publico':
-                available_tickets.append(ticket_data)
-
-        event_data['tickets'] = available_tickets
-
+        
         return Response(
             body=json.dumps(event_data),
             status_code=200,
             headers={'Content-Type': 'application/json'}
         )
-
     except Exception as e:
-        print(f"Erro ao buscar evento público: {str(e)}")
         return Response(
-            body=json.dumps({"error": "Erro ao buscar evento"}),
+            body=json.dumps({"error": f"Erro ao buscar evento: {str(e)}"}),
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
