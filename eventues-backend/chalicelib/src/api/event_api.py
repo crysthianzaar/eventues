@@ -395,7 +395,7 @@ def list_public_events():
             headers={'Content-Type': 'application/json'}
         )
 
-@event_api.route('/public/events/{slug}', methods=['GET'], cors=cors_config)
+@event_api.route('/public/events/slug/{slug}', methods=['GET'], cors=cors_config)
 def get_public_event_by_slug(slug):
     try:
         # Buscar evento pelo slug

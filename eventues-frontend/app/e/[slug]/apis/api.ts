@@ -50,7 +50,7 @@ export interface TicketReservation {
 // Buscar detalhes públicos do evento
 export const getPublicEventDetail = async (slug: string): Promise<PublicEventDetail> => {
   const response = await axios.get<PublicEventDetail>(
-    `${API_BASE_URL}/events/${slug}`
+    `${API_BASE_URL}/events/slug/${slug}`
   );
   return response.data;
 };
