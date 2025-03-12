@@ -43,6 +43,7 @@ import PolicyCard from "../utils/PolicyCard";
 import TicketsAndValues from "./TicketsAndValues";
 import CriarIngressoPage from "./TicketsAndValues";
 import Categories from "./Categories";
+import TicketOptions from '@/app/e/[slug]/components/TicketOptions';
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
 import api from "../apis/api";
 
@@ -87,6 +88,16 @@ interface EventDetail {
   event_type: string;
   event_description?: string;
   banner_image?: string;
+  tickets?: {
+    id: string;
+    name: string;
+    description: string;
+    price: number;
+    totalIngressos: number;
+    type: 'Simples' | 'Lotes' | 'Gratuito';
+    status: 'active' | 'inactive';
+    category?: string;
+  }[];
 }
 
 const colors = {
