@@ -61,7 +61,7 @@ export interface DocumentData {
   size?: number;
 }
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL;
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
 
 // Função para upload de documento
 export const uploadDocumentFile = async (
@@ -204,7 +204,7 @@ export const deleteTicket = async (eventId: string, ingressoId: string): Promise
 };
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_API_URL, // Substitua pela URL do seu backend
+  baseURL: process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://api.eventues.com.br', // Substitua pela URL do seu backend
 });
 
 export default api;

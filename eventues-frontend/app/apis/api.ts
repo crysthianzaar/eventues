@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
 
 export interface Ingresso {
   descricao: string;
