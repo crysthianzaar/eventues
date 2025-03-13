@@ -1,9 +1,9 @@
 import json
-from chalice import Blueprint, Response, CORSConfig
 import requests
 from datetime import datetime
-from ..utils.firebase import db, verify_token
 from cachetools import TTLCache, cached
+from chalice import Blueprint, Response, CORSConfig
+from chalicelib.src.utils.firebase import db, verify_token
 
 cors_config = CORSConfig(
     allow_origin='*',

@@ -2,11 +2,11 @@
 
 import base64
 import json
+from cachetools import TTLCache, cached
 from chalice import Blueprint, Response, CORSConfig
 from chalicelib.src.usecases.event_usecase import EventUseCase
 from chalicelib.src.utils.firebase import verify_token, db
-from ..utils.formatters import generate_slug
-from cachetools import TTLCache, cached
+from chalicelib.src.utils.formatters import generate_slug
 
 cors_config = CORSConfig(
     allow_origin='*',

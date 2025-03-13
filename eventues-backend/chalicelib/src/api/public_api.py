@@ -1,12 +1,10 @@
-from chalice import Blueprint, Response, CORSConfig
-import json
-from ..models.ingresso import Ingresso
-from ..utils.formatters import generate_slug
-from firebase_admin import firestore
-import datetime
-from functools import wraps
-from cachetools import TTLCache, cached
 import base64
+import json
+from firebase_admin import firestore
+from cachetools import TTLCache, cached
+from chalice import Blueprint, Response, CORSConfig
+from chalicelib.src.models.ingresso import Ingresso
+from chalicelib.src.utils.formatters import generate_slug
 
 public_api = Blueprint(__name__)
 db = firestore.client()
