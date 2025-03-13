@@ -3,15 +3,45 @@ import json
 from ..models.ingresso import Ingresso
 from ..utils.formatters import generate_slug
 from firebase_admin import firestore
+import datetime
+from functools import wraps
+from cachetools import TTLCache, cached
+import base64
 
 public_api = Blueprint(__name__)
 db = firestore.client()
+
+# Cache configuration
+events_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
 
 cors_config = CORSConfig(
     allow_origin='*',
     allow_headers=['*'],
     max_age=600
 )
+
+def encode_cursor(last_doc):
+    """Encode the last document into a cursor string"""
+    if not last_doc:
+        return None
+    cursor_data = {
+        'id': last_doc.id,
+        'name': last_doc.get('name'),
+        'start_date': last_doc.get('start_date')
+    }
+    return base64.b64encode(json.dumps(cursor_data).encode()).decode()
+
+def decode_cursor(cursor_str):
+    """Decode cursor string back into document data"""
+    if not cursor_str:
+        return None
+    try:
+        cursor_data = json.loads(base64.b64decode(cursor_str))
+        return cursor_data
+    except:
+        return None
+
+# Rota movida para event_api.py para manter consistência com a implementação existente
 
 @public_api.route('/events/slug/{slug}', methods=['GET'], cors=cors_config)
 def get_public_event_by_slug(slug):

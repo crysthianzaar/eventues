@@ -16,22 +16,27 @@ import { getEventBySlug, getEventTickets, Ingresso, Lote, Event } from '@/app/ap
 
 interface TicketOptionsProps {
   eventSlug: string;
-  onSelectTicket: (ticket: Ingresso) => void;
+  onSelectTicket: (ticket: Ingresso, quantity: number) => void;
 }
 
 export default function TicketOptions({ eventSlug, onSelectTicket }: TicketOptionsProps) {
   const [tickets, setTickets] = useState<Ingresso[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedQuantities, setSelectedQuantities] = useState<{ [key: string]: number }>({});
 
   useEffect(() => {
     const fetchTickets = async () => {
       try {
-        // Primeiro busca o evento pelo slug
         const event = await getEventBySlug(eventSlug);
-        // Depois busca os tickets usando o event_id do evento
         const ticketsData = await getEventTickets(event.event_id);
         setTickets(ticketsData);
+        // Initialize quantities
+        const initialQuantities = ticketsData.reduce((acc, ticket) => ({
+          ...acc,
+          [ticket.id]: 0
+        }), {});
+        setSelectedQuantities(initialQuantities);
       } catch (error) {
         setError('Erro ao carregar ingressos');
         console.error('Error fetching tickets:', error);
@@ -43,12 +48,24 @@ export default function TicketOptions({ eventSlug, onSelectTicket }: TicketOptio
     fetchTickets();
   }, [eventSlug]);
 
+  const handleQuantityChange = (ticket: Ingresso, change: number) => {
+    const currentQuantity = selectedQuantities[ticket.id] || 0;
+    const newQuantity = Math.max(0, Math.min(currentQuantity + change, 10)); // Max 10 tickets per person
+    
+    setSelectedQuantities(prev => ({
+      ...prev,
+      [ticket.id]: newQuantity
+    }));
+    
+    // Notify parent component of the quantity change
+    onSelectTicket(ticket, newQuantity);
+  };
+
   const getCurrentLoteInfo = (ticket: Ingresso): Lote | null => {
     if (ticket.tipo !== 'Lotes' || !ticket.lotes || ticket.lotes.length === 0) {
       return null;
     }
 
-    // Encontrar o lote atual baseado na quantidade disponível
     const currentLote = ticket.lotes.find((lote, index) => {
       const previousLotesQuantity = ticket.lotes!
         .slice(0, index)
@@ -104,12 +121,19 @@ export default function TicketOptions({ eventSlug, onSelectTicket }: TicketOptio
     );
   }
 
+  const calculateTotal = (ticket: Ingresso) => {
+    const price = getTicketPrice(ticket);
+    const quantity = selectedQuantities[ticket.id] || 0;
+    return price * quantity;
+  };
+
   return (
     <Grid container spacing={2}>
       {tickets.map((ticket) => {
         const status = getTicketStatus(ticket);
         const price = getTicketPrice(ticket);
         const currentLote = getCurrentLoteInfo(ticket);
+        const quantity = selectedQuantities[ticket.id] || 0;
 
         return (
           <Grid item xs={12} key={ticket.id}>
@@ -154,17 +178,32 @@ export default function TicketOptions({ eventSlug, onSelectTicket }: TicketOptio
                 <Divider sx={{ my: 2 }} />
 
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography variant="body2" color="text.secondary">
-                    {ticket.totalIngressos} ingressos disponíveis
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleQuantityChange(ticket, -1)}
+                      disabled={!status.available || quantity === 0}
+                    >
+                      -
+                    </Button>
+                    <Typography sx={{ mx: 2 }}>{quantity}</Typography>
+                    <Button
+                      variant="outlined"
+                      onClick={() => handleQuantityChange(ticket, 1)}
+                      disabled={!status.available || quantity >= 10 || quantity >= ticket.totalIngressos}
+                    >
+                      +
+                    </Button>
+                  </Box>
+                  <Typography variant="h6">
+                    Total: {formatPrice(calculateTotal(ticket))}
                   </Typography>
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    disabled={!status.available}
-                    onClick={() => onSelectTicket(ticket)}
-                  >
-                    Selecionar
-                  </Button>
+                </Box>
+
+                <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Quantidade selecionada: {quantity}
+                  </Typography>
                 </Box>
               </CardContent>
             </Card>

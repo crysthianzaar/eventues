@@ -69,28 +69,81 @@ export async function generateMetadata({ params }: { params: { slug: string } })
         description: "O evento que você está procurando não foi encontrado.",
         images: [{ url: "/images/default_banner.jpg", width: 800, height: 600 }],
       },
+      twitter: {
+        card: 'summary_large_image',
+        title: "Evento não encontrado | Eventues",
+        description: "O evento que você está procurando não foi encontrado.",
+        images: ["/images/default_banner.jpg"],
+      }
     };
   }
 
   const formattedDate = formatDate(eventDetail.start_date);
+  const title = `${eventDetail.name} em ${eventDetail.city} - ${formattedDate} | Eventues`;
+  const description = `${eventDetail.event_type}: ${eventDetail.event_description.slice(0, 160)}...`;
+  const bannerUrl = eventDetail.banner_image_url || "/images/default_banner.jpg";
+
+  // Formatação detalhada do evento em português
+  const fullDescription = [
+    description,
+    '',
+    `📅 Data: ${formattedDate}`,
+    `⏰ Horário: ${eventDetail.start_time} às ${eventDetail.end_time}`,
+    `📍 Local: ${eventDetail.address}, ${eventDetail.city} - ${eventDetail.state}`,
+    `👥 Organização: ${eventDetail.organization_name}`,
+    '',
+    'Garanta sua vaga agora!'
+  ].join('\n');
 
   return {
-    title: `${eventDetail.name} em ${eventDetail.city} - ${formattedDate} | Eventues`,
-    description: eventDetail.event_description,
+    title,
+    description: fullDescription,
     openGraph: {
       type: "website",
       url: `https://www.eventues.com/e/${slug}`,
-      title: `${eventDetail.name} em ${eventDetail.city} - ${formattedDate} | Eventues`,
-      description: eventDetail.event_description,
+      title,
+      description: fullDescription,
+      siteName: "Eventues",
       images: [
         {
-          url: eventDetail.banner_image_url || "/images/default_banner.jpg",
-          width: 800,
-          height: 600,
+          url: bannerUrl,
+          width: 1200,
+          height: 630,
           alt: `Banner do evento ${eventDetail.name}`,
         },
       ],
+      locale: 'pt_BR',
     },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description: fullDescription,
+      images: [bannerUrl],
+      creator: '@eventues',
+    },
+    alternates: {
+      canonical: `https://www.eventues.com/e/${slug}`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: {
+        index: true,
+        follow: true,
+      },
+    },
+    keywords: [
+      eventDetail.event_type,
+      'evento',
+      eventDetail.city,
+      eventDetail.state,
+      'inscrição',
+      'ingresso',
+      'eventos esportivos',
+      eventDetail.organization_name,
+      'corrida',
+      'competição',
+    ].join(', '),
   };
 }
 

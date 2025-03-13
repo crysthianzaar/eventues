@@ -31,11 +31,11 @@ import axios from 'axios';
 import LoadingOverlay from '../components/LoadingOverlay';
 
 interface Event {
-  id: string;
+  event_id: string;
   name: string;
-  status: string;
+  event_status: string;
   imageUrl: string;
-  date: string; // Data formatada
+  start_date: string; // Data formatada
   dateObj: Date; // Data do evento como objeto Date
   registrationDate: Date; // Data de inscrição como objeto Date
   location: string;
@@ -85,23 +85,23 @@ const MinhaContaPage = () => {
           // Temporariamente mantendo os eventos como dados mockados
           setEvents([
             {
-              id: '1',
+              event_id: '1',
               name: 'Evento de Ciclismo',
-              status: 'Concluído',
+              event_status: 'Concluído',
               imageUrl:
                 'https://cdn.ticketsports.com.br/ticketagora/images/thumb/483WWR31GJPW13HS9PEVE18NGD17U0CVUJ1NMRTOUOGKFBUW4H.png',
-              date: '15 de Outubro de 2024',
+              start_date: '15 de Outubro de 2024',
               dateObj: new Date('2024-10-15'),
               registrationDate: new Date('2024-10-05'),
               location: 'São Paulo, SP',
             },
             {
-              id: '2',
+              event_id: '2',
               name: 'Corrida 10K',
-              status: 'Inscrito',
+              event_status: 'Inscrito',
               imageUrl:
                 'https://cdn.ticketsports.com.br/ticketagora/images/7R80BOJT9CNC85MFPNY1I8HZD8PVWQNL2CWLU9O2IE811M3WJM.png',
-              date: '22 de Outubro de 2024',
+              start_date: '22 de Outubro de 2024',
               dateObj: new Date('2024-10-22'),
               registrationDate: new Date('2024-10-01'),
               location: 'Rio de Janeiro, RJ',
@@ -145,7 +145,7 @@ const MinhaContaPage = () => {
     const today = new Date();
 
     // Verificar se o evento já foi concluído
-    if (event.status === 'Concluído') {
+    if (event.event_status === 'Concluído') {
       return { canCancel: false, message: 'Não é possível cancelar, o evento já foi realizado.' };
     }
 
@@ -172,7 +172,7 @@ const MinhaContaPage = () => {
   const handleEventAction = (action: string, event: Event) => {
     switch (action) {
       case 'info':
-        router.push(`/evento/${event.id}`);
+        router.push(`/evento/${event.event_id}`);
         break;
       case 'resend':
         // Lógica para reenviar confirmação
@@ -187,7 +187,7 @@ const MinhaContaPage = () => {
         if (canCancel) {
           // Lógica para cancelar inscrição
           // Implementar a lógica real de cancelamento via API
-          cancelRegistration(event.id);
+          cancelRegistration(event.event_id);
         } else {
           // Exibir popup com a mensagem
           setPopupMessage(message || 'Não é possível cancelar a inscrição.');
@@ -218,7 +218,7 @@ const MinhaContaPage = () => {
         // Atualizar a lista de eventos
         setEvents((prevEvents) =>
           prevEvents.map((event) =>
-            event.id === eventId ? { ...event, status: 'Cancelado' } : event
+            event.event_id === eventId ? { ...event, event_status: 'Cancelado' } : event
           )
         );
       } else {
@@ -329,7 +329,7 @@ const MinhaContaPage = () => {
             {events.length > 0 ? (
               <Grid container spacing={3}>
                 {events.map((event) => (
-                  <Grid item xs={12} sm={6} key={event.id}>
+                  <Grid item xs={12} sm={6} key={event.event_id}>
                     <Card
                       sx={{
                         display: 'flex',
@@ -353,7 +353,7 @@ const MinhaContaPage = () => {
                           {event.name}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
-                          <strong>Data:</strong> {event.date}
+                          <strong>Data:</strong> {event.start_date}
                         </Typography>
                         <Typography variant="body2" color="textSecondary">
                           <strong>Local:</strong> {event.location}
@@ -363,10 +363,10 @@ const MinhaContaPage = () => {
                           sx={{
                             marginTop: '10px',
                             color:
-                              event.status === 'Concluído' ? 'green' : 'orange',
+                              event.event_status === 'Concluído' ? 'green' : 'orange',
                           }}
                         >
-                          <strong>Status:</strong> {event.status}
+                          <strong>Status:</strong> {event.event_status}
                         </Typography>
                       </CardContent>
                       <CardActions

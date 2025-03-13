@@ -133,3 +133,17 @@ export const getUserProfile = async (): Promise<UserProfile> => {
   }
   return response.json();
 };
+
+// Função para obter todos os eventos
+export async function getAllEvents(): Promise<Event[]> {
+  try {
+    const response = await fetch(`${API_BASE_URL}/events`);
+    if (!response.ok) {
+      throw new Error('Falha ao buscar eventos');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error('Erro ao buscar todos os eventos:', error);
+    return [];
+  }
+}

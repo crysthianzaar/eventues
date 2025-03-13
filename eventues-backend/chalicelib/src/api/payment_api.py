@@ -3,6 +3,7 @@ from chalice import Blueprint, Response, CORSConfig
 import requests
 from datetime import datetime
 from ..utils.firebase import db, verify_token
+from cachetools import TTLCache, cached
 
 cors_config = CORSConfig(
     allow_origin='*',
@@ -13,6 +14,10 @@ cors_config = CORSConfig(
 payment_api = Blueprint(__name__)
 ASAAS_API_KEY = 'YOUR_ASAAS_API_KEY'  # Move to environment variables
 ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3'  # Use production URL in prod
+
+# Cache configuration
+payment_status_cache = TTLCache(maxsize=100, ttl=60)  # 1 minute cache for payment status
+payment_history_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache for payment history
 
 def create_asaas_customer(name, email, cpf):
     url = f"{ASAAS_API_URL}/customers"
@@ -122,7 +127,7 @@ def create_payment_session():
             'quantity': data['quantity'],
             'total_value': total_value,
             'status': 'pending',
-            'created_at': firestore.SERVER_TIMESTAMP,
+            'created_at': datetime.now(),
             'customer_name': data['name'],
             'customer_email': data['email'],
             'customer_cpf': data['cpf']
@@ -184,19 +189,23 @@ def asaas_webhook():
                 ticket_data = {
                     'ticket_number': f"{order.id}-{i+1}",
                     'status': 'valid',
-                    'created_at': firestore.SERVER_TIMESTAMP
+                    'created_at': datetime.now()
                 }
                 tickets_ref.add(ticket_data)
             
             order_ref.update({
                 'status': 'completed',
-                'completed_at': firestore.SERVER_TIMESTAMP
+                'completed_at': datetime.now()
             })
         elif payment_status in ['CANCELLED', 'FAILED', 'REFUNDED']:
             order_ref.update({
                 'status': 'cancelled',
-                'cancelled_at': firestore.SERVER_TIMESTAMP
+                'cancelled_at': datetime.now()
             })
+        
+        # Invalidate payment status cache when processing a payment
+        if payment_id in payment_status_cache:
+            del payment_status_cache[payment_id]
         
         return Response(
             body={'status': 'success'},
@@ -207,6 +216,77 @@ def asaas_webhook():
     except Exception as e:
         return Response(
             body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/payments/{payment_id}/status', methods=['GET'], cors=cors_config)
+@cached(payment_status_cache)
+def get_payment_status(payment_id):
+    try:
+        orders_ref = db.collection('orders')
+        orders = orders_ref.where('payment_id', '==', payment_id).stream()
+        
+        order = next(orders, None)
+        if not order:
+            return Response(
+                body=json.dumps({"error": "Pagamento não encontrado"}),
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        order_data = order.to_dict()
+        status = {
+            'status': order_data['status'],
+            'payment_id': order_data['payment_id']
+        }
+        
+        return Response(
+            body=json.dumps(status),
+            status_code=200,
+            headers={
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, max-age=60'  # 1 minute cache
+            }
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/payments/user/{user_id}/history', methods=['GET'], cors=cors_config)
+@cached(payment_history_cache)
+def get_payment_history(user_id):
+    try:
+        orders_ref = db.collection('orders')
+        orders = orders_ref.where('customer_id', '==', user_id).stream()
+        
+        history = []
+        for order in orders:
+            order_data = order.to_dict()
+            history.append({
+                'order_id': order.id,
+                'payment_id': order_data['payment_id'],
+                'event_id': order_data['event_id'],
+                'ticket_id': order_data['ticket_id'],
+                'quantity': order_data['quantity'],
+                'total_value': order_data['total_value'],
+                'status': order_data['status']
+            })
+        
+        return Response(
+            body=json.dumps(history),
+            status_code=200,
+            headers={
+                'Content-Type': 'application/json',
+                'Cache-Control': 'public, max-age=300'  # 5 minutes cache
+            }
+        )
+    except Exception as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )

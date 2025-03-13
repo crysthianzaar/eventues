@@ -1,0 +1,5 @@
+Contact: mailto:security@eventues.com.br
+Expires: 2025-12-31T23:00:00.000Z
+Preferred-Languages: pt-BR, en
+Canonical: https://eventues.com.br/.well-known/security.txt
+Policy: https://eventues.com.br/security-policy
