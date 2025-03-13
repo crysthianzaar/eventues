@@ -166,7 +166,7 @@ def asaas_webhook():
         
         # Find order by payment_id
         orders_ref = db.collection('orders')
-        orders = orders_ref.filter("payment_id", "==", payment_id).stream()
+        orders = orders_ref.where("payment_id", "==", payment_id).stream()
         
         order = next(orders, None)
         if not order:
@@ -225,7 +225,7 @@ def asaas_webhook():
 def get_payment_status(payment_id):
     try:
         orders_ref = db.collection('orders')
-        orders = orders_ref.filter("payment_id", "==", payment_id).stream()
+        orders = orders_ref.where("payment_id", "==", payment_id).stream()
         
         order = next(orders, None)
         if not order:
@@ -261,7 +261,7 @@ def get_payment_status(payment_id):
 def get_payment_history(user_id):
     try:
         orders_ref = db.collection('orders')
-        orders = orders_ref.filter("customer_id", "==", user_id).stream()
+        orders = orders_ref.where("customer_id", "==", user_id).stream()
         
         history = []
         for order in orders:

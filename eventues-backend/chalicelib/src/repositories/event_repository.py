@@ -50,7 +50,7 @@ class EventRepository:
     def get_events_by_user(self, user_id: str) -> List[EventModel]:
         events = []
         filter_ = FieldFilter('user_id', '==', user_id)
-        query = self.events_collection.filter(filter=filter_).stream()
+        query = self.events_collection.where(filter=filter_).stream()
         for doc in query:
             events.append(EventModel.from_dict(doc.to_dict()))
         return events
@@ -86,13 +86,13 @@ class EventRepository:
         blob.delete()
 
         event_ref = db.collection('events').document(event_id)
-        documents = event_ref.collection('documents').filter("firebase_path", "==", firebase_path).stream()
+        documents = event_ref.collection('documents').where("firebase_path", "==", firebase_path).stream()
         for doc in documents:
             doc.reference.delete()
 
     def get_public_events(self, cursor: Optional[str] = None, limit: int = 10) -> tuple[List[EventModel], Optional[str]]:
         # Base query: get published events ordered by creation date
-        query = self.events_collection.filter(
+        query = self.events_collection.where(
             field_path="event_status", op_string="==", value=EventStatus.PUBLICADO.value
         ).order_by('created_at', direction='DESCENDING')
 

@@ -371,7 +371,6 @@ def create_event():
         )
 
 @event_api.route('/public/events', methods=['GET'], cors=cors_config)
-@cached(events_cache)
 def list_public_events():
     request = event_api.current_request
     cursor = request.query_params.get('cursor', None)
@@ -405,8 +404,7 @@ def list_public_events():
             body=json.dumps(response),
             status_code=200,
             headers={
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=300'
+                'Content-Type': 'application/json'
             }
         )
     except Exception as e:
@@ -421,7 +419,7 @@ def get_public_event_by_slug(slug):
     try:
         # Buscar evento pelo slug
         events_ref = db.collection('events')
-        query = events_ref.filter("slug", "==", slug)
+        query = events_ref.where("slug", "==", slug)
         docs = list(query.stream())
         
         if not docs:
