@@ -44,7 +44,7 @@ def get_public_event_by_slug(slug):
     try:
         # Buscar evento pelo slug
         events_ref = db.collection('events')
-        query = events_ref.filter("slug", "==", slug)
+        query = events_ref.where("slug", "==", slug)
         docs = list(query.stream())
         
         if not docs:
