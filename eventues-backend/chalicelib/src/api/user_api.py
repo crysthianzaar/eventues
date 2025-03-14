@@ -39,7 +39,7 @@ def get_user(user_id):
                 headers={'Content-Type': 'application/json'}
             )
         return Response(
-            body=json.dumps(user),
+            body=json.dumps(user.to_dict()),
             status_code=200,
             headers={
                 'Content-Type': 'application/json',

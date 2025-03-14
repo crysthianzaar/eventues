@@ -5,6 +5,7 @@ import json
 from cachetools import TTLCache, cached
 from chalice import Blueprint, Response, CORSConfig
 from chalicelib.src.usecases.event_usecase import EventUseCase
+from chalicelib.src.usecases.form_usecase import FormUseCase
 from chalicelib.src.utils.firebase import verify_token, db
 from chalicelib.src.utils.formatters import generate_slug
 
@@ -16,11 +17,13 @@ cors_config = CORSConfig(
 
 event_api = Blueprint(__name__)
 use_case = EventUseCase()
+form_use_case = FormUseCase()
 
 # Cache configuration
 events_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
 event_detail_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
 event_tickets_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
+event_form_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
 
 @event_api.route('/events', methods=['POST'], cors=cors_config)
 def create_event():
@@ -457,6 +460,98 @@ def publish_event(event_id, status):
     except Exception as e:
         return Response(
             body=json.dumps({"error": str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}/get_form', methods=['GET'], cors=cors_config)
+def get_event_form(event_id):
+    try:
+        form_data = form_use_case.get_event_form(event_id)
+        return Response(
+            body=json.dumps(form_data['fields']),
+            status_code=200,
+            headers={
+                'Content-Type': 'application/json'
+            }
+        )
+    except Exception as e:
+        print(f"Erro ao buscar formulário do evento: {str(e)}")
+        return Response(
+            body=json.dumps({"error": f"Erro ao buscar formulário do evento: {str(e)}"}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}/update_form', methods=['POST'], cors=cors_config)
+def update_event_form(event_id):
+    try:
+        request = event_api.current_request
+        payload = request.json_body
+        
+        # Extract form_fields from the payload
+        form_fields = payload.get('form_fields') if payload and isinstance(payload, dict) else None
+        
+        form_data = form_use_case.update_event_form(event_id, form_fields)
+        
+        # Invalidate cache on update
+        if event_id in event_form_cache:
+            del event_form_cache[event_id]
+            
+        return Response(
+            body=json.dumps(form_data),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        print(f"Erro ao atualizar formulário do evento: {str(e)} --> payload: {request.json_body}")
+        return Response(
+            body=json.dumps({"error": f"Erro ao atualizar formulário do evento: {str(e)}"}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}/create_form', methods=['POST'], cors=cors_config)
+def create_event_form(event_id):
+    try:
+        request = event_api.current_request
+        payload = request.json_body
+        
+        # Extract form_fields from the payload
+        form_fields = payload.get('form_fields') if payload and isinstance(payload, dict) else None
+        
+        print(f"Creating form for event {event_id} with fields: {form_fields}")
+        form_data = form_use_case.create_event_form(event_id, form_fields)
+        
+        return Response(
+            body=json.dumps(form_data),
+            status_code=201,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        print(f"Erro ao criar formulário do evento: {str(e)} --> payload: {request.json_body}")
+        return Response(
+            body=json.dumps({"error": f"Erro ao criar formulário do evento: {str(e)}"}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/organizer_detail/{event_id}/delete_form', methods=['DELETE'], cors=cors_config)
+def delete_event_form(event_id):
+    try:
+        result = form_use_case.delete_event_form(event_id)
+        if event_id in event_form_cache:
+            del event_form_cache[event_id]
+            
+        return Response(
+            body=json.dumps({"success": result}),
+            status_code=200 if result else 404,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        print(f"Erro ao excluir formulário do evento: {str(e)}")
+        return Response(
+            body=json.dumps({"error": f"Erro ao excluir formulário do evento: {str(e)}"}),
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )

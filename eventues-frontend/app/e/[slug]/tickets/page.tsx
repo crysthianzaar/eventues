@@ -1,29 +1,28 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useParams } from 'next/navigation';
 import {
-  Box,
   Container,
+  Box,
   Typography,
   Button,
   Stepper,
   Step,
   StepLabel,
   Paper,
-  CircularProgress,
+  Grid,
+  Divider,
   Alert,
   useTheme,
   styled,
   alpha,
   Fade,
-  Zoom,
-  Tabs,
-  Tab
+  CircularProgress
 } from '@mui/material';
-import { useParams } from 'next/navigation';
 import { getEventBySlug, getEventTickets, Event, Ingresso } from '@/app/apis/api';
 import TicketOptions from './components/TicketOptions';
-import PersonalInfoForm from './components/PersonalInfoForm';
+import PersonalInfoForm from '../components/PersonalInfoForm';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -123,21 +122,7 @@ const steps = [
 ];
 
 // Define form data type
-type FormData = {
-  nome: string;
-  dataNascimento: string;
-  genero: string;
-  cidade?: string;
-  estado?: string;
-  endereco?: string;
-  email: string;
-  telefone: string;
-  contatoEmergencia: string;
-  tamanhoCamiseta?: string;
-  infoMedicas?: string;
-  equipe?: string;
-  termos: boolean;
-};
+type FormData = Record<string, any>;
 
 export default function TicketsPage() {
   const params = useParams();
@@ -150,9 +135,10 @@ export default function TicketsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedTickets, setSelectedTickets] = useState<Record<string, { ticket: Ingresso, quantity: number }>>({});
-  const [formData, setFormData] = useState<FormData[]>([]);
   const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
   const [activeParticipant, setActiveParticipant] = useState(0);
+  const [participantForms, setParticipantForms] = useState<Record<number, FormData>>({});
+  const [formValidation, setFormValidation] = useState<Record<number, boolean>>({});
   const ticketsPerPurchase = 2; // Define o número de ingressos por compra
 
   // Fetch event data
@@ -197,13 +183,36 @@ export default function TicketsPage() {
     }
   };
 
-  // Handle form data change
-  const handleFormDataChange = (data: FormData, index: number) => {
-    setFormData(prev => {
-      const newFormData = [...prev];
-      newFormData[index] = data;
-      return newFormData;
-    });
+  // Função para atualizar dados do formulário
+  const handleFormDataChange = (data: FormData, isValid: boolean, participantIndex: number) => {
+    setParticipantForms(prev => ({
+      ...prev,
+      [participantIndex]: data
+    }));
+    
+    // Atualizar estado de validação
+    setFormValidation(prev => ({
+      ...prev,
+      [participantIndex]: isValid
+    }));
+  };
+
+  // Função para salvar dados ao trocar de participante ou avançar
+  const handleParticipantChange = (newIndex: number) => {
+    setActiveParticipant(newIndex);
+  };
+
+  // Função para avançar para o próximo passo
+  const handleNext = () => {
+    // Salvar todos os dados do formulário atual
+    localStorage.setItem('participant_forms', JSON.stringify(participantForms));
+    setActiveStep(prevStep => prevStep + 1);
+  };
+
+  // Handle back step
+  const handleBack = () => {
+    setActiveStep(prevStep => prevStep - 1);
+    setError(null);
   };
 
   // Calculate total tickets selected
@@ -216,29 +225,15 @@ export default function TicketsPage() {
     const totalTickets = getTotalTickets();
     
     // Initialize form data array with the correct number of entries
-    if (totalTickets > 0 && formData.length !== totalTickets) {
-      const newFormData: FormData[] = [];
+    if (totalTickets > 0 && Object.keys(participantForms).length !== totalTickets) {
+      const newParticipantForms: Record<number, FormData> = {};
       
       // Keep existing form data if available
       for (let i = 0; i < totalTickets; i++) {
-        newFormData[i] = formData[i] || {
-          nome: '',
-          dataNascimento: '',
-          genero: '',
-          cidade: '',
-          estado: '',
-          endereco: '',
-          email: '',
-          telefone: '',
-          contatoEmergencia: '',
-          tamanhoCamiseta: '',
-          infoMedicas: '',
-          equipe: '',
-          termos: false
-        };
+        newParticipantForms[i] = participantForms[i] || {};
       }
       
-      setFormData(newFormData);
+      setParticipantForms(newParticipantForms);
     }
   }, [selectedTickets]);
 
@@ -289,45 +284,6 @@ export default function TicketsPage() {
     return labels;
   };
 
-  // Função para lidar com a mudança de participante ativo
-  const handleParticipantChange = (index: number) => {
-    setActiveParticipant(index);
-  };
-
-  // Handle next step
-  const handleNext = () => {
-    if (activeStep === 0 && getTotalTickets() === 0) {
-      return; // Don't proceed if no tickets selected
-    }
-    
-    if (activeStep === 1) {
-      // Validate all forms before proceeding
-      const allFormsValid = formData.every(data => {
-        return data.nome && 
-               data.dataNascimento && 
-               data.genero && 
-               data.email && 
-               data.telefone && 
-               data.contatoEmergencia && 
-               data.termos;
-      });
-      
-      if (!allFormsValid) {
-        setError('Por favor, preencha todos os campos obrigatórios em todos os formulários.');
-        return;
-      }
-    }
-    
-    setActiveStep(prevStep => prevStep + 1);
-    setError(null);
-  };
-
-  // Handle back step
-  const handleBack = () => {
-    setActiveStep(prevStep => prevStep - 1);
-    setError(null);
-  };
-
   // Render loading state
   if (loading) {
     return (
@@ -370,18 +326,22 @@ export default function TicketsPage() {
         return (
           <Fade in={true} timeout={500}>
             <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-              {formData.length > 0 && (
-                <PersonalInfoForm
-                  eventId={event?.event_id || ''}
-                  onFormDataChange={(data) => handleFormDataChange(data, activeParticipant)}
-                  formIndex={activeParticipant}
-                  initialData={formData[activeParticipant]}
-                  ticketName={getTicketNameForParticipant(activeParticipant)}
-                  ticketColor={getTicketColorForParticipant(activeParticipant)}
-                  onParticipantChange={handleParticipantChange}
-                  totalParticipants={formData.length}
-                  participantLabels={generateParticipantLabels()}
-                />
+              {Object.keys(participantForms).length > 0 && (
+                <>
+                  <PersonalInfoForm
+                    eventId={event?.event_id || ''}
+                    onFormDataChange={(data, isValid) => handleFormDataChange(data, isValid, activeParticipant)}
+                    formIndex={activeParticipant}
+                    initialData={participantForms[activeParticipant]}
+                    ticketName={getTicketNameForParticipant(activeParticipant)}
+                    ticketColor={getTicketColorForParticipant(activeParticipant)}
+                    onParticipantChange={handleParticipantChange}
+                    totalParticipants={Object.keys(participantForms).length}
+                    participantLabels={generateParticipantLabels()}
+                    key={`participant-form-${activeParticipant}`}
+                    localStorageKey={`event-form-${event?.event_id}-participant-${activeParticipant}`}
+                  />
+                </>
               )}
             </Box>
           </Fade>
@@ -423,7 +383,7 @@ export default function TicketsPage() {
 
   return (
     <StyledContainer maxWidth="lg">
-      <Zoom in={true} timeout={500}>
+      <Fade in={true} timeout={500}>
         <StyledPaper>
           <EventHeader>
             <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', mb: 1 }}>
@@ -483,7 +443,7 @@ export default function TicketsPage() {
             </StyledButton>
           </NavigationButtons>
         </StyledPaper>
-      </Zoom>
+      </Fade>
     </StyledContainer>
   );
 }

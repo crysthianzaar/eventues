@@ -205,14 +205,14 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
     const defaultFields: FormField[] = [
       { id: uuidv4(), label: 'Nome Completo', required: true, type: 'Texto', order: 1 },
       { id: uuidv4(), label: 'Data de Nascimento', required: true, type: 'Data', order: 2 },
-      { id: uuidv4(), label: 'Gênero', required: true, type: 'Seleção', options: ['Masculino', 'Feminino'], order: 3 },
-      { id: uuidv4(), label: 'Cidade', required: false, type: 'Seleção', options: ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte'], order: 4 },
-      { id: uuidv4(), label: 'Estado', required: false, type: 'Seleção', options: ['SP', 'RJ', 'MG'], order: 5 },
+      { id: uuidv4(), label: 'Gênero', required: true, type: 'select', options: ['Masculino', 'Feminino'], order: 3 },
+      { id: uuidv4(), label: 'Cidade', required: false, type: 'select', options: ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte'], order: 4 },
+      { id: uuidv4(), label: 'Estado', required: false, type: 'select', options: ['SP', 'RJ', 'MG'], order: 5 },
       { id: uuidv4(), label: 'Endereço', required: false, type: 'Texto', order: 6 },
       { id: uuidv4(), label: 'Email', required: true, type: 'Texto', order: 7 },
       { id: uuidv4(), label: 'Telefone', required: true, type: 'Número', order: 8 },
       { id: uuidv4(), label: 'Contato de Emergência', required: true, type: 'Texto', order: 9 },
-      { id: uuidv4(), label: 'Tamanho da Camiseta', required: false, type: 'Seleção', options: ['P', 'M', 'G', 'GG'], order: 10 },
+      { id: uuidv4(), label: 'Tamanho da Camiseta', required: false, type: 'select', options: ['P', 'M', 'G', 'GG'], order: 10 },
       { id: uuidv4(), label: 'Informações Médicas', required: false, type: 'Texto', order: 11 },
       { id: uuidv4(), label: 'Equipe', required: false, type: 'Texto', order: 12 },
       { id: uuidv4(), label: 'Aceitação de Termos e Condições', required: true, type: 'Verdadeiro/Falso', order: 13 },
@@ -236,7 +236,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
           type: field.type,
           required: field.required,
           order: field.order,
-          options: field.type === 'Seleção' ? field.options || [] : [],
+          options: field.type === 'select' ? field.options || [] : [],
         })),
       };
 
@@ -251,16 +251,47 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
         }
       );
 
-      if (response.ok) {
-        const data: FormField[] = await response.json();
-        const sortedData = data.sort((a, b) => a.order - b.order);
-        setFields(sortedData);
-        onNotify('Alterações salvas com sucesso!', 'success');
-        onUpdate();
+      if (response.ok || response.status === 201) {
+        try {
+          const responseData = await response.json();
+          
+          // Extract the fields array from the response
+          let formFields: FormField[];
+          if (responseData && Array.isArray(responseData)) {
+            // Handle case where API returns array directly
+            formFields = responseData;
+          } else if (responseData && Array.isArray(responseData.fields)) {
+            // Handle case where API returns object with fields property
+            formFields = responseData.fields;
+          } else if (responseData && typeof responseData === 'object') {
+            // Fallback: try to use the response as is
+            console.log('Response structure unexpected, attempting to use as is');
+            formFields = responseData;
+          } else {
+            // Last resort: keep current fields
+            console.log('Could not extract fields from response, using current fields');
+            formFields = [...fields];
+          }
+          
+          // Sort and update fields
+          const sortedData = formFields.sort((a, b) => a.order - b.order);
+          setFields(sortedData);
+          onNotify('Alterações salvas com sucesso!', 'success');
+          onUpdate();
+        } catch (error) {
+          console.error('Erro ao processar resposta:', error);
+          onNotify('Alterações salvas, mas houve um erro ao atualizar a interface.', 'warning');
+          onUpdate();
+        }
       } else {
-        const errorData = await response.json();
-        console.error('Erro ao salvar formulário:', errorData);
-        onNotify('Erro ao salvar alterações.', 'error');
+        try {
+          const errorData = await response.json();
+          console.error('Erro ao salvar formulário:', errorData);
+          onNotify('Erro ao salvar alterações.', 'error');
+        } catch (error) {
+          console.error('Erro ao processar resposta de erro:', error);
+          onNotify('Erro ao salvar alterações.', 'error');
+        }
         onUpdate();
       }
     } catch (error) {
@@ -278,7 +309,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
         label: newQuestion.trim(),
         required: false,
         type: questionType,
-        options: questionType === 'Seleção' ? [] : undefined,
+        options: questionType === 'select' ? [] : undefined,
         order: fields.length + 1,
       };
       const updatedFields = [...fields, newField];
@@ -391,7 +422,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
                       <DragIndicatorIcon style={{ cursor: 'grab' }} />
                     </StyledTableCell>
                     <StyledTableCell>
-                      {field.type === 'Seleção' ? (
+                      {field.type === 'select' ? (
                         <Box display="flex" alignItems="center">
                           {field.label}
                           {!fixedSelectionFields.includes(field.label) && (
@@ -501,7 +532,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
                   <MenuItem value="Texto">Texto</MenuItem>
                   <MenuItem value="Número">Número</MenuItem>
                   <MenuItem value="Data">Data</MenuItem>
-                  <MenuItem value="Seleção">Seleção</MenuItem>
+                  <MenuItem value="select">Seleção</MenuItem>
                   <MenuItem value="Verdadeiro/Falso">Verdadeiro/Falso</MenuItem>
                 </Select>
               </FormControl>
@@ -650,7 +681,7 @@ const FormCard: React.FC<FormCardProps> = ({ eventId, onNotify, onUpdate }) => {
                             }}
                           />
                         )}
-                        {field.type === 'Seleção' && (
+                        {field.type === 'select' && (
                           <FormControl fullWidth variant="outlined" margin="normal">
                             <InputLabel>{field.label}</InputLabel>
                             <Select

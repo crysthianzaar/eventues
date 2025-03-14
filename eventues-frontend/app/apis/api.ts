@@ -118,12 +118,87 @@ export const getEventTickets = async (eventId: string): Promise<Ingresso[]> => {
   return response.json();
 };
 
-export const getEventForm = async (eventId: string): Promise<FormField[]> => {
-  const response = await fetch(`${API_BASE_URL}/organizer_detail/${eventId}/get_form`);
+export const getEventForm = async (eventId: string, signal?: AbortSignal): Promise<FormField[]> => {
+  console.log('Calling getEventForm API with eventId:', eventId);
+  try {
+    // Log the full URL for debugging
+    const url = `${API_BASE_URL}/organizer_detail/${eventId}/get_form`;
+    console.log('Full API URL:', url);
+    
+    const response = await fetch(url, { 
+      signal,
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    });
+    
+    // Log response status
+    console.log('API response status:', response.status);
+    
+    if (!response.ok) {
+      console.error('API error response:', response.status, response.statusText);
+      throw new Error(`Failed to fetch event form: ${response.status} ${response.statusText}`);
+    }
+    
+    const data = await response.json();
+    console.log('API response data:', data);
+    
+    // Validate response format
+    if (!data || !Array.isArray(data)) {
+      console.error('Invalid API response format:', data);
+      throw new Error('Invalid form data format received from API');
+    }
+    
+    return data;
+  } catch (error: unknown) {
+    // Don't log aborted requests as errors
+    if (error instanceof Error && error.name === 'AbortError') {
+      console.log('Request was aborted');
+    } else {
+      console.error('Error in getEventForm:', error);
+    }
+    throw error;
+  }
+};
+
+export const updateEventForm = async (eventId: string, formFields: FormField[]): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/organizer_detail/${eventId}/update_form`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ form_fields: formFields }),
+  });
   if (!response.ok) {
-    throw new Error('Failed to fetch event form');
+    throw new Error('Failed to update event form');
   }
   return response.json();
+};
+
+export const createEventForm = async (eventId: string, formFields?: FormField[]): Promise<any> => {
+  const response = await fetch(`${API_BASE_URL}/organizer_detail/${eventId}/create_form`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ form_fields: formFields }),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to create event form');
+  }
+  return response.json();
+};
+
+export const deleteEventForm = async (eventId: string): Promise<boolean> => {
+  const response = await fetch(`${API_BASE_URL}/organizer_detail/${eventId}/delete_form`, {
+    method: 'DELETE',
+  });
+  if (!response.ok) {
+    throw new Error('Failed to delete event form');
+  }
+  return response.json().then(data => data.success);
 };
 
 export const getUserProfile = async (): Promise<UserProfile> => {
@@ -139,7 +214,8 @@ export async function getAllEvents(): Promise<Event[]> {
   try {
     const response = await fetch(`${API_BASE_URL}/events`);
     if (!response.ok) {
-      throw new Error('Falha ao buscar eventos');
+      console.error(`Falha ao buscar eventos: ${response.status} ${response.statusText}`);
+      return [];
     }
     return await response.json();
   } catch (error) {
