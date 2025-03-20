@@ -1,7 +1,7 @@
 import json
 import requests
-from datetime import datetime
-from cachetools import TTLCache, cached
+import os
+from datetime import datetime, timedelta
 from chalice import Blueprint, Response, CORSConfig
 from chalicelib.src.utils.firebase import db, verify_token
 
@@ -12,12 +12,9 @@ cors_config = CORSConfig(
 )
 
 payment_api = Blueprint(__name__)
-ASAAS_API_KEY = 'YOUR_ASAAS_API_KEY'  # Move to environment variables
-ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3'  # Use production URL in prod
+ASAAS_API_KEY = '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6Ojk1ZTUwZTlkLTUyYmQtNGMyYy05MjViLTUwNjQzMWUxODZlZTo6JGFhY2hfMjZkMTY3NjQtMDA3NC00ZTg2LTk1MzItMzVjMjc2ZjNlNmRj'
+ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3'
 
-# Cache configuration
-payment_status_cache = TTLCache(maxsize=100, ttl=60)  # 1 minute cache for payment status
-payment_history_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache for payment history
 
 def create_asaas_customer(name, email, cpf):
     url = f"{ASAAS_API_URL}/customers"
@@ -34,22 +31,70 @@ def create_asaas_customer(name, email, cpf):
     response = requests.post(url, headers=headers, json=data)
     return response.json()
 
-def create_asaas_payment(customer_id, value, description, due_date):
+def create_asaas_payment_link(customer_id, value, description, payment_method, due_date, event_slug, event_id, success_url, ticket_id):
     url = f"{ASAAS_API_URL}/payments"
     headers = {
         'access_token': ASAAS_API_KEY,
         'Content-Type': 'application/json'
     }
-    data = {
-        'customer': customer_id,
-        'billingType': 'CREDIT_CARD',
-        'value': value,
-        'description': description,
-        'dueDate': due_date
+    
+    # Map frontend payment methods to Asaas billing types
+    billing_type_map = {
+        'pix': 'PIX',
+        'boleto': 'BOLETO',
+        'credit_card': 'CREDIT_CARD',
+        'debit_card': 'DEBIT_CARD'
     }
     
-    response = requests.post(url, headers=headers, json=data)
-    return response.json()
+    # Create a compact external reference
+    external_ref = f"{event_id[:8]}:{event_slug[:30]}"
+    
+    # Create payment request
+    response = requests.post(url, headers=headers, json={
+        'customer': customer_id,
+        'billingType': 'UNDEFINED',
+        'value': value,
+        'description': description,
+        'externalReference': external_ref,
+        'postalService': False,
+        'dueDate': due_date
+    })
+    
+    payment_data = response.json()
+    if 'errors' in payment_data:
+        return payment_data
+        
+    payment_id = payment_data['id']
+    
+    # Update payment with callback URL after creation
+    update_url = f"{ASAAS_API_URL}/payments/{payment_id}"
+    update_data = {
+        "callback": {
+            "successUrl": success_url,
+            "autoRedirect": True
+        }
+    }
+    
+    update_response = requests.post(update_url, headers=headers, json=update_data)
+    if not update_response.ok:
+        print(f"Warning: Failed to update payment callback URL: {update_response.text}")
+    
+    # Get the appropriate payment URL based on the payment method
+    payment_url = None
+    if payment_method == 'pix':
+        payment_url = payment_data.get('invoiceUrl')  # For PIX
+    elif payment_method == 'boleto':
+        payment_url = payment_data.get('bankSlipUrl')  # For Boleto
+    elif payment_method in ['credit_card', 'debit_card']:
+        payment_url = payment_data.get('invoiceUrl')  # For Credit/Debit Card
+    
+    return {
+        'payment_id': payment_id,
+        'payment_url': payment_url,
+        'status': payment_data['status'],
+        'success_url': success_url,
+        'ticket_id': ticket_id
+    }
 
 @payment_api.route('/create_payment_session', methods=['POST'], cors=cors_config)
 def create_payment_session():
@@ -58,7 +103,7 @@ def create_payment_session():
         data = request.json_body
         
         # Validate required fields
-        required_fields = ['name', 'email', 'cpf', 'event_id', 'ticket_id', 'quantity']
+        required_fields = ['name', 'email', 'cpf', 'event_id', 'ticket_id', 'payment']
         for field in required_fields:
             if field not in data:
                 return Response(
@@ -66,19 +111,27 @@ def create_payment_session():
                     status_code=400,
                     headers={'Content-Type': 'application/json'}
                 )
-        
-        # Get event and ticket details
+
+        # Get event details from database
         event_ref = db.collection('events').document(data['event_id'])
-        event = event_ref.get()
-        if not event.exists:
+        event_doc = event_ref.get()
+        if not event_doc.exists:
             return Response(
                 body={'error': 'Event not found'},
                 status_code=404,
                 headers={'Content-Type': 'application/json'}
             )
-        
-        ticket_ref = event_ref.collection('tickets').document(data['ticket_id'])
-        ticket = ticket_ref.get()
+        event_data = event_doc.to_dict()
+        event_slug = event_data.get('slug')
+        if not event_slug:
+            return Response(
+                body={'error': 'Event slug not found'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Get ticket details from database
+        ticket = event_ref.collection('tickets').document(data['ticket_id']).get()
         if not ticket.exists:
             return Response(
                 body={'error': 'Ticket not found'},
@@ -87,61 +140,86 @@ def create_payment_session():
             )
         
         ticket_data = ticket.to_dict()
-        event_data = event.to_dict()
         
-        # Calculate total value
-        total_value = float(ticket_data['price']) * int(data['quantity'])
-        
-        # Create or get ASAAS customer
-        customer = create_asaas_customer(data['name'], data['email'], data['cpf'])
-        
-        if 'errors' in customer:
+        # Calculate total amount
+        quantity = data.get('quantity', 1)
+        total_amount = ticket_data['valor'] * quantity
+
+        # Set due date to 24 hours from now for PIX/Credit Card, 3 days for Boleto
+        payment_method = data['payment'].get('method', 'pix')
+        if payment_method == 'boleto':
+            due_date = (datetime.now() + timedelta(days=3)).strftime('%Y-%m-%d')
+        else:
+            due_date = (datetime.now() + timedelta(hours=24)).strftime('%Y-%m-%d')
+
+        try:
+            # Try to create customer
+            customer = create_asaas_customer(data['name'], data['email'], data['cpf'])
+            
+            if 'errors' in customer:
+                # If customer already exists, try to get it
+                customers = requests.get(
+                    f"{ASAAS_API_URL}/customers",
+                    headers={'access_token': ASAAS_API_KEY},
+                    params={'cpfCnpj': data['cpf']}
+                )
+                if customers.status_code == 200 and customers.json().get('data'):
+                    customer = customers.json()['data'][0]
+                else:
+                    return Response(
+                        body={'error': 'Failed to create/get customer'},
+                        status_code=400,
+                        headers={'Content-Type': 'application/json'}
+                    )
+            success_url = f"https://eventues.com/i/{data['ticket_id']}"
+            # Create payment link
+            payment_info = create_asaas_payment_link(
+                customer_id=customer['id'],
+                value=total_amount,
+                description=f"Ingresso para {ticket_data.get('event_name', 'Evento')} - {ticket_data.get('nome', 'Ingresso')} x{quantity}",
+                payment_method=payment_method,
+                due_date=due_date,
+                event_slug=event_slug,
+                event_id=data['event_id'],
+                success_url=success_url,
+                ticket_id=data['ticket_id']
+            )
+
+            if 'errors' in payment_info:
+                return Response(
+                    body={'error': payment_info['errors']},
+                    status_code=400,
+                    headers={'Content-Type': 'application/json'}
+                )
+
+            # Add order info
+            payment_info.update({
+                'customer_id': customer['id'],
+                'event_id': data['event_id'],
+                'ticket_id': data['ticket_id'],
+                'quantity': quantity,
+                'total_value': total_amount,
+                'created_at': datetime.now().isoformat(),
+                'due_date': due_date,
+                'user_id': data.get('user_id'),  
+                'status': 'pending'  
+            })
+            
+            # Save to database
+            db.collection('orders').document(payment_info['payment_id']).set(payment_info)
+
             return Response(
-                body={'error': customer['errors']},
-                status_code=400,
+                body=payment_info,
+                status_code=200,
                 headers={'Content-Type': 'application/json'}
             )
-        
-        # Create payment
-        payment = create_asaas_payment(
-            customer['id'],
-            total_value,
-            f"Ingresso para {event_data['name']} - {ticket_data['name']} x{data['quantity']}",
-            datetime.now().strftime('%Y-%m-%d')
-        )
-        
-        if 'errors' in payment:
+
+        except Exception as e:
             return Response(
-                body={'error': payment['errors']},
-                status_code=400,
+                body={'error': str(e)},
+                status_code=500,
                 headers={'Content-Type': 'application/json'}
             )
-        
-        # Save order in Firebase
-        order_ref = db.collection('orders').document()
-        order_data = {
-            'customer_id': customer['id'],
-            'payment_id': payment['id'],
-            'event_id': data['event_id'],
-            'ticket_id': data['ticket_id'],
-            'quantity': data['quantity'],
-            'total_value': total_value,
-            'status': 'pending',
-            'created_at': datetime.now(),
-            'customer_name': data['name'],
-            'customer_email': data['email'],
-            'customer_cpf': data['cpf']
-        }
-        order_ref.set(order_data)
-        
-        return Response(
-            body={
-                'payment_id': payment['id'],
-                'order_id': order_ref.id
-            },
-            status_code=200,
-            headers={'Content-Type': 'application/json'}
-        )
         
     except Exception as e:
         return Response(
@@ -199,16 +277,12 @@ def asaas_webhook():
             })
         elif payment_status in ['CANCELLED', 'FAILED', 'REFUNDED']:
             order_ref.update({
-                'status': 'cancelled',
-                'cancelled_at': datetime.now()
+                'status': payment_status.lower(),
+                'updated_at': datetime.now()
             })
         
-        # Invalidate payment status cache when processing a payment
-        if payment_id in payment_status_cache:
-            del payment_status_cache[payment_id]
-        
         return Response(
-            body={'status': 'success'},
+            body={'message': 'Webhook processed successfully'},
             status_code=200,
             headers={'Content-Type': 'application/json'}
         )
@@ -220,73 +294,178 @@ def asaas_webhook():
             headers={'Content-Type': 'application/json'}
         )
 
-@payment_api.route('/payments/{payment_id}/status', methods=['GET'], cors=cors_config)
-@cached(payment_status_cache)
-def get_payment_status(payment_id):
+@payment_api.route('/orders/{order_id}', methods=['GET'], cors=cors_config)
+def get_order(order_id):
     try:
-        orders_ref = db.collection('orders')
-        orders = orders_ref.where("payment_id", "==", payment_id).stream()
+        order_ref = db.collection('orders').document(order_id)
+        order = order_ref.get()
         
-        order = next(orders, None)
-        if not order:
+        if not order.exists:
             return Response(
-                body=json.dumps({"error": "Pagamento não encontrado"}),
+                body={'error': 'Order not found'},
                 status_code=404,
                 headers={'Content-Type': 'application/json'}
             )
         
         order_data = order.to_dict()
-        status = {
-            'status': order_data['status'],
-            'payment_id': order_data['payment_id']
-        }
+        
+        # Get tickets if order is completed
+        if order_data['status'] == 'completed':
+            tickets = []
+            tickets_ref = order_ref.collection('tickets').stream()
+            for ticket in tickets_ref:
+                ticket_data = ticket.to_dict()
+                ticket_data['id'] = ticket.id
+                tickets.append(ticket_data)
+            order_data['tickets'] = tickets
         
         return Response(
-            body=json.dumps(status),
+            body=order_data,
             status_code=200,
-            headers={
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=60'  # 1 minute cache
-            }
+            headers={'Content-Type': 'application/json'}
         )
+        
     except Exception as e:
         return Response(
-            body=json.dumps({"error": str(e)}),
+            body={'error': str(e)},
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
 
-@payment_api.route('/payments/user/{user_id}/history', methods=['GET'], cors=cors_config)
-@cached(payment_history_cache)
-def get_payment_history(user_id):
-    try:
-        orders_ref = db.collection('orders')
-        orders = orders_ref.where("customer_id", "==", user_id).stream()
+@payment_api.route('/payment/{payment_id}', methods=['GET'], cors=cors_config)
+def get_payment_details(payment_id):
+    url = f"{ASAAS_API_URL}/payments/{payment_id}"
+    headers = {
+        'access_token': ASAAS_API_KEY
+    }
+    
+    response = requests.get(url, headers=headers)
+    if not response.ok:
+        return Response(
+            body={'error': 'Payment not found'},
+            status_code=404,
+            headers={'Content-Type': 'application/json'}
+        )
         
-        history = []
-        for order in orders:
-            order_data = order.to_dict()
-            history.append({
-                'order_id': order.id,
-                'payment_id': order_data['payment_id'],
-                'event_id': order_data['event_id'],
-                'ticket_id': order_data['ticket_id'],
-                'quantity': order_data['quantity'],
-                'total_value': order_data['total_value'],
-                'status': order_data['status']
-            })
+    payment_data = response.json()
+    external_ref = payment_data.get('externalReference', '')
+    
+    # Parse the compact external reference
+    event_id = None
+    event_slug = None
+    if ':' in external_ref:
+        event_id_part, event_slug = external_ref.split(':', 1)
+        event_id = event_id_part + '0' * (36 - len(event_id_part))  # Pad the ID back to full length
+    
+    # Get additional event details from database if needed
+    event_details = {}
+    if event_id:
+        event_doc = db.collection('events').document(event_id).get()
+        if event_doc.exists:
+            event_details = event_doc.to_dict()
+    
+    return Response(
+        body={
+            'payment_id': payment_data['id'],
+            'status': payment_data['status'],
+            'value': payment_data['value'],
+            'billingType': payment_data['billingType'],
+            'event_id': event_id,
+            'event_slug': event_slug,
+            'event_name': event_details.get('name', ''),
+            'description': payment_data.get('description', ''),
+            'created_at': payment_data.get('dateCreated'),
+            'paid_at': payment_data.get('confirmedDate')
+        },
+        status_code=200,
+        headers={'Content-Type': 'application/json'}
+    )
+
+def get_payment_status(payment_id):
+    url = f"{ASAAS_API_URL}/payments/{payment_id}"
+    headers = {
+        'access_token': ASAAS_API_KEY
+    }
+    
+    response = requests.get(url, headers=headers)
+    return response.json()
+
+def get_payment_history(user_id):
+    # Get user's orders from Firebase
+    orders = db.collection('orders').where('user_id', '==', user_id).stream()
+    
+    payment_history = []
+    for order in orders:
+        order_data = order.to_dict()
+        payment_history.append({
+            'order_id': order.id,
+            'payment_id': order_data['payment_id'],
+            'status': order_data['status'],
+            'total_value': order_data['total_value'],
+            'created_at': order_data['created_at'],
+            'completed_at': order_data.get('completed_at'),
+            'event_id': order_data.get('event_id'),
+            'ticket_id': order_data.get('ticket_id'),
+            'quantity': order_data.get('quantity')
+        })
+    
+    return payment_history
+
+@payment_api.route('/orders/{order_id}/cancel', methods=['POST'], cors=cors_config)
+def cancel_order(order_id):
+    try:
+        # Get order details
+        order_ref = db.collection('orders').document(order_id)
+        order = order_ref.get()
+        
+        if not order.exists:
+            return Response(
+                body={'error': 'Order not found'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+        order_data = order.to_dict()
+        
+        # Check if order can be cancelled
+        if order_data.get('status') not in ['pending', 'waiting']:
+            return Response(
+                body={'error': 'Order cannot be cancelled in its current status'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+        # Cancel payment in Asaas if it exists
+        payment_id = order_data.get('payment_id')
+        if payment_id:
+            url = f"{ASAAS_API_URL}/payments/{payment_id}"
+            headers = {
+                'access_token': ASAAS_API_KEY
+            }
+            
+            response = requests.delete(url, headers=headers)
+            if not response.ok:
+                return Response(
+                    body={'error': 'Failed to cancel payment'},
+                    status_code=500,
+                    headers={'Content-Type': 'application/json'}
+                )
+        
+        # Update order status
+        order_ref.update({
+            'status': 'cancelled',
+            'cancelled_at': datetime.now().isoformat()
+        })
         
         return Response(
-            body=json.dumps(history),
+            body={'message': 'Order cancelled successfully'},
             status_code=200,
-            headers={
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=300'  # 5 minutes cache
-            }
+            headers={'Content-Type': 'application/json'}
         )
+        
     except Exception as e:
         return Response(
-            body=json.dumps({"error": str(e)}),
+            body={'error': str(e)},
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )

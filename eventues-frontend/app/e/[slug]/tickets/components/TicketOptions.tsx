@@ -219,7 +219,7 @@ export default function TicketOptions({
             {tickets.map((ticket) => (
               <Grid item xs={12} md={6} key={ticket.id} component={motion.div} variants={itemVariants}>
                 <TicketCard>
-                  {ticket.totalIngressos <= 10 && (
+                {ticket.totalIngressos <= 10 && (
                     <TicketBadge>
                       {ticket.totalIngressos <= 5 ? 'Últimas unidades!' : 'Quase esgotado!'}
                     </TicketBadge>

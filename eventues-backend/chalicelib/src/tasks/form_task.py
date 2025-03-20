@@ -46,6 +46,7 @@ class FormTask:
         """
         return [
             {"id": "fullName", "label": "Nome Completo", "type": "text", "required": True, "order": 0},
+            {"id": "cpf", "label": "CPF", "type": "text", "required": True, "order": 1},
             {"id": "birthDate", "label": "Data de Nascimento", "type": "date", "required": True, "order": 1},
             {"id": "gender", "label": "Gênero", "type": "select", "required": True, 
              "options": ["Masculino", "Feminino", "Outro", "Prefiro não informar"], "order": 2},

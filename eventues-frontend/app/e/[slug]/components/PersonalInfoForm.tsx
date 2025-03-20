@@ -65,6 +65,30 @@ const PhoneMaskCustom = React.forwardRef<HTMLInputElement, CustomPhoneProps>(
   },
 );
 
+// Componente para formatação de CPF
+interface CpfMaskProps {
+  onChange: (event: { target: { name: string; value: string } }) => void;
+  name: string;
+}
+
+const CpfMaskCustom = React.forwardRef<HTMLInputElement, CpfMaskProps>(
+  function CpfMaskCustom(props, ref) {
+    const { onChange, name, ...other } = props;
+    return (
+      <IMaskInput
+        {...other}
+        mask="000.000.000-00"
+        definitions={{
+          '#': /[1-9]/,
+        }}
+        inputRef={ref}
+        onAccept={(value: any) => onChange({ target: { name, value } })}
+        overwrite
+      />
+    );
+  },
+);
+
 export default function PersonalInfoForm({
   eventId,
   onFormDataChange,
@@ -95,14 +119,24 @@ export default function PersonalInfoForm({
     fields.forEach((field) => {
       let fieldSchema;
       
-      switch (field.type) {
+      switch (field.type.toLowerCase()) {
         case 'text':
+        case 'texto':
           fieldSchema = z.string();
           if (field.id === 'email') {
             fieldSchema = z.string().email('Email inválido');
           }
           if (field.id === 'fullName') {
             fieldSchema = z.string().min(3, 'Nome deve ter pelo menos 3 caracteres');
+          }
+          if (field.id === 'cpf' || field.label === 'CPF') {
+            fieldSchema = z.string()
+              .min(11, 'CPF inválido')
+              .refine((val) => {
+                // Remove formatação para validar
+                const numbers = val.replace(/[^0-9]/g, '');
+                return numbers.length === 11;
+              }, 'CPF inválido');
           }
           break;
         case 'number':
@@ -185,6 +219,14 @@ export default function PersonalInfoForm({
     const formData = getValues();
     const isFormValid = Object.keys(errors).length === 0;
 
+    // Encontrar o campo CPF e adicionar seu valor
+    const cpfField = formFields.find(field => field.label === 'CPF');
+    if (cpfField) {
+      formData[cpfField.id] = formData[cpfField.id] || '';
+    }
+
+    console.log('Form Data:', formData); // Log para debug
+
     // Notificar o componente pai
     notifyParent(formData, isFormValid);
 
@@ -192,11 +234,12 @@ export default function PersonalInfoForm({
     if (localStorageKey && isDirty) {
       saveToLocalStorage(localStorageKey, formData);
     }
-  }, [getValues, errors, isDirty, localStorageKey, saveToLocalStorage, notifyParent]);
+  }, [getValues, errors, isDirty, localStorageKey, saveToLocalStorage, notifyParent, formFields]);
 
   // Observar mudanças no formulário
   useEffect(() => {
-    const subscription = watch(() => {
+    const subscription = watch((value, { name, type }) => {
+      console.log('Field Changed:', { name, value, type }); // Log para debug
       handleFormChange();
     });
     
@@ -346,22 +389,13 @@ export default function PersonalInfoForm({
     fields.forEach((field) => {
       let value = '';
       
-      // Mapear IDs de campo para propriedades do perfil
+      // Mapear campos específicos
       switch (field.id) {
         case 'fullName':
-          value = profile.name || '';
+          value = profile.fullName || '';
           break;
         case 'email':
           value = profile.email || '';
-          break;
-        case 'phone':
-          value = profile.phone || '';
-          break;
-        case 'birthDate':
-          value = profile.birthDate || '';
-          break;
-        case 'gender':
-          value = profile.gender || '';
           break;
         case 'city':
           value = profile.city || '';
@@ -373,8 +407,13 @@ export default function PersonalInfoForm({
           value = profile.address || '';
           break;
         default:
-          // Tentar encontrar uma correspondência no perfil
-          value = profile[field.id as keyof UserProfile] as string || '';
+          // Se for campo CPF, buscar pelo ID ou label
+          if (field.id === 'cpf' || field.label === 'CPF') {
+            value = profile.cpf || '';
+          } else {
+            // Tentar encontrar uma correspondência no perfil
+            value = profile[field.id as keyof UserProfile] as string || '';
+          }
       }
       
       // Definir valor inicial
@@ -390,8 +429,42 @@ export default function PersonalInfoForm({
     const hasError = !!errors[field.id];
     const errorMessage = errors[field.id]?.message as string;
     
-    switch (field.type) {
+    switch (field.type.toLowerCase()) { // Normalizar o tipo para comparação
       case 'text':
+      case 'texto': // Suportar tipo em português
+        if (field.id === 'cpf' || field.label === 'CPF') {
+          return (
+            <Controller
+              name={field.id}
+              control={control}
+              render={({ field: { onChange, value, ref } }) => (
+                <TextField
+                  fullWidth
+                  label={field.label}
+                  value={value || ''}
+                  onChange={(e) => {
+                    // Atualiza o valor com a máscara
+                    const masked = e.target.value
+                      .replace(/\D/g, '')
+                      .replace(/(\d{3})(\d)/, '$1.$2')
+                      .replace(/(\d{3})(\d)/, '$1.$2')
+                      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
+                      .replace(/(-\d{2})\d+?$/, '$1');
+                    onChange(masked);
+                  }}
+                  inputRef={ref}
+                  error={hasError}
+                  helperText={errorMessage}
+                  required={isRequired}
+                  inputProps={{
+                    maxLength: 14,
+                    placeholder: '000.000.000-00'
+                  }}
+                />
+              )}
+            />
+          );
+        }
         return (
           <Controller
             name={field.id}
@@ -410,7 +483,6 @@ export default function PersonalInfoForm({
             )}
           />
         );
-
       case 'date':
         return (
           <Controller
@@ -658,12 +730,20 @@ function getDefaultFormFields(): FormField[] {
       order: 3
     },
     {
+      id: "cpf",
+      label: "CPF",
+      type: "text",
+      required: true,
+      options: [],
+      order: 4
+    },
+    {
       id: "email",
       label: "Email",
       type: "text",
       required: true,
       options: [],
-      order: 4
+      order: 5
     },
     {
       id: "phone",
@@ -671,7 +751,7 @@ function getDefaultFormFields(): FormField[] {
       type: "phone",
       required: true,
       options: [],
-      order: 5
+      order: 6
     },
     {
       id: "emergencyContact",
@@ -679,7 +759,7 @@ function getDefaultFormFields(): FormField[] {
       type: "phone",
       required: true,
       options: [],
-      order: 6
+      order: 7
     },
     {
       id: "termsAccepted",
@@ -687,7 +767,7 @@ function getDefaultFormFields(): FormField[] {
       type: "checkbox",
       required: true,
       options: [],
-      order: 7
+      order: 8
     }
   ];
 }

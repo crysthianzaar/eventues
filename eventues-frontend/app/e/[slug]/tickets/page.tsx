@@ -30,6 +30,8 @@ import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import PersonIcon from '@mui/icons-material/Person';
 import PaymentIcon from '@mui/icons-material/Payment';
 import { motion } from 'framer-motion';
+import PaymentComponent from './components/PaymentComponent';
+import { useSnackbar } from 'notistack';
 
 // Styled components
 const StyledContainer = styled(Container)(({ theme }) => ({
@@ -127,6 +129,7 @@ type FormData = Record<string, any>;
 export default function TicketsPage() {
   const params = useParams();
   const theme = useTheme();
+  const { enqueueSnackbar } = useSnackbar();
   const slug = params?.slug as string;
   
   const [activeStep, setActiveStep] = useState(0);
@@ -357,21 +360,26 @@ export default function TicketsPage() {
                 <Typography variant="body1" paragraph>
                   Esta é a etapa de pagamento. Aqui você poderá escolher a forma de pagamento e finalizar sua compra.
                 </Typography>
-                {/* Placeholder for payment component */}
-                <Box sx={{ 
-                  p: 4, 
-                  textAlign: 'center', 
-                  bgcolor: alpha(theme.palette.primary.light, 0.1),
-                  borderRadius: 2,
-                  mt: 2
-                }}>
-                  <Typography variant="h6" color="primary" gutterBottom>
-                    Componente de Pagamento
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    (Em desenvolvimento)
-                  </Typography>
-                </Box>
+                <PaymentComponent
+                  eventId={event?.event_id || ''}
+                  ticketId={Object.values(selectedTickets)[0].ticket.id || ''}
+                  quantity={Object.values(selectedTickets)[0].quantity}
+                  customerData={{
+                    name: participantForms[0]?.nome_completo || '',
+                    email: participantForms[0]?.email || '',
+                    cpf: participantForms[0]?.cpf || ''
+                  }}
+                  ticketData={{
+                    price: Object.values(selectedTickets)[0]?.ticket.valor || 0,
+                    name: Object.values(selectedTickets)[0]?.ticket.nome || ''
+                  }}
+                  onPaymentSuccess={(orderId) => {
+                    setActiveStep((prev) => prev + 1);
+                  }}
+                  onPaymentError={(error) => {
+                    enqueueSnackbar(error, { variant: 'error' });
+                  }}
+                />
               </StyledPaper>
             </Box>
           </Fade>

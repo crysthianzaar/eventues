@@ -35,10 +35,22 @@ interface Event {
   name: string;
   event_status: string;
   imageUrl: string;
-  start_date: string; // Data formatada
-  dateObj: Date; // Data do evento como objeto Date
-  registrationDate: Date; // Data de inscrição como objeto Date
+  start_date: string;
   location: string;
+  order_id: string;
+  ticket_id: string;
+  ticket_name: string;
+  ticket_value: number;
+  quantity: number;
+  total_value: number;
+  created_at: string;
+  payment_url: string;
+  dateObj?: Date;
+  registrationDate?: Date;
+}
+
+interface ApiResponse {
+  events: Event[];
 }
 
 interface UserInfo {
@@ -53,10 +65,10 @@ const MinhaContaPage = () => {
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: '',
     email: '',
-    birth_date: '-', // Inicializado com '-'
-    phone_number: '-', // Inicializado com '-'
+    birth_date: '-',
+    phone_number: '-',
   });
-  const [events, setEvents] = useState<Event[]>([]); // Lista de eventos
+  const [events, setEvents] = useState<Event[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
@@ -73,7 +85,7 @@ const MinhaContaPage = () => {
             },
           });
 
-            const { name, email, birth_date, phone_number } = response.data as UserInfo;
+          const { name, email, birth_date, phone_number } = response.data as UserInfo;
 
           setUserInfo({
             name: name || 'Atleta',
@@ -82,57 +94,33 @@ const MinhaContaPage = () => {
             phone_number: phone_number || '-',
           });
 
-          // Temporariamente mantendo os eventos como dados mockados
-          setEvents([
-            {
-              event_id: '1',
-              name: 'Evento de Ciclismo',
-              event_status: 'Concluído',
-              imageUrl:
-                'https://cdn.ticketsports.com.br/ticketagora/images/thumb/483WWR31GJPW13HS9PEVE18NGD17U0CVUJ1NMRTOUOGKFBUW4H.png',
-              start_date: '15 de Outubro de 2024',
-              dateObj: new Date('2024-10-15'),
-              registrationDate: new Date('2024-10-05'),
-              location: 'São Paulo, SP',
-            },
-            {
-              event_id: '2',
-              name: 'Corrida 10K',
-              event_status: 'Inscrito',
-              imageUrl:
-                'https://cdn.ticketsports.com.br/ticketagora/images/7R80BOJT9CNC85MFPNY1I8HZD8PVWQNL2CWLU9O2IE811M3WJM.png',
-              start_date: '22 de Outubro de 2024',
-              dateObj: new Date('2024-10-22'),
-              registrationDate: new Date('2024-10-01'),
-              location: 'Rio de Janeiro, RJ',
-            },
-            // Você pode adicionar mais eventos mockados conforme necessário
-          ]);
-
-          // Caso o endpoint de eventos esteja pronto no futuro, descomente a linha abaixo
-          // fetchUserEvents(user.uid, token);
+          // Fetch real events
+          await fetchUserEvents(user.uid, token);
         } catch (err) {
           setLoadError('Falha ao carregar informações da conta.');
         }
       }
     };
 
-    // Função para buscar eventos do usuário via backend (temporariamente comentada)
-    /*
     const fetchUserEvents = async (userId: string, token: string) => {
       try {
-        const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${userId}/events`, {
+        const response = await axios.get<ApiResponse>(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${userId}/events`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        setEvents((response.data as { events: Event[] }).events);
+        const eventsData = response.data.events.map((event) => ({
+          ...event,
+          dateObj: new Date(event.start_date),
+          registrationDate: new Date(event.created_at)
+        }));
+
+        setEvents(eventsData);
       } catch (err) {
         setLoadError('Falha ao carregar eventos.');
       }
     };
-    */
 
     fetchUserInfo();
   }, [user]);
@@ -141,16 +129,60 @@ const MinhaContaPage = () => {
     router.push('/configurar_perfil');
   };
 
+  const handleEventAction = (action: string, event: Event) => {
+    switch (action) {
+      case 'info':
+        router.push(`/i/${event.ticket_id}`);
+        break;
+      case 'resend':
+        // Redirecionar para a URL de pagamento se ainda estiver pendente
+        if (event.event_status === 'Inscrito' && event.payment_url) {
+          window.location.href = event.payment_url;
+        } else {
+          setPopupMessage('Não é possível reenviar confirmação para este pedido.');
+          setPopupOpen(true);
+        }
+        break;
+      case 'view':
+        // Mostrar detalhes do pedido
+        setPopupMessage(`
+          Detalhes do Pedido:
+          Protocolo: ${event.order_id}
+          Evento: ${event.name}
+          Ingresso: ${event.ticket_name}
+          Quantidade: ${event.quantity}
+          Valor Total: R$ ${event.total_value.toFixed(2)}
+          Status: ${event.event_status}
+          Data da Compra: ${new Date(event.created_at).toLocaleDateString('pt-BR')}
+        `);
+        setPopupOpen(true);
+        break;
+      case 'cancel':
+        const { canCancel, message } = canCancelRegistration(event);
+        if (canCancel) {
+          cancelRegistration(event.order_id);
+        } else {
+          setPopupMessage(message || 'Não é possível cancelar a inscrição.');
+          setPopupOpen(true);
+        }
+        break;
+      default:
+        break;
+    }
+  };
+
   const canCancelRegistration = (event: Event): { canCancel: boolean; message?: string } => {
     const today = new Date();
+    const eventDate = new Date(event.start_date);
+    const registrationDate = new Date(event.created_at);
 
     // Verificar se o evento já foi concluído
-    if (event.event_status === 'Concluído') {
-      return { canCancel: false, message: 'Não é possível cancelar, o evento já foi realizado.' };
+    if (event.event_status === 'Concluído' || event.event_status === 'Cancelado') {
+      return { canCancel: false, message: 'Não é possível cancelar, o pedido já foi finalizado.' };
     }
 
     // Calcular dias restantes até a data do evento
-    const timeDiffEvent = event.dateObj.getTime() - today.getTime();
+    const timeDiffEvent = eventDate.getTime() - today.getTime();
     const daysUntilEvent = Math.ceil(timeDiffEvent / (1000 * 3600 * 24));
 
     if (daysUntilEvent < 3) {
@@ -158,7 +190,7 @@ const MinhaContaPage = () => {
     }
 
     // Calcular dias desde a data de inscrição
-    const timeDiffRegistration = today.getTime() - event.registrationDate.getTime();
+    const timeDiffRegistration = today.getTime() - registrationDate.getTime();
     const daysSinceRegistration = Math.ceil(timeDiffRegistration / (1000 * 3600 * 24));
 
     if (daysSinceRegistration > 7) {
@@ -169,41 +201,13 @@ const MinhaContaPage = () => {
     return { canCancel: true };
   };
 
-  const handleEventAction = (action: string, event: Event) => {
-    switch (action) {
-      case 'info':
-        router.push(`/evento/${event.event_id}`);
-        break;
-      case 'resend':
-        // Lógica para reenviar confirmação
-        alert('Confirmação reenviada!');
-        break;
-      case 'view':
-        // Lógica para visualizar protocolo
-        alert('Protocolo exibido!');
-        break;
-      case 'cancel':
-        const { canCancel, message } = canCancelRegistration(event);
-        if (canCancel) {
-          // Lógica para cancelar inscrição
-          // Implementar a lógica real de cancelamento via API
-          cancelRegistration(event.event_id);
-        } else {
-          // Exibir popup com a mensagem
-          setPopupMessage(message || 'Não é possível cancelar a inscrição.');
-          setPopupOpen(true);
-        }
-        break;
-      default:
-        break;
-    }
-  };
+  const cancelRegistration = async (orderId: string) => {
+    if (!user) return;
 
-  const cancelRegistration = async (eventId: string) => {
     try {
-      const token = await getIdToken(user!);
+      const token = await getIdToken(user);
       const response = await axios.post(
-        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events/${eventId}/cancel`,
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/orders/${orderId}/cancel`,
         {},
         {
           headers: {
@@ -218,7 +222,7 @@ const MinhaContaPage = () => {
         // Atualizar a lista de eventos
         setEvents((prevEvents) =>
           prevEvents.map((event) =>
-            event.event_id === eventId ? { ...event, event_status: 'Cancelado' } : event
+            event.order_id === orderId ? { ...event, event_status: 'Cancelado' } : event
           )
         );
       } else {
@@ -290,35 +294,35 @@ const MinhaContaPage = () => {
             {/* User Info */}
             <Box
               sx={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '40px',
-              flexDirection: { xs: 'column', md: 'row' },
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '40px',
+                flexDirection: { xs: 'column', md: 'row' },
               }}
             >
               <Avatar
-              src={user?.photoURL || ''}
-              alt="Foto de perfil"
-              sx={{
-                width: 120,
-                height: 120,
-                marginRight: { md: '30px', xs: '0' },
-                marginBottom: { xs: '20px', md: '0' },
-              }}
+                src={user?.photoURL || ''}
+                alt="Foto de perfil"
+                sx={{
+                  width: 120,
+                  height: 120,
+                  marginRight: { md: '30px', xs: '0' },
+                  marginBottom: { xs: '20px', md: '0' },
+                }}
               />
               <Box sx={{ flex: 1 }}>
-              <Typography variant="h6" sx={{ marginBottom: '10px' }}>
-                {userInfo.name}
-              </Typography>
-              <Typography variant="body1" color="textSecondary">
-                <strong>E-mail:</strong> {userInfo.email}
-              </Typography>
-              <Typography variant="body1" color="textSecondary">
-                <strong>Data de Nascimento:</strong> {new Date(new Date(userInfo.birth_date).setDate(new Date(userInfo.birth_date).getDate() + 1)).toLocaleDateString('pt-BR')}
-              </Typography>
-              <Typography variant="body1" color="textSecondary">
-                <strong>Telefone:</strong> {userInfo.phone_number}
-              </Typography>
+                <Typography variant="h6" sx={{ marginBottom: '10px' }}>
+                  {userInfo.name}
+                </Typography>
+                <Typography variant="body1" color="textSecondary">
+                  <strong>E-mail:</strong> {userInfo.email}
+                </Typography>
+                <Typography variant="body1" color="textSecondary">
+                  <strong>Data de Nascimento:</strong> {new Date(new Date(userInfo.birth_date).setDate(new Date(userInfo.birth_date).getDate() + 1)).toLocaleDateString('pt-BR')}
+                </Typography>
+                <Typography variant="body1" color="textSecondary">
+                  <strong>Telefone:</strong> {userInfo.phone_number}
+                </Typography>
               </Box>
             </Box>
 

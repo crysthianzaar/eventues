@@ -1,17 +1,13 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
 
 export interface Ingresso {
-  descricao: string;
   id: string;
   nome: string;
-  tipo: 'Simples' | 'Lotes' | 'Gratuito';
+  descricao: string;
   valor: number;
   totalIngressos: number;
-  inicioVendas: string | null;
-  fimVendas: string | null;
-  lotes: Lote[] | null;
-  taxaServico: 'absorver' | 'repassar';
-  visibilidade: 'publico' | 'privado';
+  fimVendas: string;
+  status: string;
 }
 
 export interface Lote {
@@ -65,6 +61,7 @@ export interface UserProfile {
   city?: string;
   state?: string;
   address?: string;
+  cpf?: string;
   [key: string]: string | undefined;  // Permite indexação dinâmica
 }
 
