@@ -2,34 +2,52 @@
 
 import React from 'react';
 import WhyChooseEventues from './components/WhyChooseEventues';
+import { Metadata } from 'next';
 
 // Metadata export for SEO
-export const metadata = {
-  title: 'Por que Escolher a Eventues? | Eventues',
+export const metadata: Metadata = {
+  title: 'Eventues | Plataforma de Gestão de Eventos - Taxas a partir de 7,99%',
   description:
-    'Descubra as vantagens de usar a Eventues para organizar e participar de eventos. Economize nas taxas, maximize seus lucros e ofereça a melhor experiência aos participantes.',
+    'Plataforma completa para organização de eventos. Taxas a partir de 7,99%, suporte personalizado via WhatsApp, pagamentos antecipados e ferramentas de marketing. Comece grátis!',
+  metadataBase: new URL('https://www.eventues.com'),
+  alternates: {
+    canonical: '/seja_organizador',
+  },
+  keywords: 'gestão de eventos, venda de ingressos, organização de eventos, plataforma de eventos, eventos online, eventos presenciais',
   openGraph: {
     type: 'website',
     url: 'https://www.eventues.com/seja_organizador',
-    title: 'Por que Escolher a Eventues? | Eventues',
+    title: 'Eventues | Plataforma de Gestão de Eventos - Taxas a partir de 7,99%',
     description:
-      'Descubra as vantagens de usar a Eventues para organizar e participar de eventos. Economize nas taxas, maximize seus lucros e ofereça a melhor experiência aos participantes.',
+      'Plataforma completa para organização de eventos. Taxas a partir de 7,99%, suporte personalizado via WhatsApp, pagamentos antecipados e ferramentas de marketing. Comece grátis!',
     images: [
       {
         url: 'https://www.eventues.com/imagens/eventues_organizador_og_image.jpg',
-        width: 800,
-        height: 600,
-        alt: 'Eventues Organizer OG Image',
+        width: 1200,
+        height: 630,
+        alt: 'Eventues - Plataforma de Gestão de Eventos',
       },
     ],
+    siteName: 'Eventues',
   },
   twitter: {
     card: 'summary_large_image',
-    url: 'https://www.eventues.com/seja_organizador',
-    title: 'Por que Escolher a Eventues? | Eventues',
+    site: '@eventues',
+    title: 'Eventues | Plataforma de Gestão de Eventos - Taxas a partir de 7,99%',
     description:
-      'Descubra as vantagens de usar a Eventues para organizar e participar de eventos. Economize nas taxas, maximize seus lucros e ofereça a melhor experiência aos participantes.',
-    images: ['https://www.eventues.com/imagens/eventues_organizador_twitter_image.jpg'],
+      'Plataforma completa para organização de eventos. Taxas a partir de 7,99%, suporte personalizado via WhatsApp, pagamentos antecipados e ferramentas de marketing. Comece grátis!',
+    images: ['https://www.eventues.com/imagens/eventues_organizador_og_image.jpg'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 };
 

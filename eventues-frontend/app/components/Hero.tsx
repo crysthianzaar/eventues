@@ -9,22 +9,26 @@ const Hero: React.FC = () => {
   const items = [
     {
       color: '#2C3BBA',
-      backgroundImage: 'url("/event_esportivo.png")',
+      backgroundImage: 'url("/gradient_1.png")',
     },
     {
       color: '#68D391',
-      backgroundImage: 'url("/event_musical.jpg")',
+      backgroundImage: 'url("/gradient_2.png")',
     },
     {
       color: '#FF5733',
-      backgroundImage: 'url("/event_cultural.jpg")',
+      backgroundImage: 'url("/gradient_3.png")',
+    },
+    {
+      color: '#2C3BBA',
+      backgroundImage: 'url("/gradient_4.png")',
     },
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentIndex((prevIndex) => (prevIndex + 1) % items.length);
-    }, 5000); // Troca a cada 5 segundos
+    }, 2000); // Troca a cada 2 segundos
 
     return () => clearInterval(interval);
   }, [items.length]);
@@ -63,7 +67,6 @@ const Hero: React.FC = () => {
           backgroundSize: 'cover', // Ajusta a imagem para preencher o contêiner mantendo a proporção
           backgroundRepeat: 'no-repeat', // Impede que a imagem se repita
           transition: 'background 1s ease-in-out',
-          filter: 'grayscale(100%)', // Filtro preto e branco apenas no fundo
           zIndex: -1, // Para garantir que o background fique atrás do conteúdo
         }}
       />

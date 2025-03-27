@@ -8,6 +8,11 @@ interface EventsJsonLdProps {
 }
 
 export default function EventsJsonLd({ events }: EventsJsonLdProps) {
+  // Se events for undefined ou não for um array, retorna null
+  if (!events || !Array.isArray(events)) {
+    return null;
+  }
+
   // Criar o JSON-LD para a lista de eventos
   const eventsJsonLd = {
     '@context': 'https://schema.org',

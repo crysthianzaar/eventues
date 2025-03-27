@@ -1,14 +1,11 @@
 import base64
 import json
-from cachetools import TTLCache, cached
 from chalice import Blueprint, Response, CORSConfig
 from chalicelib.src.models.ingresso import Ingresso
 from chalicelib.src.utils.formatters import generate_slug
 from chalicelib.src.utils.firebase import db
 
 public_api = Blueprint(__name__)
-# Cache configuration
-events_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
 
 cors_config = CORSConfig(
     allow_origin='*',

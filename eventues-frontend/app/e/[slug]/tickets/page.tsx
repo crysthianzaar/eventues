@@ -22,7 +22,7 @@ import {
 } from '@mui/material';
 import { getEventBySlug, getEventTickets, Event, Ingresso } from '@/app/apis/api';
 import TicketOptions from './components/TicketOptions';
-import PersonalInfoForm from '../components/PersonalInfoForm';
+import PersonalInfoForm from './components/PersonalInfoForm';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -357,9 +357,6 @@ export default function TicketsPage() {
                 <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
                   Pagamento
                 </Typography>
-                <Typography variant="body1" paragraph>
-                  Esta é a etapa de pagamento. Aqui você poderá escolher a forma de pagamento e finalizar sua compra.
-                </Typography>
                 <PaymentComponent
                   eventId={event?.event_id || ''}
                   ticketId={Object.values(selectedTickets)[0].ticket.id || ''}
@@ -374,7 +371,10 @@ export default function TicketsPage() {
                     name: Object.values(selectedTickets)[0]?.ticket.nome || ''
                   }}
                   onPaymentSuccess={(orderId) => {
-                    setActiveStep((prev) => prev + 1);
+                    // Don't advance step for PIX payments since we need to show the QR code
+                    if (orderId) {
+                      enqueueSnackbar('Pagamento iniciado com sucesso!', { variant: 'success' });
+                    }
                   }}
                   onPaymentError={(error) => {
                     enqueueSnackbar(error, { variant: 'error' });

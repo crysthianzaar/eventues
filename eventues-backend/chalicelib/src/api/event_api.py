@@ -2,7 +2,6 @@
 
 import base64
 import json
-from cachetools import TTLCache, cached
 from chalice import Blueprint, Response, CORSConfig
 from chalicelib.src.usecases.event_usecase import EventUseCase
 from chalicelib.src.usecases.form_usecase import FormUseCase
@@ -18,12 +17,6 @@ cors_config = CORSConfig(
 event_api = Blueprint(__name__)
 use_case = EventUseCase()
 form_use_case = FormUseCase()
-
-# Cache configuration
-events_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
-event_detail_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
-event_tickets_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
-event_form_cache = TTLCache(maxsize=100, ttl=300)  # 5 minutes cache
 
 @event_api.route('/events', methods=['POST'], cors=cors_config)
 def create_event():
@@ -83,7 +76,6 @@ def list_events():
         )
 
 @event_api.route('/organizer_detail/{event_id}', methods=['GET'], cors=cors_config)
-@cached(event_detail_cache)
 def get_event_detail(event_id):
     try:
         event_ref = db.collection('events').document(event_id)
@@ -107,10 +99,7 @@ def get_event_detail(event_id):
         return Response(
             body=json.dumps(event_data),
             status_code=200,
-            headers={
-                'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=300'
-            }
+            headers={'Content-Type': 'application/json'}
         )
     except Exception as e:
         print(f"Erro ao buscar detalhes do evento: {str(e)}")
@@ -135,12 +124,6 @@ def update_event_details(event_id):
         
         if not event:
             raise ValueError("Evento não encontrado.")
-
-        # Invalidate caches on update
-        if event_id in event_detail_cache:
-            del event_detail_cache[event_id]
-        if event_id in event_tickets_cache:
-            del event_tickets_cache[event_id]
 
         return Response(
             body=event,
@@ -247,9 +230,7 @@ def get_tickets(event_id):
         return Response(
             body=json.dumps(tickets),
             status_code=200,
-            headers={
-                'Content-Type': 'application/json',
-            }
+            headers={'Content-Type': 'application/json'}
         )
     except Exception as e:
         return Response(
@@ -494,10 +475,6 @@ def update_event_form(event_id):
         
         form_data = form_use_case.update_event_form(event_id, form_fields)
         
-        # Invalidate cache on update
-        if event_id in event_form_cache:
-            del event_form_cache[event_id]
-            
         return Response(
             body=json.dumps(form_data),
             status_code=200,
@@ -540,9 +517,6 @@ def create_event_form(event_id):
 def delete_event_form(event_id):
     try:
         result = form_use_case.delete_event_form(event_id)
-        if event_id in event_form_cache:
-            del event_form_cache[event_id]
-            
         return Response(
             body=json.dumps({"success": result}),
             status_code=200 if result else 404,
