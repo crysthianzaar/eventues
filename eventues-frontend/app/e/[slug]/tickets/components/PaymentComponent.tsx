@@ -61,59 +61,57 @@ const cardStyle = `
   .rccs__card {
     width: 100%;
     max-width: 364px;
-    height: 210px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #3b6e8f 0%, #2c3e50 100%);
+    height: 220px;
+    border-radius: 16px;
+    background: linear-gradient(45deg, #1a365d 0%, #2d3748 100%);
     box-shadow: 
-      0 4px 20px rgba(0, 0, 0, 0.2),
-      inset 0 1px 1px rgba(255, 255, 255, 0.3),
-      inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+      0 8px 30px rgba(0, 0, 0, 0.15),
+      inset 0 1px 1px rgba(255, 255, 255, 0.06);
     display: flex;
     flex-direction: column;
     justify-content: space-between;
     padding: 24px;
     position: relative;
     overflow: hidden;
-  }
-  .rccs__card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0) 100%);
-    pointer-events: none;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
   }
   .rccs__card__number {
-    font-size: 20px;
+    font-size: 22px;
     font-weight: 500;
-    letter-spacing: 3px;
+    letter-spacing: 4px;
     color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
-                 0 0 4px rgba(255, 255, 255, 0.2);
-    margin-bottom: 20px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    margin-bottom: 24px;
+    font-family: 'Roboto Mono', monospace;
   }
   .rccs__name {
-    font-size: 14px;
+    font-size: 22px;
     font-weight: 500;
+    letter-spacing: 4px;
     color: white;
-    text-transform: uppercase;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
-                 0 0 4px rgba(255, 255, 255, 0.2);
-    margin-bottom: 4px;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+    letter-spacing: 1px;
+    margin-bottom: 30px;
+    left: 20px;
+    font-family: 'Roboto Mono', monospace;
   }
   .rccs__expiry {
-    font-size: 14px;
+    font-size: 16px;
     font-weight: 500;
-    color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3),
-                 0 0 4px rgba(255, 255, 255, 0.2);
+    color: rgba(255, 255, 255, 0.8);
+    letter-spacing: 1px;
+    position: absolute;
+    top: 220px;
+    margin-bottom: 30px;
+    left: 280px;
   }
   .rccs__issuer {
     position: absolute;
-    top: 24px;
-    right: 24px;
+    bottom: 20px;
+    left: 20px;
+    transform: scale(1.2);
+    z-index: 2;
   }
   .rccs__chip {
     display: none;
@@ -366,6 +364,7 @@ export default function PaymentComponent({
           event_id: eventId,
           ticket_id: ticketId,
           quantity: quantity,
+          user_id: user.uid,
           payment: {
             billingType: formData.paymentMethod,
             value: ticketData.price * quantity,
@@ -441,313 +440,428 @@ export default function PaymentComponent({
 
       <Box sx={{ mt: 4 }}>
         <Grid container spacing={3}>
-          <Grid item xs={12}>
-            <TextField
-              required
-              fullWidth
-              label="Nome Completo"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              disabled={loading}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              required
-              fullWidth
-              label="Email"
-              name="email"
-              type="email"
-              value={formData.email}
-              onChange={handleChange}
-              disabled={loading}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              required
-              fullWidth
-              label="CPF/CNPJ"
-              name="cpfCnpj"
-              value={formData.cpfCnpj}
-              onChange={handleChange}
-              disabled={loading}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              fullWidth
-              label="Telefone"
-              name="phone"
-              value={formData.phone || ''}
-              onChange={handleChange}
-              disabled={loading}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <FormControl fullWidth required>
-              <InputLabel>Método de Pagamento</InputLabel>
-              <Select
-                name="paymentMethod"
-                value={formData.paymentMethod}
-                onChange={handleSelectChange}
-                disabled={loading}
-              >
-                <MenuItem value="PIX">PIX</MenuItem>
-                <MenuItem value="BOLETO">Boleto</MenuItem>
-                <MenuItem value="CREDIT_CARD">Cartão de Crédito</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
+          {paymentResult ? (
+            <Grid item xs={12}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                <Typography variant="h6" gutterBottom>
+                  {paymentResult.status === 'CONFIRMED' ? 'Pagamento Confirmado' : 'Pagamento Pendente'}
+                </Typography>
 
-          {formData.paymentMethod === 'CREDIT_CARD' && (
-            <Box sx={{ mt: 4, mb: 4 }}>
-              <Paper elevation={0} sx={{ p: 3, bgcolor: '#f8f9fa', borderRadius: 2 }}>
-                <Grid container spacing={4}>
-                  <Grid item xs={12} md={7}>
-                    <Grid container spacing={3}>
-                      <Grid item xs={12}>
-                        <TextField
-                          required
-                          fullWidth
-                          name="number"
-                          label="Número do cartão"
-                          value={formData.cardNumber}
-                          onChange={handleCardNumberChange}
-                          onFocus={handleInputFocus}
-                          placeholder="0000 0000 0000 0000"
-                          inputProps={{ maxLength: 19 }}
-                          sx={{ 
-                            '& .MuiOutlinedInput-root': {
-                              bgcolor: '#F0F7FF',
-                              '&.Mui-focused': {
-                                bgcolor: '#F0F7FF',
-                              }
-                            },
-                            '& .MuiOutlinedInput-input': {
-                              letterSpacing: '2px'
-                            }
-                          }}
-                        />
-                        {formData.cardType !== 'unknown' && formData.cardType && (
-                          <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block', textTransform: 'capitalize' }}>
-                            Cartão {formData.cardType}
-                          </Typography>
-                        )}
+                {paymentResult.billingType === 'PIX' && (
+                  <Box sx={{ mt: 2, textAlign: 'center', maxWidth: '500px', width: '100%' }}>
+                    <Typography gutterBottom>
+                      Escaneie o QR Code ou copie o código PIX:
+                    </Typography>
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                      <img
+                        src={`data:image/png;base64,${paymentResult.encodedImage}`}
+                        alt="PIX QR Code"
+                        style={{ maxWidth: 200 }}
+                      />
+                    </Box>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={2}
+                      value={paymentResult.payload ?? ''}
+                      InputProps={{ readOnly: true }}
+                    />
+                    <Button
+                      variant="outlined"
+                      onClick={() => paymentResult.payload && navigator.clipboard.writeText(paymentResult.payload)}
+                      sx={{ mt: 1 }}
+                    >
+                      Copiar código PIX
+                    </Button>
+                    <Typography variant="body2" sx={{ mt: 1 }}>
+                      Expira em: {paymentResult.expirationDate && new Date(paymentResult.expirationDate).toLocaleString('pt-BR', {
+                        year: 'numeric',
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      })} ({(() => {
+                        if (!paymentResult.expirationDate) return '';
+                        const expiry = new Date(paymentResult.expirationDate);
+                        const now = new Date();
+                        const diff = expiry.getTime() - now.getTime();
+                        const hours = Math.floor(diff / (1000 * 60 * 60));
+                        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        return `${hours}h${minutes}min restantes`;
+                      })()})
+                    </Typography>
+                    <Button
+                      variant="contained"
+                      color="primary"
+                      onClick={() => {
+                        window.location.href = `/i/${ticketId}`;
+                      }}
+                      sx={{ mt: 2 }}
+                    >
+                      Ver Detalhes da Inscrição
+                    </Button>
+                  </Box>
+                )}
+
+                {paymentResult.billingType === 'BOLETO' && paymentResult.bankSlipUrl && (
+                  <Box sx={{ mt: 2, textAlign: 'center' }}>
+                    <Typography gutterBottom>
+                      Clique no botão abaixo para visualizar o boleto:
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, mt: 1 }}>
+                      <Button
+                        variant="contained"
+                        href={paymentResult.bankSlipUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        Visualizar Boleto
+                      </Button>
+                      <Button
+                        variant="contained"
+                        color="primary"
+                        onClick={() => {
+                          window.location.href = `/i/${ticketId}`;
+                        }}
+                      >
+                        Ver Detalhes da Inscrição
+                      </Button>
+                    </Box>
+                  </Box>
+                )}
+
+                {paymentResult.status === 'CONFIRMED' && paymentResult.transactionReceiptUrl && (
+                  <Box sx={{ mt: 2, textAlign: 'center' }}>
+                    <Typography variant="h6" gutterBottom color="success.main">
+                      Pagamento realizado com sucesso!
+                    </Typography>
+                    <Button
+                      variant="outlined"
+                      href={paymentResult.transactionReceiptUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ mt: 1 }}
+                    >
+                      Visualizar Recibo
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            </Grid>
+          ) : (
+            <>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Nome Completo"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="Email"
+                  name="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  required
+                  fullWidth
+                  label="CPF/CNPJ"
+                  name="cpfCnpj"
+                  value={formData.cpfCnpj}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField
+                  fullWidth
+                  label="Telefone"
+                  name="phone"
+                  value={formData.phone || ''}
+                  onChange={handleChange}
+                  disabled={loading}
+                />
+              </Grid>
+              <Grid item xs={12}>
+                <FormControl fullWidth required>
+                  <InputLabel>Método de Pagamento</InputLabel>
+                  <Select
+                    name="paymentMethod"
+                    value={formData.paymentMethod}
+                    onChange={handleSelectChange}
+                    disabled={loading}
+                  >
+                    <MenuItem value="PIX">PIX</MenuItem>
+                    <MenuItem value="BOLETO">Boleto</MenuItem>
+                    <MenuItem value="CREDIT_CARD">Cartão de Crédito</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+
+              {formData.paymentMethod === 'CREDIT_CARD' && (
+                <Box sx={{ mt: 4, mb: 4, width: '100%' }}>
+                  <Paper elevation={0} sx={{ 
+                    p: { xs: 2, sm: 3, md: 4 },
+                    bgcolor: '#f8f9fa',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(0, 0, 0, 0.06)'
+                  }}>
+                    <Grid container spacing={4}>
+                      <Grid item xs={12} md={5} sx={{ 
+                        order: { xs: 1, md: 2 },
+                        mb: { xs: 4, md: 0 },
+                        display: 'flex',
+                        justifyContent: 'center'
+                      }}>
+                        <Box sx={{ 
+                          width: '100%',
+                          maxWidth: 360,
+                          perspective: '1000px'
+                        }}>
+                          <style>{cardStyle}</style>
+                          <Box className="rccs__card">
+                            <Box className="rccs__card__number">
+                              {formData.cardNumber || '•••• •••• •••• ••••'}
+                            </Box>
+                            <Box sx={{ position: 'absolute', bottom: '20px', left: '20px' }}>
+                              <CardFlag type={getCardType(formData.cardNumber.replace(/\s/g, ''))} />
+                            </Box>
+                            <Box className="rccs__expiry">
+                              {formData.cardExpiry || 'MM/AA'}
+                            </Box>
+                            <Box>
+                              <Box className="rccs__name">
+                                {formData.cardHolderName || 'NOME NO CARTÃO'}
+                              </Box>
+                            </Box>
+                          </Box>
+                        </Box>
                       </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          required
-                          fullWidth
-                          name="name"
-                          label="Nome no cartão"
-                          value={formData.cardHolderName}
-                          onChange={(e) => setFormData(prev => ({ ...prev, cardHolderName: e.target.value.toUpperCase() }))}
-                          onFocus={handleInputFocus}
-                          placeholder="NOME COMO ESTÁ NO CARTÃO"
-                          sx={{ 
-                            '& .MuiOutlinedInput-root': {
-                              bgcolor: '#F0F7FF',
-                              '&.Mui-focused': {
-                                bgcolor: '#F0F7FF',
-                              }
-                            }
-                          }}
-                        />
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                          Conforme aparece no cartão
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          required
-                          fullWidth
-                          name="expiry"
-                          label="Data de vencimento"
-                          value={formData.cardExpiry}
-                          onChange={handleCardExpiryChange}
-                          onFocus={handleInputFocus}
-                          placeholder="MM/AA"
-                          inputProps={{ maxLength: 5 }}
-                          sx={{ 
-                            '& .MuiOutlinedInput-root': {
-                              bgcolor: '#F0F7FF',
-                              '&.Mui-focused': {
-                                bgcolor: '#F0F7FF',
-                              }
-                            }
-                          }}
-                        />
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                          Mês / Ano
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={6}>
-                        <TextField
-                          required
-                          fullWidth
-                          name="cvc"
-                          label="Código de segurança"
-                          value={formData.cardCvv}
-                          onChange={handleCardCVVChange}
-                          onFocus={handleInputFocus}
-                          placeholder="***"
-                          inputProps={{ maxLength: 4 }}
-                          sx={{ 
-                            '& .MuiOutlinedInput-root': {
-                              bgcolor: '#F0F7FF',
-                              '&.Mui-focused': {
-                                bgcolor: '#F0F7FF',
-                              }
-                            }
-                          }}
-                        />
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                          CVV
-                        </Typography>
-                      </Grid>
-                      <Grid item xs={12}>
-                        <TextField
-                          required
-                          fullWidth
-                          name="postalCode"
-                          label="CEP"
-                          value={formData.postalCode}
-                          onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value.replace(/\D/g, '') }))}
-                          placeholder="00000-000"
-                          inputProps={{ maxLength: 9 }}
-                          sx={{ 
-                            '& .MuiOutlinedInput-root': {
-                              bgcolor: '#F0F7FF',
-                              '&.Mui-focused': {
-                                bgcolor: '#F0F7FF',
-                              }
-                            }
-                          }}
-                        />
-                        <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
-                          CEP
-                        </Typography>
+                      <Grid item xs={12} md={7} sx={{ order: { xs: 2, md: 1 } }}>
+                        <Grid container spacing={3}>
+                          <Grid item xs={12}>
+                            <TextField
+                              required
+                              fullWidth
+                              name="number"
+                              label="Número do cartão"
+                              value={formData.cardNumber}
+                              onChange={handleCardNumberChange}
+                              onFocus={handleInputFocus}
+                              placeholder="0000 0000 0000 0000"
+                              inputProps={{ maxLength: 19 }}
+                              sx={{ 
+                                '& .MuiOutlinedInput-root': {
+                                  bgcolor: '#fff',
+                                  borderRadius: '12px',
+                                  '&:hover': {
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'rgba(0, 0, 0, 0.24)',
+                                    }
+                                  },
+                                  '&.Mui-focused': {
+                                    bgcolor: '#fff',
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'primary.main',
+                                      borderWidth: '2px',
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                            {formData.cardType !== 'unknown' && formData.cardType && (
+                              <Typography variant="caption" color="primary" sx={{ mt: 0.5, display: 'block', textTransform: 'capitalize' }}>
+                                Cartão {formData.cardType}
+                              </Typography>
+                            )}
+                          </Grid>
+                          <Grid item xs={12}>
+                            <TextField
+                              required
+                              fullWidth
+                              name="name"
+                              label="Nome no cartão"
+                              value={formData.cardHolderName}
+                              onChange={(e) => setFormData(prev => ({ ...prev, cardHolderName: e.target.value.toUpperCase() }))}
+                              onFocus={handleInputFocus}
+                              placeholder="NOME COMO ESTÁ NO CARTÃO"
+                              sx={{ 
+                                '& .MuiOutlinedInput-root': {
+                                  bgcolor: '#fff',
+                                  borderRadius: '12px',
+                                  '&:hover': {
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'rgba(0, 0, 0, 0.24)',
+                                    }
+                                  },
+                                  '&.Mui-focused': {
+                                    bgcolor: '#fff',
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'primary.main',
+                                      borderWidth: '2px',
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              Conforme aparece no cartão
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <TextField
+                              required
+                              fullWidth
+                              name="expiry"
+                              label="Data de vencimento"
+                              value={formData.cardExpiry}
+                              onChange={handleCardExpiryChange}
+                              onFocus={handleInputFocus}
+                              placeholder="MM/AA"
+                              inputProps={{ maxLength: 5 }}
+                              sx={{ 
+                                '& .MuiOutlinedInput-root': {
+                                  bgcolor: '#fff',
+                                  borderRadius: '12px',
+                                  '&:hover': {
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'rgba(0, 0, 0, 0.24)',
+                                    }
+                                  },
+                                  '&.Mui-focused': {
+                                    bgcolor: '#fff',
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'primary.main',
+                                      borderWidth: '2px',
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              Mês / Ano
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={6}>
+                            <TextField
+                              required
+                              fullWidth
+                              name="cvc"
+                              label="Código de segurança"
+                              value={formData.cardCvv}
+                              onChange={handleCardCVVChange}
+                              onFocus={handleInputFocus}
+                              placeholder="***"
+                              inputProps={{ maxLength: 4 }}
+                              sx={{ 
+                                '& .MuiOutlinedInput-root': {
+                                  bgcolor: '#fff',
+                                  borderRadius: '12px',
+                                  '&:hover': {
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'rgba(0, 0, 0, 0.24)',
+                                    }
+                                  },
+                                  '&.Mui-focused': {
+                                    bgcolor: '#fff',
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'primary.main',
+                                      borderWidth: '2px',
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              CVV
+                            </Typography>
+                          </Grid>
+                          <Grid item xs={12}>
+                            <TextField
+                              required
+                              fullWidth
+                              name="postalCode"
+                              label="CEP"
+                              value={formData.postalCode}
+                              onChange={(e) => setFormData(prev => ({ ...prev, postalCode: e.target.value.replace(/\D/g, '') }))}
+                              placeholder="00000-000"
+                              inputProps={{ maxLength: 9 }}
+                              sx={{ 
+                                '& .MuiOutlinedInput-root': {
+                                  bgcolor: '#fff',
+                                  borderRadius: '12px',
+                                  '&:hover': {
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'rgba(0, 0, 0, 0.24)',
+                                    }
+                                  },
+                                  '&.Mui-focused': {
+                                    bgcolor: '#fff',
+                                    '& .MuiOutlinedInput-notchedOutline': {
+                                      borderColor: 'primary.main',
+                                      borderWidth: '2px',
+                                    }
+                                  }
+                                }
+                              }}
+                            />
+                            <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                              CEP
+                            </Typography>
+                          </Grid>
+                        </Grid>
                       </Grid>
                     </Grid>
-                  </Grid>
-                  <Grid item xs={12} md={5} sx={{ display: 'flex', justifyContent: { xs: 'center', md: 'flex-end' } }}>
-                    <Box sx={{ width: '100%', maxWidth: 360, position: 'relative' }}>
-                      <style>{cardStyle}</style>
-                      <Box className="rccs__card">
-                        <Box className="rccs__issuer">
-                          <CardFlag type={getCardType(formData.cardNumber.replace(/\s/g, ''))} />
-                        </Box>
-                        <Box className="rccs__card__number">
-                          {formData.cardNumber || '•••• •••• •••• ••••'}
-                        </Box>
-                        <Box>
-                          <Box className="rccs__name">
-                            {formData.cardHolderName || 'NOME NO CARTÃO'}
-                          </Box>
-                          <Box className="rccs__expiry">
-                            {formData.cardExpiry || 'MM/AA'}
-                          </Box>
-                        </Box>
-                      </Box>
-                    </Box>
-                  </Grid>
-                </Grid>
-              </Paper>
-            </Box>
-          )}
-
-          {error && (
-            <Alert severity="error" sx={{ mt: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center' }}>
-            <Button
-              variant="contained"
-              onClick={handleSubmit}
-              disabled={loading}
-              startIcon={loading ? <CircularProgress size={20} /> : <PaymentIcon />}
-              sx={{ minWidth: 200 }}
-            >
-              {loading ? 'Processando...' : `Pagar ${formatPrice(ticketData.price * quantity)}`}
-            </Button>
-          </Box>
-
-          {paymentResult && (
-            <Box sx={{ mt: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                {paymentResult.status === 'CONFIRMED' ? 'Pagamento Confirmado' : 'Pagamento Pendente'}
-              </Typography>
-
-              {paymentResult.billingType === 'PIX' && (
-                <Box sx={{ mt: 2, textAlign: 'center' }}>
-                  <Typography gutterBottom>
-                    Escaneie o QR Code ou copie o código PIX:
-                  </Typography>
-                  <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                    <img
-                      src={`data:image/png;base64,${paymentResult.encodedImage}`}
-                      alt="PIX QR Code"
-                      style={{ maxWidth: 200 }}
-                    />
-                  </Box>
-                  <TextField
-                    fullWidth
-                    multiline
-                    rows={2}
-                    value={paymentResult.payload ?? ''}
-                    InputProps={{ readOnly: true }}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={() => paymentResult.payload && navigator.clipboard.writeText(paymentResult.payload)}
-                    sx={{ mt: 1 }}
-                  >
-                    Copiar código PIX
-                  </Button>
-                  <Typography variant="body2" sx={{ mt: 1 }}>
-                    Expira em: {paymentResult.expirationDate && new Date(paymentResult.expirationDate).toLocaleDateString()}
-                  </Typography>
+                  </Paper>
                 </Box>
               )}
 
-              {paymentResult.billingType === 'BOLETO' && paymentResult.bankSlipUrl && (
-                <Box sx={{ mt: 2, textAlign: 'center' }}>
-                  <Typography gutterBottom>
-                    Clique no botão abaixo para visualizar o boleto:
-                  </Typography>
-                  <Button
-                    variant="contained"
-                    href={paymentResult.bankSlipUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ mt: 1 }}
-                  >
-                    Visualizar Boleto
-                  </Button>
-                </Box>
+              {error && (
+                <Alert severity="error" sx={{ mt: 2 }}>
+                  {error}
+                </Alert>
               )}
 
-              {paymentResult.status === 'CONFIRMED' && paymentResult.transactionReceiptUrl && (
-                <Box sx={{ mt: 2, textAlign: 'center' }}>
-                  <Typography gutterBottom color="success.main">
-                    Pagamento realizado com sucesso!
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    href={paymentResult.transactionReceiptUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ mt: 1 }}
-                  >
-                    Visualizar Recibo
-                  </Button>
-                </Box>
-              )}
-            </Box>
+              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <Button
+                  variant="contained"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                  startIcon={loading ? <CircularProgress size={20} /> : <PaymentIcon />}
+                  sx={{ 
+                    minWidth: 200,
+                    py: 1.5,
+                    px: 4,
+                    borderRadius: '12px',
+                    textTransform: 'none',
+                    fontSize: '1.1rem',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    '&:hover': {
+                      boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+                      transform: 'translateY(-1px)'
+                    },
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {loading ? 'Processando...' : `Pagar ${formatPrice(ticketData.price * quantity)}`}
+                </Button>
+              </Box>
+            </>
           )}
         </Grid>
       </Box>

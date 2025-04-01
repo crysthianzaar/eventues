@@ -25,6 +25,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { debounce } from 'lodash';
 import { IMaskInput } from 'react-imask';
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { auth } from '../../../../../firebase';
 
 interface PersonalInfoFormProps {
   eventId: string;
@@ -110,6 +112,7 @@ export default function PersonalInfoForm({
   const [isForAnotherPerson, setIsForAnotherPerson] = useState(false);
   const [validationSchema, setValidationSchema] = useState<z.ZodObject<any>>(z.object({}));
   const [retryCount, setRetryCount] = useState(0);
+  const [user] = useAuthState(auth);
   const MAX_RETRIES = 3;
 
   // Criar o schema Zod dinamicamente com base nos campos do formulário

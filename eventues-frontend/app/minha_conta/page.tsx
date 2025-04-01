@@ -45,6 +45,7 @@ interface Event {
   total_value: number;
   created_at: string;
   payment_url: string;
+  payment_id: string;
   dateObj?: Date;
   registrationDate?: Date;
 }
@@ -132,7 +133,7 @@ const MinhaContaPage = () => {
   const handleEventAction = (action: string, event: Event) => {
     switch (action) {
       case 'info':
-        router.push(`/i/${event.ticket_id}`);
+        router.push(`/i/${event.payment_id}`);
         break;
       case 'resend':
         // Redirecionar para a URL de pagamento se ainda estiver pendente

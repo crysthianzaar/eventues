@@ -106,6 +106,9 @@ def get_user_events(user_id):
                 }
                 
                 event_status = status_mapping.get(order_data.get('status', 'pending'), 'Aguardando Pagamento')
+                created_at = order_data.get('created_at', '')
+                if hasattr(created_at, 'isoformat'):
+                    created_at = created_at.isoformat()
                 
                 events_list.append({
                     'event_id': event.id,
@@ -120,8 +123,9 @@ def get_user_events(user_id):
                     'ticket_value': order_data.get('ticket_value', 0),
                     'quantity': order_data.get('quantity', 0),
                     'total_value': order_data.get('total_value', 0),
-                    'created_at': order_data.get('created_at', ''),
-                    'payment_url': order_data.get('payment_url', '')
+                    'created_at': created_at,
+                    'payment_url': order_data.get('payment_url', ''),
+                    'payment_id': order_data.get('payment_id', ''),
                 })
         
         return Response(
@@ -137,16 +141,16 @@ def get_user_events(user_id):
             headers={'Content-Type': 'application/json'}
         )
 
-@user_api.route('/tickets/{ticket_id}', methods=['GET'], cors=cors_config)
-def get_ticket_details(ticket_id):
+@user_api.route('/tickets/{payment_id}', methods=['GET'], cors=cors_config)
+def get_ticket_details(payment_id):
     try:
         # Get the order associated with this ticket
-        orders = db.collection('orders').where('ticket_id', '==', ticket_id).limit(1).stream()
+        orders = db.collection('orders').where('payment_id', '==', payment_id).limit(1).stream()
         order = next(orders, None)
         
         if not order:
             # Try finding by order ID if ticket_id not found
-            order = db.collection('orders').document(ticket_id).get()
+            order = db.collection('orders').document(payment_id).get()
             if not order.exists:
                 return Response(
                     body={'error': 'Ticket not found'},
@@ -191,13 +195,15 @@ def get_ticket_details(ticket_id):
         ticket_details = {
             'order_id': order.id,
             'event_id': event.id,
+            'event_type': event_data.get('event_type'),
             'event_name': event_data.get('name'),
             'event_date': event_date,
             'event_location': event_data.get('location'),
             'ticket_name': order_data.get('ticket_name'),
             'ticket_value': order_data.get('ticket_value'),
             'quantity': order_data.get('quantity'),
-            'total_value': order_data.get('total_value'),
+            'total_value': order_data.get('total_amount'),
+            'payment_datails': order_data.get('payment_details'),
             'status': order_data.get('status'),
             'created_at': created_at,
             'payment_url': order_data.get('payment_url'),

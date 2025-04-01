@@ -12,23 +12,38 @@ import {
   Paper,
   Chip,
   Button,
+  TextField,
 } from '@mui/material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../firebase';
 import { getIdToken } from 'firebase/auth';
 import axios from 'axios';
 import QRCode from 'react-qr-code';
+import { Dictionary } from 'lodash';
 
 interface TicketDetails {
   order_id: string;
   event_id: string;
   event_name: string;
   event_date: string;
-  event_location: string;
-  ticket_name: string;
-  ticket_value: number;
+  event_location: string | null;
+  ticket_name: string | null;
+  ticket_value: number | null;
   quantity: number;
-  total_value: number;
+  total_value: number | null;
+  payment_datails: {
+    transactionReceiptUrl: string | null;
+    status: string;
+    billingType: string;
+    bankSlipUrl?: string;
+    encodedImage?: string;
+    payload?: string;
+    expirationDate?: string;
+    value: number;
+    dueDate: string;
+    description: string;
+    [key: string]: any;
+  };
   status: string;
   created_at: string;
   payment_url: string;
@@ -40,26 +55,7 @@ interface TicketDetails {
   };
 }
 
-interface ApiResponse {
-  order_id: string;
-  event_id: string;
-  event_name: string;
-  event_date: string;
-  event_location: string;
-  ticket_name: string;
-  ticket_value: number;
-  quantity: number;
-  total_value: number;
-  status: string;
-  created_at: string;
-  payment_url: string;
-  participant_info: {
-    name: string;
-    email: string;
-    cpf: string;
-    phone: string;
-  };
-}
+interface ApiResponse extends TicketDetails {}
 
 export default function TicketPage() {
   const [user] = useAuthState(auth);
@@ -74,6 +70,7 @@ export default function TicketPage() {
 
       try {
         const token = await getIdToken(user);
+        console.log(params);
         const response = await axios.get<ApiResponse>(
           `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/tickets/${params.ticket_id}`,
           {
@@ -92,7 +89,7 @@ export default function TicketPage() {
     };
 
     fetchTicketDetails();
-  }, [user, params.ticket_id]);
+  }, [user, params.payment_id]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -220,10 +217,121 @@ export default function TicketPage() {
                     Valor Total
                   </Typography>
                   <Typography variant="h6" color="primary">
-                    R$ {ticketDetails.total_value.toFixed(2)}
+                    R$ {ticketDetails?.total_value?.toFixed(2) ?? '0.00'}
                   </Typography>
                 </Paper>
               </Grid>
+            </Grid>
+
+            <Divider sx={{ marginY: 2 }} />
+
+            <Typography variant="h6" gutterBottom>
+              Informações do Pagamento
+            </Typography>
+            <Grid container spacing={2}>
+              {ticketDetails.payment_datails && (
+                <>
+                  {ticketDetails.payment_datails.billingType === 'PIX' && (
+                    <Grid item xs={12}>
+                      <Paper sx={{ p: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Pagamento via PIX
+                          </Typography>
+                          {ticketDetails.payment_datails.status === 'PENDING' && (
+                            <>
+                              <Typography gutterBottom>
+                                Escaneie o QR Code ou copie o código PIX:
+                              </Typography>
+                              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                                <img
+                                  src={`data:image/png;base64,${ticketDetails.payment_datails.encodedImage}`}
+                                  alt="PIX QR Code"
+                                  style={{ maxWidth: 200 }}
+                                />
+                              </Box>
+                              <TextField
+                                fullWidth
+                                multiline
+                                rows={2}
+                                value={ticketDetails.payment_datails.payload ?? ''}
+                                InputProps={{ readOnly: true }}
+                                sx={{ maxWidth: 500, mb: 1 }}
+                              />
+                              <Button
+                                variant="outlined"
+                                onClick={() => ticketDetails.payment_datails.payload && navigator.clipboard.writeText(ticketDetails.payment_datails.payload)}
+                                sx={{ mb: 2 }}
+                              >
+                                Copiar código PIX
+                              </Button>
+                              {ticketDetails.payment_datails.expirationDate && (
+                                <Typography variant="body2">
+                                  Expira em: {new Date(ticketDetails.payment_datails.expirationDate).toLocaleString('pt-BR', {
+                                    year: 'numeric',
+                                    month: '2-digit',
+                                    day: '2-digit',
+                                    hour: '2-digit',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    hour12: false
+                                  })}
+                                </Typography>
+                              )}
+                            </>
+                          )}
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {ticketDetails.payment_datails.billingType === 'BOLETO' && (
+                    <Grid item xs={12}>
+                      <Paper sx={{ p: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Pagamento via Boleto
+                          </Typography>
+                          {ticketDetails.payment_datails.bankSlipUrl && (
+                            <Button
+                              variant="contained"
+                              href={ticketDetails.payment_datails.bankSlipUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{ mt: 1 }}
+                            >
+                              Visualizar Boleto
+                            </Button>
+                          )}
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  )}
+
+                  {ticketDetails.payment_datails.billingType === 'CREDIT_CARD' && (
+                    <Grid item xs={12}>
+                      <Paper sx={{ p: 2 }}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                            Pagamento via Cartão de Crédito
+                          </Typography>
+                          {ticketDetails.payment_datails.status === 'CONFIRMED' && ticketDetails.payment_datails.transactionReceiptUrl && (
+                            <Button
+                              variant="outlined"
+                              href={ticketDetails.payment_datails.transactionReceiptUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              sx={{ mt: 1 }}
+                            >
+                              Visualizar Recibo
+                            </Button>
+                          )}
+                        </Box>
+                      </Paper>
+                    </Grid>
+                  )}
+                </>
+              )}
             </Grid>
 
             <Divider sx={{ marginY: 2 }} />

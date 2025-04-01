@@ -7,6 +7,7 @@ import axios from 'axios';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import useSWR from 'swr';
+import LoadingOverlay from './LoadingOverlay';
 
 interface Event {
   event_id: string;
@@ -119,6 +120,7 @@ const Events: React.FC = () => {
   const [events, setEvents] = useState<Event[]>([]);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const [isNavigating, setIsNavigating] = useState(false);
   const observer = useRef<IntersectionObserver | null>(null);
   const router = useRouter();
 
@@ -154,6 +156,7 @@ const Events: React.FC = () => {
   }, [isLoading, hasMore]);
 
   const handleEventClick = (slug: string) => {
+    setIsNavigating(true);
     router.push(`/e/${slug}`);
   };
 
@@ -167,6 +170,7 @@ const Events: React.FC = () => {
 
   return (
     <Box sx={{ padding: { xs: '40px 10px', md: '40px 0' }, backgroundColor: '#F7FAFC' }}>
+      {isNavigating && <LoadingOverlay />}
       <Typography
         variant="h4"
         align="center"

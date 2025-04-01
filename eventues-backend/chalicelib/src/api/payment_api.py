@@ -301,6 +301,7 @@ def create_payment_session():
         order_ref = db.collection('orders').document()
         order_data = {
             'payment_id': payment_result['id'],
+            'user_id': data['user_id'],
             'payment_url': payment_result.get('invoiceUrl'),
             'status': payment_result['status'],
             'customer_id': data['customer'],
@@ -309,7 +310,8 @@ def create_payment_session():
             'quantity': quantity,
             'total_amount': total_amount,
             'created_at': datetime.now(),
-            'updated_at': datetime.now()
+            'updated_at': datetime.now(),
+            'payment_details': payment_result
         }
         order_ref.set(order_data)
 
