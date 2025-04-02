@@ -73,6 +73,7 @@ const MinhaContaPage = () => {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -104,6 +105,7 @@ const MinhaContaPage = () => {
     };
 
     const fetchUserEvents = async (userId: string, token: string) => {
+      setLoading(true);
       try {
         const response = await axios.get<ApiResponse>(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${userId}/events`, {
           headers: {
@@ -118,8 +120,10 @@ const MinhaContaPage = () => {
         }));
 
         setEvents(eventsData);
+        setLoading(false);
       } catch (err) {
         setLoadError('Falha ao carregar eventos.');
+        setLoading(false);
       }
     };
 
@@ -331,7 +335,20 @@ const MinhaContaPage = () => {
             <Typography variant="h6" sx={{ marginBottom: '20px', fontWeight: 'bold' }}>
               Meus Eventos
             </Typography>
-            {events.length > 0 ? (
+            {loading ? (
+              <Box sx={{ 
+                display: 'flex', 
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 2,
+                py: 4
+              }}>
+                <CircularProgress />
+                <Typography color="text.secondary">
+                  Carregando seus eventos...
+                </Typography>
+              </Box>
+            ) : events.length > 0 ? (
               <Grid container spacing={3}>
                 {events.map((event) => (
                   <Grid item xs={12} sm={6} key={event.event_id}>

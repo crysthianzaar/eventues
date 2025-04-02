@@ -30,7 +30,7 @@ import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import PersonIcon from '@mui/icons-material/Person';
 import PaymentIcon from '@mui/icons-material/Payment';
 import { motion } from 'framer-motion';
-import PaymentComponent from './components/PaymentComponent';
+import PaymentComponent from './components/payment/PaymentComponent';
 import { useSnackbar } from 'notistack';
 
 // Styled components
@@ -359,19 +359,20 @@ export default function TicketsPage() {
                 </Typography>
                 <PaymentComponent
                   eventId={event?.event_id || ''}
-                  ticketId={Object.values(selectedTickets)[0].ticket.id || ''}
-                  quantity={Object.values(selectedTickets)[0].quantity}
+                  ticketId={Object.keys(selectedTickets)[0]}
                   customerData={{
                     name: participantForms[0]?.nome_completo || '',
                     email: participantForms[0]?.email || '',
-                    cpf: participantForms[0]?.cpf || ''
+                    cpf: participantForms[0]?.cpf || '',
+                    phone: participantForms[0]?.phone || ''
                   }}
-                  ticketData={{
-                    price: Object.values(selectedTickets)[0]?.ticket.valor || 0,
-                    name: Object.values(selectedTickets)[0]?.ticket.nome || ''
-                  }}
+                  ticketData={Object.entries(selectedTickets).map(([id, data]) => ({
+                    id,
+                    name: data.ticket.nome,
+                    price: data.ticket.valor,
+                    quantity: data.quantity
+                  }))}
                   onPaymentSuccess={(orderId) => {
-                    // Don't advance step for PIX payments since we need to show the QR code
                     if (orderId) {
                       enqueueSnackbar('Pagamento iniciado com sucesso!', { variant: 'success' });
                     }
@@ -438,17 +439,16 @@ export default function TicketsPage() {
               Voltar
             </StyledButton>
             
-            <StyledButton
-              variant="contained"
-              onClick={handleNext}
-              disabled={
-                (activeStep === 0 && getTotalTickets() === 0) ||
-                activeStep === steps.length - 1
-              }
-              endIcon={activeStep === steps.length - 1 ? <CheckCircleIcon /> : <ArrowForwardIcon />}
-            >
-              {activeStep === steps.length - 1 ? 'Finalizar' : 'Continuar'}
-            </StyledButton>
+            {activeStep !== steps.length - 1 && (
+              <StyledButton
+                variant="contained"
+                onClick={handleNext}
+                disabled={activeStep === 0 && getTotalTickets() === 0}
+                endIcon={<ArrowForwardIcon />}
+              >
+                Continuar
+              </StyledButton>
+            )}
           </NavigationButtons>
         </StyledPaper>
       </Fade>

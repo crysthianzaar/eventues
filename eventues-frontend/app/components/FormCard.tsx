@@ -243,21 +243,6 @@ export default function FormCard({ eventId, onSubmit, customFields = [] }: FormC
   return (
     <Card sx={{ maxWidth: 800, margin: '0 auto', mt: 4, mb: 4 }}>
       <CardContent>
-        <Box sx={{ mb: 3 }}>
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={isOtherPerson}
-                onChange={(e) => {
-                  setIsOtherPerson(e.target.checked);
-                  reset({});
-                }}
-              />
-            }
-            label="Inscrição para outra pessoa"
-          />
-        </Box>
-
         <form onSubmit={handleSubmit(handleFormSubmit)}>
           <Grid container spacing={2}>
             {fields.map((field) => (

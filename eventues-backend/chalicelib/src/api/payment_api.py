@@ -3,7 +3,7 @@ from typing import Any, Dict, Tuple
 import requests
 import os
 from datetime import datetime, timedelta
-from chalice import Blueprint, Response, CORSConfig
+from chalice import Blueprint, Response, CORSConfig, UnauthorizedError, NotFoundError
 from chalicelib.src.utils.firebase import db, verify_token
 
 cors_config = CORSConfig(
@@ -393,6 +393,60 @@ def webhook():
     except Exception as e:
         return Response(
             body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/check-payment-status/{payment_id}', methods=['GET'], cors=cors_config)
+def check_payment_status(payment_id):
+    try:
+        # Obter o token de autenticação do cabeçalho
+        auth_header = payment_api.current_request.headers.get('Authorization', '')
+        if not auth_header.startswith('Bearer '):
+            raise UnauthorizedError('Token de autenticação inválido')
+        
+        # Verificar token com Firebase
+        id_token = auth_header.split('Bearer ')[1]
+        decoded_token = verify_token(id_token)
+        user_id = decoded_token
+
+        # Buscar o pagamento no banco de dados
+        orders = db.collection('orders').where('payment_id', '==', payment_id).limit(1).get()
+        if not orders:
+            raise NotFoundError('Pagamento não encontrado')
+
+        order = orders[0]
+        # Verificar se o usuário tem permissão para ver este pagamento
+        if order.to_dict()['user_id'] != user_id:
+            raise UnauthorizedError('Usuário não autorizado a ver este pagamento')
+
+        # Consultar status na Asaas
+        asaas_payment = asaas_service.get_payment_status(payment_id)
+        
+        # Atualizar status no banco de dados se necessário
+        if order.to_dict()['status'] != asaas_payment['status']:
+            order.reference.update({
+                'status': asaas_payment['status'],
+                'updated_at': datetime.now()
+            })
+
+        return {
+            'status': asaas_payment['status'],
+            'value': float(asaas_payment['value']),
+            'billingType': asaas_payment['billingType'],
+            'invoiceUrl': asaas_payment.get('invoiceUrl'),
+            'paymentDate': asaas_payment.get('paymentDate')
+        }
+
+    except (UnauthorizedError, NotFoundError) as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=e.status_code,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body={'error': 'Erro ao verificar status do pagamento'},
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )

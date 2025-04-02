@@ -199,6 +199,7 @@ def get_ticket_details(payment_id):
             'event_name': event_data.get('name'),
             'event_date': event_date,
             'event_location': event_data.get('location'),
+            'user_id': order_data.get('user_id', ''),  # Adicionando user_id do pedido
             'ticket_name': order_data.get('ticket_name'),
             'ticket_value': order_data.get('ticket_value'),
             'quantity': order_data.get('quantity'),

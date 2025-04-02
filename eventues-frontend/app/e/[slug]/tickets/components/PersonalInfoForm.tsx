@@ -3,27 +3,34 @@ import {
   Box,
   Typography,
   TextField,
+  Grid,
   FormControl,
   FormControlLabel,
-  Switch,
-  MenuItem,
-  Select,
-  Grid,
-  Alert,
-  CircularProgress,
-  Checkbox,
   FormHelperText,
+  Select,
+  MenuItem,
+  Checkbox,
   InputAdornment,
   Paper,
-  Tabs,
-  Tab,
-  alpha,
+  Button,
+  useTheme,
+  CircularProgress,
+  Alert,
 } from '@mui/material';
-import { FormField, UserProfile, getEventForm, getUserProfile } from '@/app/apis/api';
+import { alpha } from '@mui/material/styles';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
+import CheckIcon from '@mui/icons-material/Check';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import {
+  FormField,
+  UserProfile,
+  getEventForm,
+  getUserProfile,
+} from '@/app/apis/api';
 import { z } from 'zod';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { debounce } from 'lodash';
 import { IMaskInput } from 'react-imask';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../../../firebase';
@@ -111,9 +118,7 @@ export default function PersonalInfoForm({
   const [error, setError] = useState<string | null>(null);
   const [isForAnotherPerson, setIsForAnotherPerson] = useState(false);
   const [validationSchema, setValidationSchema] = useState<z.ZodObject<any>>(z.object({}));
-  const [retryCount, setRetryCount] = useState(0);
   const [user] = useAuthState(auth);
-  const MAX_RETRIES = 3;
 
   // Criar o schema Zod dinamicamente com base nos campos do formulário
   const createValidationSchema = (fields: FormField[]) => {
@@ -197,76 +202,45 @@ export default function PersonalInfoForm({
     defaultValues: {},
   });
 
-  // Salvar no localStorage com debounce mais longo
-  const saveToLocalStorage = useCallback(
-    debounce((key: string, data: any) => {
-      try {
-        localStorage.setItem(key, JSON.stringify(data));
-      } catch (error) {
-        console.error('Error saving to localStorage:', error);
-      }
-    }, 3000), // Aumentado para 3 segundos
-    []
-  );
-
-  // Notificar mudanças ao componente pai com debounce
-  const notifyParent = useCallback(
-    debounce((data: any, isValid: boolean) => {
-      onFormDataChange(data, isValid);
-    }, 1000),
-    [onFormDataChange]
-  );
-
-  // Handler para mudanças no formulário
-  const handleFormChange = useCallback(() => {
+  // Salvar e avançar para o próximo participante
+  const handleSaveAndNext = async () => {
     const formData = getValues();
-    const isFormValid = Object.keys(errors).length === 0;
+    const isCurrentFormValid = Object.keys(errors).length === 0 && 
+      formFields.every(field => field.required ? !!formData[field.id] : true);
 
-    // Encontrar o campo CPF e adicionar seu valor
-    const cpfField = formFields.find(field => field.label === 'CPF');
-    if (cpfField) {
-      formData[cpfField.id] = formData[cpfField.id] || '';
+    // Salvar dados do formulário atual
+    if (localStorageKey) {
+      const formState = {
+        values: formData,
+        isValid: true,
+        timestamp: new Date().toISOString()
+      };
+      localStorage.setItem(`${localStorageKey}_${formIndex}`, JSON.stringify(formState));
     }
 
-    console.log('Form Data:', formData); // Log para debug
+    // Notificar o componente pai com os dados atualizados
+    onFormDataChange(formData, true);
 
-    // Notificar o componente pai
-    notifyParent(formData, isFormValid);
-
-    // Salvar no localStorage se necessário
-    if (localStorageKey && isDirty) {
-      saveToLocalStorage(localStorageKey, formData);
+    // Avançar para o próximo participante
+    if (formIndex < totalParticipants - 1 && onParticipantChange) {
+      onParticipantChange(formIndex + 1);
     }
-  }, [getValues, errors, isDirty, localStorageKey, saveToLocalStorage, notifyParent, formFields]);
+  };
 
-  // Observar mudanças no formulário
-  useEffect(() => {
-    const subscription = watch((value, { name, type }) => {
-      console.log('Field Changed:', { name, value, type }); // Log para debug
-      handleFormChange();
-    });
-    
-    return () => {
-      subscription.unsubscribe();
-      saveToLocalStorage.cancel();
-      notifyParent.cancel();
-    };
-  }, [watch, handleFormChange, saveToLocalStorage, notifyParent]);
-
-  // Carregar dados do localStorage no mount
+  // Carregar dados do localStorage no mount ou mudança de tab
   useEffect(() => {
     if (localStorageKey) {
       try {
-        const savedData = localStorage.getItem(localStorageKey);
+        const savedData = localStorage.getItem(`${localStorageKey}_${formIndex}`);
         if (savedData) {
-          const parsedData = JSON.parse(savedData);
-          reset(parsedData);
+          const { values } = JSON.parse(savedData);
+          reset(values);
         }
       } catch (error) {
         console.error('Error loading from localStorage:', error);
       }
     }
-  }, [localStorageKey, reset]);
+  }, [localStorageKey, formIndex, reset]);
 
   // Efeito para carregar campos do formulário e perfil do usuário
   useEffect(() => {
@@ -363,7 +337,6 @@ export default function PersonalInfoForm({
     };
   }, [eventId, isForAnotherPerson, initialData]);
 
-  // Alternar inscrição para outra pessoa
   const handleToggleForAnotherPerson = () => {
     setIsForAnotherPerson((prev) => {
       const newValue = !prev;
@@ -427,191 +400,107 @@ export default function PersonalInfoForm({
   };
 
   // Renderizar campo com base no tipo
-  const renderField = (field: FormField) => {
-    const isRequired = field.required;
-    const hasError = !!errors[field.id];
-    const errorMessage = errors[field.id]?.message as string;
+  const renderField = (field: FormField, participantIndex: number) => {
+    const fieldName = `participant${participantIndex}_${field.id}`;
+    const error = errors[fieldName];
     
-    switch (field.type.toLowerCase()) { // Normalizar o tipo para comparação
+    switch (field.type) {
       case 'text':
-      case 'texto': // Suportar tipo em português
-        if (field.id === 'cpf' || field.label === 'CPF') {
-          return (
-            <Controller
-              name={field.id}
-              control={control}
-              render={({ field: { onChange, value, ref } }) => (
-                <TextField
-                  fullWidth
-                  label={field.label}
-                  value={value || ''}
-                  onChange={(e) => {
-                    // Atualiza o valor com a máscara
-                    const masked = e.target.value
-                      .replace(/\D/g, '')
-                      .replace(/(\d{3})(\d)/, '$1.$2')
-                      .replace(/(\d{3})(\d)/, '$1.$2')
-                      .replace(/(\d{3})(\d{1,2})/, '$1-$2')
-                      .replace(/(-\d{2})\d+?$/, '$1');
-                    onChange(masked);
-                  }}
-                  inputRef={ref}
-                  error={hasError}
-                  helperText={errorMessage}
-                  required={isRequired}
-                  inputProps={{
-                    maxLength: 14,
-                    placeholder: '000.000.000-00'
-                  }}
-                />
-              )}
-            />
-          );
-        }
+      case 'email':
         return (
-          <Controller
-            name={field.id}
-            control={control}
-            render={({ field: { onChange, value, ref } }) => (
-              <TextField
-                fullWidth
-                label={field.label}
-                value={value || ''}
-                onChange={onChange}
-                inputRef={ref}
-                error={hasError}
-                helperText={errorMessage}
-                required={isRequired}
-              />
-            )}
+          <TextField
+            {...register(fieldName)}
+            label={field.label}
+            type={field.type}
+            required={field.required}
+            fullWidth
+            error={!!error}
+            helperText={error?.message as string}
+            size="small"
           />
         );
       case 'date':
         return (
-          <Controller
-            name={field.id}
-            control={control}
-            render={({ field: { onChange, value, ref } }) => (
-              <TextField
-                fullWidth
-                label={field.label}
-                type="date"
-                value={value || ''}
-                onChange={onChange}
-                inputRef={ref}
-                error={hasError}
-                helperText={errorMessage}
-                required={isRequired}
-                InputLabelProps={{ shrink: true }}
-              />
-            )}
+          <TextField
+            {...register(fieldName)}
+            label={field.label}
+            type="date"
+            required={field.required}
+            fullWidth
+            error={!!error}
+            helperText={error?.message as string}
+            size="small"
+            InputLabelProps={{ shrink: true }}
           />
         );
-
       case 'select':
         return (
-          <Controller
-            name={field.id}
-            control={control}
-            render={({ field: { onChange, value, ref } }) => (
-              <FormControl fullWidth error={hasError} required={isRequired}>
-                <Select
-                  value={value || ''}
-                  onChange={onChange}
-                  inputRef={ref}
-                  displayEmpty
-                >
-                  <MenuItem value="">
-                    <em>Selecione {field.label}</em>
-                  </MenuItem>
-                  {field.options?.map((option) => (
-                    <MenuItem key={option} value={option}>
-                      {option}
-                    </MenuItem>
-                  ))}
-                </Select>
-                {hasError && (
-                  <FormHelperText>{errorMessage}</FormHelperText>
-                )}
-              </FormControl>
+          <FormControl fullWidth required={field.required}>
+            <Select
+              {...register(fieldName)}
+              label={field.label}
+              required={field.required}
+              fullWidth
+              size="small"
+            >
+              <MenuItem value="">
+                <em>Selecione {field.label}</em>
+              </MenuItem>
+              {field.options?.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {option}
+                </MenuItem>
+              ))}
+            </Select>
+            {error && (
+              <FormHelperText error>{error.message as string}</FormHelperText>
             )}
-          />
+          </FormControl>
         );
-
       case 'checkbox':
         return (
-          <Controller
-            name={field.id}
-            control={control}
-            render={({ field: { onChange, value, ref } }) => (
-              <FormControl error={hasError} required={isRequired}>
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={value || false}
-                      onChange={onChange}
-                      inputRef={ref}
-                    />
-                  }
-                  label={field.label}
+          <FormControl required={field.required}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  {...register(fieldName)}
+                  required={field.required}
                 />
-                {hasError && (
-                  <FormHelperText>{errorMessage}</FormHelperText>
-                )}
-              </FormControl>
+              }
+              label={field.label}
+            />
+            {error && (
+              <FormHelperText error>{error.message as string}</FormHelperText>
             )}
-          />
+          </FormControl>
         );
-
       case 'phone':
         return (
-          <Controller
-            name={field.id}
-            control={control}
-            render={({ field: { onChange, value, ref } }) => (
-              <TextField
-                fullWidth
-                label={field.label}
-                value={value || ''}
-                onChange={onChange}
-                inputRef={ref}
-                error={hasError}
-                helperText={errorMessage}
-                required={isRequired}
-                InputProps={{
-                  inputComponent: PhoneMaskCustom as any,
-                }}
-              />
-            )}
+          <TextField
+            {...register(fieldName)}
+            label={field.label}
+            required={field.required}
+            fullWidth
+            error={!!error}
+            helperText={error?.message as string}
+            size="small"
+            InputProps={{
+              inputComponent: PhoneMaskCustom as any,
+            }}
           />
         );
-
       default:
         return (
-          <Controller
-            name={field.id}
-            control={control}
-            render={({ field: { onChange, value, ref } }) => (
-              <TextField
-                fullWidth
-                label={field.label}
-                value={value || ''}
-                onChange={onChange}
-                inputRef={ref}
-                error={hasError}
-                helperText={errorMessage}
-                required={isRequired}
-              />
-            )}
+          <TextField
+            {...register(fieldName)}
+            label={field.label}
+            required={field.required}
+            fullWidth
+            error={!!error}
+            helperText={error?.message as string}
+            size="small"
           />
         );
-    }
-  };
-
-  // Mudar participante ativo
-  const handleParticipantChange = (event: React.SyntheticEvent, newValue: number) => {
-    if (onParticipantChange) {
-      onParticipantChange(newValue);
     }
   };
 
@@ -631,76 +520,65 @@ export default function PersonalInfoForm({
     );
   }
 
+  const theme = useTheme();
+
   return (
     <Paper sx={{ p: 3, borderRadius: 2 }}>
-      {totalParticipants > 1 && (
-        <Box sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
-          <Tabs
-            value={formIndex}
-            onChange={handleParticipantChange}
-            variant="scrollable"
-            scrollButtons="auto"
-          >
-            {Array.from({ length: totalParticipants }).map((_, index) => (
-              <Tab
-                key={index}
-                label={participantLabels ? participantLabels[index] : `Participante ${index + 1}`}
-                sx={{ 
-                  backgroundColor: index === formIndex ? alpha(ticketColor || '#1976d2', 0.1) : 'transparent',
-                  borderRadius: '4px',
-                  '&.Mui-selected': {
-                    color: ticketColor || 'primary.main',
-                    fontWeight: 'bold'
-                  }
-                }}
-              />
-            ))}
-          </Tabs>
-        </Box>
-      )}
-
-      <Typography variant="h6" gutterBottom>
-        {ticketName ? `Informações Pessoais - ${ticketName}` : 'Informações Pessoais'}
+      <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+        Informações dos Participantes
       </Typography>
-      
+
       <Box mb={3}>
-        <FormControlLabel
-          control={
-            <Switch
-              checked={isForAnotherPerson}
-              onChange={handleToggleForAnotherPerson}
-              color="primary"
-            />
-          }
-          label="Inscrição para outra pessoa"
-        />
         {!isForAnotherPerson && userProfile && (
-          <Typography variant="body2" color="textSecondary">
+          <Typography variant="body2" color="text.secondary">
             Os campos estão preenchidos com suas informações
           </Typography>
         )}
       </Box>
 
-      <Grid container spacing={2}>
-        {formFields.length > 0 ? (
-          formFields.map((field) => (
-            <Grid 
-              item 
-              xs={12} 
-              sm={field.type === 'checkbox' ? 12 : 6} 
-              key={field.id}
+      <form onSubmit={(e) => e.preventDefault()}>
+        {Array.from({ length: totalParticipants }).map((_, index) => (
+          <Box 
+            key={index}
+            sx={{ 
+              mb: 4,
+              p: 3,
+              borderRadius: 2,
+              border: 1,
+              borderColor: 'divider',
+              backgroundColor: alpha(ticketColor || theme.palette.primary.main, 0.05),
+              position: 'relative'
+            }}
+          >
+            <Typography 
+              variant="h6" 
+              gutterBottom 
+              sx={{ 
+                color: ticketColor || 'primary.main',
+                display: 'flex',
+                alignItems: 'center',
+                gap: 1
+              }}
             >
-              {renderField(field)}
+              <ConfirmationNumberIcon />
+              {participantLabels ? participantLabels[index] : `Participante ${index + 1}`}
+            </Typography>
+
+            <Grid container spacing={2}>
+              {formFields.map((field) => (
+                <Grid 
+                  item 
+                  xs={12} 
+                  sm={field.type === 'checkbox' ? 12 : 6} 
+                  key={`${index}-${field.id}`}
+                >
+                  {renderField(field, index)}
+                </Grid>
+              ))}
             </Grid>
-          ))
-        ) : (
-          <Grid item xs={12}>
-            <Alert severity="warning">
-              Nenhum campo de formulário encontrado. Por favor, verifique a configuração do evento.
-            </Alert>
-          </Grid>
-        )}
-      </Grid>
+          </Box>
+        ))}
+      </form>
     </Paper>
   );
 }
