@@ -215,7 +215,8 @@ def create_payment_session():
                 headers={'Content-Type': 'application/json'}
             )
 
-        required_fields = ['customer', 'event_id', 'ticket_id', 'quantity', 'payment']
+        # Check required fields
+        required_fields = ['customer', 'event_id', 'tickets', 'payment']
         missing_fields = [field for field in required_fields if not data.get(field)]
         if missing_fields:
             return Response(
@@ -224,7 +225,24 @@ def create_payment_session():
                 headers={'Content-Type': 'application/json'}
             )
 
-        # Get event and ticket details
+        # Validate tickets array
+        tickets = data.get('tickets', [])
+        if not tickets or not isinstance(tickets, list):
+            return Response(
+                body={'error': 'Invalid tickets format. Expected array of tickets'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        for ticket in tickets:
+            if not ticket.get('ticket_id') or not ticket.get('quantity'):
+                return Response(
+                    body={'error': 'Each ticket must have ticket_id and quantity'},
+                    status_code=400,
+                    headers={'Content-Type': 'application/json'}
+                )
+
+        # Get event and validate tickets
         event_ref = db.collection('events').document(data['event_id'])
         event_doc = event_ref.get()
         if not event_doc.exists:
@@ -244,18 +262,20 @@ def create_payment_session():
             )
 
         # Get ticket details
-        ticket_ref = event_ref.collection('tickets').document(data['ticket_id'])
-        ticket_doc = ticket_ref.get()
-        if not ticket_doc.exists:
-            return Response(
-                body={'error': 'Ticket not found'},
-                status_code=404,
-                headers={'Content-Type': 'application/json'}
-            )
+        total_amount = 0
+        for ticket in tickets:
+            ticket_ref = event_ref.collection('tickets').document(ticket['ticket_id'])
+            ticket_doc = ticket_ref.get()
+            if not ticket_doc.exists:
+                return Response(
+                    body={'error': 'Ticket not found'},
+                    status_code=404,
+                    headers={'Content-Type': 'application/json'}
+                )
 
-        ticket_data = ticket_doc.to_dict()
-        quantity = int(data['quantity'])
-        total_amount = float(ticket_data['valor']) * quantity
+            ticket_data = ticket_doc.to_dict()
+            quantity = int(ticket['quantity'])
+            total_amount += float(ticket_data['valor']) * quantity
 
         # Create payment
         payment_method = data['payment'].get('billingType', '').lower()
@@ -266,7 +286,7 @@ def create_payment_session():
             'billingType': payment_method.upper(),
             'value': total_amount,
             'dueDate': due_date,
-            'description': f"{ticket_data['nome']} - {event_data['name']} - {quantity}x",
+            'description': f"Compra de ingressos para o evento {event_data['name']}",
         }
 
         # Handle credit card payment
@@ -306,8 +326,7 @@ def create_payment_session():
             'status': payment_result['status'],
             'customer_id': data['customer'],
             'event_id': data['event_id'],
-            'ticket_id': data['ticket_id'],
-            'quantity': quantity,
+            'tickets': tickets,
             'total_amount': total_amount,
             'created_at': datetime.now(),
             'updated_at': datetime.now(),
