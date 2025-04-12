@@ -461,3 +461,93 @@ def check_payment_status(payment_id):
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
+
+@payment_api.route('/create-order', methods=['POST'], cors=cors_config)
+def create_order():
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+        if not data:
+            return Response(
+                body={'error': 'No data provided'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Validate required fields
+        required_fields = ['user_id', 'event_id', 'tickets']
+        missing_fields = [field for field in required_fields if not data.get(field)]
+        if missing_fields:
+            return Response(
+                body={'error': f'Missing required fields: {missing_fields}'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Calculate total amount
+        total_amount = 0
+        tickets = data['tickets']
+        for ticket in tickets:
+            ticket_ref = db.collection('events').document(data['event_id']).collection('tickets').document(ticket['ticket_id'])
+            ticket_doc = ticket_ref.get()
+            if not ticket_doc.exists:
+                return Response(
+                    body={'error': 'Ticket not found'},
+                    status_code=404,
+                    headers={'Content-Type': 'application/json'}
+                )
+            ticket_data = ticket_doc.to_dict()
+            total_amount += ticket_data['valor'] * ticket['quantity']
+
+        # Save order to database
+        order_ref = db.collection('orders').document()
+        order_data = {
+            'user_id': data['user_id'],
+            'event_id': data['event_id'],
+            'tickets': tickets,
+            'total_amount': total_amount,
+            'created_at': datetime.now(),
+            'updated_at': datetime.now(),
+        }
+        order_ref.set(order_data)
+
+        return Response(
+            body={'order_id': order_ref.id},
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/get-order/{order_id}', methods=['GET'], cors=cors_config)
+def get_order(order_id):
+    try:
+        # Fetch order from database
+        order_ref = db.collection('orders').document(order_id)
+        order_doc = order_ref.get()
+        if not order_doc.exists:
+            return Response(
+                body={'error': 'Order not found'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        order_data = order_doc.to_dict()
+        # Ensure event_id is included in the response
+        return Response(
+            body={'event_id': order_data.get('event_id'), **order_data},
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )

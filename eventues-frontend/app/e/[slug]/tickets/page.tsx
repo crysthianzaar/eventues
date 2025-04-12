@@ -1,152 +1,26 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React from 'react';
 import { useParams } from 'next/navigation';
-import {
-  Container,
-  Box,
-  Typography,
-  Button,
-  Stepper,
-  Step,
-  StepLabel,
-  Paper,
-  Grid,
-  Divider,
-  Alert,
-  useTheme,
-  styled,
-  alpha,
-  Fade,
-  CircularProgress
-} from '@mui/material';
+import { Container, Box, CircularProgress, Alert, Button } from '@mui/material';
 import { getEventBySlug, getEventTickets, Event, Ingresso } from '@/app/apis/api';
-
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
-import PersonIcon from '@mui/icons-material/Person';
-import PaymentIcon from '@mui/icons-material/Payment';
-import { motion } from 'framer-motion';
-import PaymentComponent from './components/payment/PaymentComponent';
-import { useSnackbar } from 'notistack';
 import TicketOptions from './components/ticket_options/TicketOptions';
-import PersonalInfoForm from './components/infos/PersonalInfoForm';
-
-// Styled components
-const StyledContainer = styled(Container)(({ theme }) => ({
-  paddingTop: theme.spacing(4),
-  paddingBottom: theme.spacing(8),
-}));
-
-const StyledPaper = styled(Paper)(({ theme }) => ({
-  padding: theme.spacing(4),
-  borderRadius: theme.spacing(2),
-  boxShadow: '0 8px 24px rgba(0,0,0,0.08)',
-  marginBottom: theme.spacing(4),
-  position: 'relative',
-  overflow: 'hidden',
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    top: 0,
-    right: 0,
-    width: '30%',
-    height: '30%',
-    background: `radial-gradient(circle, ${alpha(theme.palette.primary.light, 0.1)} 0%, transparent 70%)`,
-    borderRadius: '50%',
-    zIndex: 0,
-  }
-}));
-
-const StyledButton = styled(Button)(({ theme }) => ({
-  borderRadius: theme.spacing(1.5),
-  padding: `${theme.spacing(1.2)} ${theme.spacing(3)}`,
-  fontWeight: 600,
-  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-  transition: 'all 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-2px)',
-    boxShadow: '0 6px 16px rgba(0,0,0,0.15)',
-  }
-}));
-
-const StyledStepper = styled(Stepper)(({ theme }) => ({
-  marginBottom: theme.spacing(4),
-  '& .MuiStepLabel-root': {
-    '& .MuiStepIcon-root': {
-      width: 36,
-      height: 36,
-      '&.Mui-active': {
-        color: theme.palette.primary.main,
-      },
-      '&.Mui-completed': {
-        color: theme.palette.success.main,
-      }
-    },
-    '& .MuiStepLabel-label': {
-      marginTop: theme.spacing(0.5),
-      fontWeight: 500,
-      '&.Mui-active': {
-        color: theme.palette.text.primary,
-        fontWeight: 600,
-      }
-    }
-  }
-}));
-
-const EventHeader = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(4),
-  position: 'relative',
-  '&::after': {
-    content: '""',
-    position: 'absolute',
-    bottom: -16,
-    left: 0,
-    width: '100%',
-    height: 1,
-    backgroundColor: alpha(theme.palette.divider, 0.7),
-  }
-}));
-
-const NavigationButtons = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginTop: theme.spacing(4),
-  gap: theme.spacing(2),
-}));
-
-// Define steps
-const steps = [
-  { label: 'Selecionar Ingressos', icon: <ConfirmationNumberIcon /> },
-  { label: 'Informações Pessoais', icon: <PersonIcon /> },
-  { label: 'Pagamento', icon: <PaymentIcon /> }
-];
-
-// Define form data type
-type FormData = Record<string, any>;
+import Link from 'next/link';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 export default function TicketsPage() {
   const params = useParams();
-  const theme = useTheme();
-  const { enqueueSnackbar } = useSnackbar();
   const slug = params?.slug as string;
-  
-  const [activeStep, setActiveStep] = useState(0);
-  const [event, setEvent] = useState<Event | null>(null);
-  const [tickets, setTickets] = useState<Ingresso[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [selectedTickets, setSelectedTickets] = useState<Record<string, { ticket: Ingresso, quantity: number }>>({});
-  const [selectedQuantities, setSelectedQuantities] = useState<Record<string, number>>({});
-  const [activeParticipant, setActiveParticipant] = useState(0);
-  const [participantForms, setParticipantForms] = useState<Record<number, FormData>>({});
-  const [formValidation, setFormValidation] = useState<Record<number, boolean>>({});
-  const ticketsPerPurchase = 2; // Define o número de ingressos por compra
+  const [event, setEvent] = React.useState<Event | null>(null);
+  const [tickets, setTickets] = React.useState<Ingresso[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [selectedQuantities, setSelectedQuantities] = React.useState<Record<string, number>>({});
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
 
   // Fetch event data
-  useEffect(() => {
+  React.useEffect(() => {
     if (!slug) return;
 
     const fetchEventData = async () => {
@@ -154,7 +28,6 @@ export default function TicketsPage() {
       try {
         const eventData = await getEventBySlug(slug);
         setEvent(eventData);
-        
         const ticketsData = await getEventTickets(eventData.event_id);
         setTickets(ticketsData);
       } catch (err) {
@@ -174,285 +47,99 @@ export default function TicketsPage() {
       ...prev,
       [ticket.id]: quantity
     }));
-    
-    if (quantity > 0) {
-      setSelectedTickets(prev => ({
-        ...prev,
-        [ticket.id]: { ticket, quantity }
-      }));
-    } else {
-      const newSelectedTickets = { ...selectedTickets };
-      delete newSelectedTickets[ticket.id];
-      setSelectedTickets(newSelectedTickets);
-    }
-  };
-
-  // Função para atualizar dados do formulário
-  const handleFormDataChange = (data: FormData, isValid: boolean, participantIndex: number) => {
-    setParticipantForms(prev => ({
-      ...prev,
-      [participantIndex]: data
-    }));
-    
-    // Atualizar estado de validação
-    setFormValidation(prev => ({
-      ...prev,
-      [participantIndex]: isValid
-    }));
-  };
-
-  // Função para salvar dados ao trocar de participante ou avançar
-  const handleParticipantChange = (newIndex: number) => {
-    setActiveParticipant(newIndex);
-  };
-
-  // Função para avançar para o próximo passo
-  const handleNext = () => {
-    // Salvar todos os dados do formulário atual
-    localStorage.setItem('participant_forms', JSON.stringify(participantForms));
-    setActiveStep(prevStep => prevStep + 1);
-  };
-
-  // Handle back step
-  const handleBack = () => {
-    setActiveStep(prevStep => prevStep - 1);
-    setError(null);
   };
 
   // Calculate total tickets selected
-  const getTotalTickets = () => {
-    return Object.values(selectedTickets).reduce((acc, { quantity }) => acc + quantity, 0);
-  };
+  const totalTicketsSelected = Object.values(selectedQuantities).reduce((acc, quantity) => acc + quantity, 0);
 
-  // Initialize form data based on selected tickets
-  useEffect(() => {
-    const totalTickets = getTotalTickets();
-    
-    // Initialize form data array with the correct number of entries
-    if (totalTickets > 0 && Object.keys(participantForms).length !== totalTickets) {
-      const newParticipantForms: Record<number, FormData> = {};
-      
-      // Keep existing form data if available
-      for (let i = 0; i < totalTickets; i++) {
-        newParticipantForms[i] = participantForms[i] || {};
-      }
-      
-      setParticipantForms(newParticipantForms);
-    }
-  }, [selectedTickets]);
+  const handleContinue = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/create-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          user_id: localStorage.getItem('user_id') || 'defaultUserId',
+          event_id: event?.event_id,
+          tickets: Object.entries(selectedQuantities)
+            .filter(([_, quantity]) => quantity > 0)
+            .map(([ticketId, quantity]) => ({ ticket_id: ticketId, quantity })),
+        }),
+      });
 
-  // Função para obter o nome do ingresso para um participante específico
-  const getTicketNameForParticipant = (participantIndex: number) => {
-    let remainingIndex = participantIndex;
-    for (const [_, { ticket, quantity }] of Object.entries(selectedTickets)) {
-      if (remainingIndex < quantity) {
-        return ticket.nome;
+      if (!response.ok) {
+        throw new Error('Failed to create order');
       }
-      remainingIndex -= quantity;
-    }
-    return 'Ingresso';
-  };
 
-  // Função para obter a cor do ingresso para um participante específico
-  const getTicketColorForParticipant = (participantIndex: number) => {
-    let remainingIndex = participantIndex;
-    for (const [ticketId, { quantity }] of Object.entries(selectedTickets)) {
-      if (remainingIndex < quantity) {
-        // Gerar uma cor baseada no ID do ticket para diferenciar visualmente
-        const ticketHash = ticketId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-        const hue = ticketHash % 360;
-        return `hsl(${hue}, 70%, 65%)`;
-      }
-      remainingIndex -= quantity;
+      const { order_id } = await response.json();
+      window.location.href = `/e/${slug}/${order_id}/infos`;
+    } catch (error) {
+      console.error('Error creating order:', error);
     }
-    return '';
-  };
-
-  // Função para gerar rótulos para as abas de participantes
-  const generateParticipantLabels = () => {
-    const labels: string[] = [];
-    let participantCounter: Record<string, number> = {};
-    
-    let participantIndex = 0;
-    for (const [ticketId, { ticket, quantity }] of Object.entries(selectedTickets)) {
-      for (let i = 0; i < quantity; i++) {
-        // Incrementar o contador para este tipo de ingresso
-        participantCounter[ticket.nome] = (participantCounter[ticket.nome] || 0) + 1;
-        
-        // Criar rótulo com nome do ingresso e número do participante
-        labels[participantIndex] = `${ticket.nome} ${participantCounter[ticket.nome]}`;
-        participantIndex++;
-      }
-    }
-    
-    return labels;
   };
 
   // Render loading state
   if (loading) {
     return (
-      <StyledContainer maxWidth="lg">
+      <Container maxWidth="lg">
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
           <CircularProgress />
         </Box>
-      </StyledContainer>
+      </Container>
     );
   }
 
   // Render error state
   if (error && !event) {
     return (
-      <StyledContainer maxWidth="lg">
+      <Container maxWidth="lg">
         <Alert severity="error" sx={{ mt: 4, borderRadius: 2 }}>
           {error}
         </Alert>
-      </StyledContainer>
+      </Container>
     );
   }
 
-  // Render content based on active step
-  const renderStepContent = () => {
-    switch (activeStep) {
-      case 0:
-        return (
-          <Fade in={true} timeout={500}>
-            <Box>
-              <TicketOptions 
-                tickets={tickets} 
-                onSelectTicket={handleSelectTicket} 
-                selectedQuantities={selectedQuantities}
-                loading={loading}
-              />
-            </Box>
-          </Fade>
-        );
-      case 1:
-        return (
-          <Fade in={true} timeout={500}>
-            <Box sx={{ maxWidth: 800, mx: 'auto' }}>
-              {Object.keys(participantForms).length > 0 && (
-                <>
-                  <PersonalInfoForm
-                    eventId={event?.event_id || ''}
-                    onFormDataChange={(data, isValid) => handleFormDataChange(data, isValid, activeParticipant)}
-                    formIndex={activeParticipant}
-                    initialData={participantForms[activeParticipant]}
-                    ticketName={getTicketNameForParticipant(activeParticipant)}
-                    ticketColor={getTicketColorForParticipant(activeParticipant)}
-                    onParticipantChange={handleParticipantChange}
-                    totalParticipants={Object.keys(participantForms).length}
-                    participantLabels={generateParticipantLabels()}
-                    key={`participant-form-${activeParticipant}`}
-                    localStorageKey={`event-form-${event?.event_id}-participant-${activeParticipant}`}
-                  />
-                </>
-              )}
-            </Box>
-          </Fade>
-        );
-      case 2:
-        return (
-          <Fade in={true} timeout={500}>
-            <Box>
-              <StyledPaper>
-                <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
-                  Pagamento
-                </Typography>
-                <PaymentComponent
-                  eventId={event?.event_id || ''}
-                  ticketId={Object.keys(selectedTickets)[0]}
-                  customerData={{
-                    name: participantForms[0]?.nome_completo || '',
-                    email: participantForms[0]?.email || '',
-                    cpf: participantForms[0]?.cpf || '',
-                    phone: participantForms[0]?.phone || ''
-                  }}
-                  ticketData={Object.entries(selectedTickets).map(([id, data]) => ({
-                    id,
-                    name: data.ticket.nome,
-                    price: data.ticket.valor,
-                    quantity: data.quantity
-                  }))}
-                  onPaymentSuccess={(orderId) => {
-                    if (orderId) {
-                      enqueueSnackbar('Pagamento iniciado com sucesso!', { variant: 'success' });
-                    }
-                  }}
-                  onPaymentError={(error) => {
-                    enqueueSnackbar(error, { variant: 'error' });
-                  }}
-                />
-              </StyledPaper>
-            </Box>
-          </Fade>
-        );
-      default:
-        return null;
-    }
-  };
-
   return (
-    <StyledContainer maxWidth="lg">
-      <Fade in={true} timeout={500}>
-        <StyledPaper>
-          <EventHeader>
-            <Typography variant="h4" sx={{ fontWeight: 700, color: 'primary.main', mb: 1 }}>
-              {event?.name || 'Evento'}
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              {event?.start_date ? new Date(event.start_date).toLocaleDateString('pt-BR', {
-                day: '2-digit',
-                month: 'long',
-                year: 'numeric'
-              }) : 'Data a definir'}
-            </Typography>
-          </EventHeader>
-
-          <StyledStepper activeStep={activeStep} alternativeLabel>
-            {steps.map((step, index) => (
-              <Step key={step.label}>
-                <StepLabel 
-                  StepIconProps={{ 
-                    icon: index < activeStep ? <CheckCircleIcon /> : (index === activeStep ? step.icon : index + 1) 
-                  }}
-                >
-                  {step.label}
-                </StepLabel>
-              </Step>
-            ))}
-          </StyledStepper>
-
-          {error && (
-            <Alert severity="error" sx={{ mb: 3, borderRadius: 2 }}>
-              {error}
-            </Alert>
-          )}
-
-          {renderStepContent()}
-
-          <NavigationButtons>
-            <StyledButton
-              variant="outlined"
-              onClick={handleBack}
-              disabled={activeStep === 0}
-              startIcon={<ArrowBackIcon />}
+    <Container maxWidth="lg">
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, mt: 2 }}>
+        <Link href={`/e/${slug}`} passHref>
+          <Button variant="outlined" color="primary" startIcon={<ArrowBackIcon />}>Voltar para os detalhes do Evento</Button>
+        </Link>
+      </Box>
+      <Box sx={{ mt: 4 }}>
+        <TicketOptions 
+          tickets={tickets} 
+          onSelectTicket={handleSelectTicket} 
+          selectedQuantities={selectedQuantities}
+        />
+        {totalTicketsSelected > 0 && (
+          <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 2, mb: 4 }}>
+            <Button
+              variant="contained"
+              color="primary"
+              size="large"
+              sx={{
+                borderRadius: 2,
+                boxShadow: 3,
+                transition: 'transform 0.3s ease',
+                '&:hover': {
+                  transform: 'scale(1.05)',
+                  boxShadow: 6,
+                },
+                fontWeight: 'bold',
+                textTransform: 'uppercase',
+                letterSpacing: 1.5,
+                padding: '12px 24px',
+              }}
+              onClick={handleContinue}
             >
-              Voltar
-            </StyledButton>
-            
-            {activeStep !== steps.length - 1 && (
-              <StyledButton
-                variant="contained"
-                onClick={handleNext}
-                disabled={activeStep === 0 && getTotalTickets() === 0}
-                endIcon={<ArrowForwardIcon />}
-              >
-                Continuar
-              </StyledButton>
-            )}
-          </NavigationButtons>
-        </StyledPaper>
-      </Fade>
-    </StyledContainer>
+              Continuar
+            </Button>
+          </Box>
+        )}
+      </Box>
+    </Container>
   );
 }

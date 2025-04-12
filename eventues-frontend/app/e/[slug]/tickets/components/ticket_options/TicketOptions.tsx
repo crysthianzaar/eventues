@@ -286,9 +286,19 @@ export default function TicketOptions({
             {tickets.map((ticket) => {
               const fee = calculatePlatformFee(ticket.valor);
               return (
-                <Grid item xs={12} md={6} key={ticket.id} component={motion.div} variants={itemVariants}>
-                  <TicketCard>
-                    <TicketHeader>
+                <Grid item xs={12} key={ticket.id} component={motion.div} variants={itemVariants} sx={{ mb: 2 }}>
+                  <TicketCard sx={{
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: theme.spacing(2),
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                    '&:hover': {
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
+                    },
+                  }}>
+                    <Box sx={{ flex: 1 }}>
                       <Typography variant="h6" gutterBottom>
                         {ticket.nome}
                       </Typography>
@@ -309,66 +319,30 @@ export default function TicketOptions({
                           </Tooltip>
                         )}
                       </TicketPrice>
-                    </TicketHeader>
-                    
-                    <CardContent sx={{ flexGrow: 1 }}>
-                      <TicketDescription variant="body2">
-                        {ticket.descricao || ""}
-                      </TicketDescription>
-                      
-                      <TicketInfoItem>
-                        <EventIcon fontSize="small" />
-                        <Typography variant="body2">
-                          Disponível até {new Date(ticket.fimVendas || new Date()).toLocaleDateString('pt-BR')}
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: theme.spacing(2) }}>
+                      <Typography variant="body2">
+                        Disponível até {new Date(ticket.fimVendas || new Date()).toLocaleDateString('pt-BR')}
+                      </Typography>
+                      <QuantityControl>
+                        <StyledIconButton 
+                          size="small" 
+                          onClick={() => handleQuantityChange(ticket, -1)}
+                          disabled={!selectedQuantities[ticket.id] || selectedQuantities[ticket.id] === 0}
+                        >
+                          <RemoveIcon fontSize="small" />
+                        </StyledIconButton>
+                        <Typography variant="body1" sx={{ fontWeight: 600, minWidth: '24px', textAlign: 'center' }}>
+                          {selectedQuantities[ticket.id] || 0}
                         </Typography>
-                      </TicketInfoItem>
-                      
-                      <Divider sx={{ my: 2 }} />
-                      
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                          Quantidade:
-                        </Typography>
-                        
-                        <QuantityControl>
-                          <StyledIconButton 
-                            size="small" 
-                            onClick={() => handleQuantityChange(ticket, -1)}
-                            disabled={!selectedQuantities[ticket.id] || selectedQuantities[ticket.id] === 0}
-                          >
-                            <RemoveIcon fontSize="small" />
-                          </StyledIconButton>
-                          
-                          <Typography variant="body1" sx={{ fontWeight: 600, minWidth: '24px', textAlign: 'center' }}>
-                            {selectedQuantities[ticket.id] || 0}
-                          </Typography>
-                          
-                          <StyledIconButton 
-                            size="small" 
-                            onClick={() => handleQuantityChange(ticket, 1)}
-                          >
-                            <AddIcon fontSize="small" />
-                          </StyledIconButton>
-                        </QuantityControl>
-                      </Box>
-                    </CardContent>
-                    
-                    <CardActions sx={{ p: 2, pt: 0, justifyContent: 'flex-end' }}>
-                      {(selectedQuantities[ticket.id] || 0) > 0 && (
-                        <Stack spacing={0.5} alignItems="flex-end">
-                          <Chip 
-                            label={`Total: ${formatPrice((ticket.valor + fee) * (selectedQuantities[ticket.id] || 0))}`}
-                            color="primary"
-                            sx={{ fontWeight: 600 }}
-                          />
-                          {ticket.valor > 0 && (
-                            <Typography variant="caption" color="text.secondary">
-                              Inclui taxa de serviço
-                            </Typography>
-                          )}
-                        </Stack>
-                      )}
-                    </CardActions>
+                        <StyledIconButton 
+                          size="small" 
+                          onClick={() => handleQuantityChange(ticket, 1)}
+                        >
+                          <AddIcon fontSize="small" />
+                        </StyledIconButton>
+                      </QuantityControl>
+                    </Box>
                   </TicketCard>
                 </Grid>
               );
@@ -402,7 +376,6 @@ export default function TicketOptions({
                   Inclui taxas de serviço
                 </Typography>
               </Box>
-              
               <Tooltip title="Prossiga para preencher suas informações pessoais">
                 <Badge 
                   badgeContent={getTotalSelectedTickets()} 
