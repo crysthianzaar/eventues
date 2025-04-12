@@ -11,7 +11,6 @@ import {
   Alert,
   Button,
   Grid,
-  CardMedia,
   CardContent,
   CardActions,
   Avatar,
@@ -246,23 +245,25 @@ const MinhaContaPage = () => {
         minHeight: '100vh',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'center',
-        padding: { xs: '20px', md: '40px' },
-        backgroundImage: 'url("/cycling.jpg")',
+        alignItems: { xs: 'flex-start', md: 'center' },
+        padding: { xs: '0', md: '40px' },
+        backgroundImage: { xs: 'none', md: 'url("/cycling.jpg")' },
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
+        backgroundColor: { xs: '#f5f5f5', md: 'transparent' },
       }}
     >
       <Card
         sx={{
           maxWidth: '800px',
           width: '100%',
-          padding: '30px',
-          boxShadow: '0 10px 30px rgba(0, 0, 0, 0.7)',
-          borderRadius: '12px',
+          padding: { xs: '15px', md: '40px' },
+          boxShadow: { xs: 'none', md: '0 4px 12px rgba(0, 0, 0, 0.15)' },
+          borderRadius: { xs: 0, md: '16px' },
           backgroundColor: '#ffffff',
           position: 'relative',
+          minHeight: { xs: '100vh', md: 'auto' },
         }}
       >
         {loadingAuth ? (
@@ -279,20 +280,38 @@ const MinhaContaPage = () => {
             <Box
               sx={{
                 display: 'flex',
-                alignItems: 'center',
-                marginBottom: '30px',
+                alignItems: 'flex-start',
+                marginBottom: { xs: '20px', md: '40px' },
                 justifyContent: 'space-between',
+                flexDirection: { xs: 'column', md: 'row' },
+                gap: { xs: 2, md: 0 },
               }}
             >
-              <Typography variant="h5" sx={{ fontWeight: 'bold' }}>
+              <Typography 
+                variant="h5" 
+                sx={{ 
+                  fontWeight: 'bold',
+                  fontSize: { xs: '1.5rem', md: '2rem' },
+                  color: '#2c2c2c'
+                }}
+              >
                 Minha Conta
               </Typography>
               <Button
                 variant="outlined"
                 startIcon={<EditIcon />}
                 onClick={handleEditProfile}
+                sx={{ 
+                  width: { xs: '100%', md: 'auto' },
+                  borderColor: '#1976d2',
+                  color: '#1976d2',
+                  '&:hover': {
+                    borderColor: '#1565c0',
+                    backgroundColor: 'rgba(25, 118, 210, 0.04)'
+                  }
+                }}
               >
-                Editar Perfil
+                EDITAR PERFIL
               </Button>
             </Box>
 
@@ -300,40 +319,62 @@ const MinhaContaPage = () => {
             <Box
               sx={{
                 display: 'flex',
-                alignItems: 'center',
-                marginBottom: '40px',
+                alignItems: { xs: 'center', md: 'flex-start' },
+                marginBottom: { xs: '30px', md: '50px' },
                 flexDirection: { xs: 'column', md: 'row' },
+                textAlign: { xs: 'center', md: 'left' },
               }}
             >
               <Avatar
                 src={user?.photoURL || ''}
                 alt="Foto de perfil"
                 sx={{
-                  width: 120,
-                  height: 120,
-                  marginRight: { md: '30px', xs: '0' },
-                  marginBottom: { xs: '20px', md: '0' },
+                  width: { xs: 80, md: 100 },
+                  height: { xs: 80, md: 100 },
+                  marginRight: { md: '40px', xs: '0' },
+                  marginBottom: { xs: '15px', md: '0' },
+                  bgcolor: '#e0e0e0',
+                  fontSize: '2.5rem'
                 }}
-              />
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h6" sx={{ marginBottom: '10px' }}>
+              >
+                {userInfo.name?.charAt(0).toUpperCase()}
+              </Avatar>
+              <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' } }}>
+                <Typography 
+                  variant="h6" 
+                  sx={{ 
+                    marginBottom: '16px',
+                    fontSize: { xs: '1.25rem', md: '1.5rem' },
+                    fontWeight: '500',
+                    color: '#2c2c2c'
+                  }}
+                >
                   {userInfo.name}
                 </Typography>
-                <Typography variant="body1" color="textSecondary">
-                  <strong>E-mail:</strong> {userInfo.email}
-                </Typography>
-                <Typography variant="body1" color="textSecondary">
-                  <strong>Data de Nascimento:</strong> {new Date(new Date(userInfo.birth_date).setDate(new Date(userInfo.birth_date).getDate() + 1)).toLocaleDateString('pt-BR')}
-                </Typography>
-                <Typography variant="body1" color="textSecondary">
-                  <strong>Telefone:</strong> {userInfo.phone_number}
-                </Typography>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: '4px', md: '8px' } }}>
+                    <strong style={{ color: '#2c2c2c' }}>E-mail:</strong> {userInfo.email}
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: '4px', md: '8px' } }}>
+                    <strong style={{ color: '#2c2c2c' }}>Data de Nascimento:</strong> {new Date(new Date(userInfo.birth_date).setDate(new Date(userInfo.birth_date).getDate() + 1)).toLocaleDateString('pt-BR')}
+                  </Typography>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: '4px', md: '8px' } }}>
+                    <strong style={{ color: '#2c2c2c' }}>Telefone:</strong> {userInfo.phone_number}
+                  </Typography>
+                </Box>
               </Box>
             </Box>
 
             {/* Events List */}
-            <Typography variant="h6" sx={{ marginBottom: '20px', fontWeight: 'bold' }}>
-              Meus Eventos
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                marginBottom: '20px', 
+                fontWeight: 'bold',
+                textAlign: { xs: 'center', md: 'left' }
+              }}
+            >
+              Meus Ingressos e Inscrições 
             </Typography>
             {loading ? (
               <Box sx={{ 
@@ -349,88 +390,80 @@ const MinhaContaPage = () => {
                 </Typography>
               </Box>
             ) : events.length > 0 ? (
-              <Grid container spacing={3}>
+              <Grid container spacing={2}>
                 {events.map((event) => (
                   <Grid item xs={12} sm={6} key={event.event_id}>
                     <Card
                       sx={{
                         display: 'flex',
                         flexDirection: 'column',
-                        boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
-                        borderRadius: '12px',
+                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
+                        borderRadius: '8px',
                         overflow: 'hidden',
                         height: '100%',
-                        position: 'relative',
-                        backgroundColor: '#fafafa',
+                        backgroundColor: '#fff',
+                        border: '1px solid #eee',
+                        '&:hover': {
+                          borderColor: 'primary.main',
+                          transition: 'border-color 0.2s ease-in-out',
+                        },
                       }}
                     >
-                      <CardMedia
-                        component="img"
-                        image={event.imageUrl}
-                        alt={event.name}
-                        sx={{ height: 180 }}
-                      />
-                      <CardContent sx={{ flexGrow: 1 }}>
-                        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
+                      <CardContent 
+                        sx={{ 
+                          flexGrow: 1,
+                          display: 'flex',
+                          flexDirection: 'column',
+                          padding: { xs: '12px', md: '16px' },
+                        }}
+                      >
+                        <Typography 
+                          variant="h6" 
+                          sx={{ 
+                            fontWeight: 'bold', 
+                            mb: 1,
+                            fontSize: { xs: '1rem', md: '1.25rem' },
+                          }}
+                        >
                           {event.name}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          <strong>Data:</strong> {event.start_date}
-                        </Typography>
-                        <Typography variant="body2" color="textSecondary">
-                          <strong>Local:</strong> {event.location}
                         </Typography>
                         <Typography
                           variant="body2"
                           sx={{
-                            marginTop: '10px',
-                            color:
-                              event.event_status === 'Concluído' ? 'green' : 'orange',
+                            color: event.event_status === 'Concluído' ? 'success.main' : 'warning.main',
+                            mb: 2,
+                            fontSize: { xs: '0.875rem', md: '1rem' },
                           }}
                         >
                           <strong>Status:</strong> {event.event_status}
                         </Typography>
-                      </CardContent>
-                      <CardActions
-                        sx={{
-                          justifyContent: 'flex-start',
-                          paddingBottom: '16px',
-                          flexWrap: 'wrap',
-                          gap: '8px',
-                        }}
-                      >
                         <Button
+                          fullWidth
+                          variant="outlined"
                           startIcon={<InfoIcon />}
                           onClick={() => handleEventAction('info', event)}
+                          sx={{ 
+                            mt: 'auto',
+                            py: { xs: 1, md: 1.5 },
+                            fontSize: { xs: '0.875rem', md: '1rem' },
+                          }}
                         >
-                          Informações
+                          Visualizar Informações
                         </Button>
-                        <Button
-                          startIcon={<RefreshIcon />}
-                          onClick={() => handleEventAction('resend', event)}
-                        >
-                          Reenviar Confirmação
-                        </Button>
-                        <Button
-                          startIcon={<VisibilityIcon />}
-                          onClick={() => handleEventAction('view', event)}
-                        >
-                          Visualizar Protocolo
-                        </Button>
-                        <Button
-                          startIcon={<CancelIcon />}
-                          color="error"
-                          onClick={() => handleEventAction('cancel', event)}
-                        >
-                          Cancelar Pedido
-                        </Button>
-                      </CardActions>
+                      </CardContent>
                     </Card>
                   </Grid>
                 ))}
               </Grid>
             ) : (
-              <Typography>Nenhum evento encontrado.</Typography>
+              <Typography 
+                sx={{ 
+                  textAlign: 'center',
+                  py: 4,
+                }}
+              >
+                Nenhum evento encontrado.
+              </Typography>
             )}
 
             {/* Error Notification */}

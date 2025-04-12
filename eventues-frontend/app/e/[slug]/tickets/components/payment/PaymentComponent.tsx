@@ -1,25 +1,72 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Button, CircularProgress, Alert, Grid, SelectChangeEvent } from '@mui/material';
+import { Box, Button, CircularProgress, Alert, Typography, Divider } from '@mui/material';
+import { useRouter } from 'next/navigation';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import LaunchIcon from '@mui/icons-material/Launch';
+import AssignmentIcon from '@mui/icons-material/Assignment';
+import { styled } from '@mui/material/styles';
 import PaymentIcon from '@mui/icons-material/Payment';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../../../../firebase';
 import { fetchUserData } from '../../api/userApi';
-import { PaymentFormData, CustomerData, TicketData } from './types';
+import { PaymentFormData, CustomerData, TicketData, PaymentTicket, PaymentResult } from './types';
 import { PaymentMethods } from './PaymentMethods';
 import { CreditCardForm } from './CreditCardForm';
-import { PaymentSummary } from './PaymentSummary';
 import { PaymentSuccess } from './PaymentSuccess';
 import { usePaymentSubmit } from './hooks/usePaymentSubmit';
 import { usePaymentStatus } from './hooks/usePaymentStatus';
+import PaymentSummary from './PaymentSummary';
+import { Ingresso } from '@/app/apis/api';
+import { calculatePlatformFee } from '../../utils/calculateFee';
+import { formatPrice } from '@/app/utils/formatPrice';
 
-// Definindo a variável de ambiente
-declare const process: {
-  env: {
-    NEXT_PUBLIC_BACKEND_API_URL: string;
+const CheckoutContainer = styled(Box)(({ theme }) => ({
+  maxWidth: 800,
+  margin: '0 auto',
+  padding: theme.spacing(4),
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(2, 0)
   }
-};
+}));
+
+const Section = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(3),
+  marginBottom: theme.spacing(3),
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    borderRadius: 0,
+    boxShadow: 'none',
+    borderBottom: `1px solid ${theme.palette.divider}`
+  }
+}));
+
+const SubmitButton = styled(Button)(({ theme }) => ({
+  width: '100%',
+  padding: theme.spacing(1.5),
+  fontSize: '1.1rem',
+  fontWeight: 600,
+  borderRadius: theme.shape.borderRadius,
+  textTransform: 'none',
+  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+  transition: 'all 0.2s ease',
+  '&:hover': {
+    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+    transform: 'translateY(-1px)'
+  },
+  [theme.breakpoints.down('sm')]: {
+    position: 'fixed',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    borderRadius: 0,
+    zIndex: 1000
+  }
+}));
 
 interface PaymentComponentProps {
   eventId: string;
@@ -38,6 +85,7 @@ export default function PaymentComponent({
   onPaymentSuccess,
   onPaymentError
 }: PaymentComponentProps) {
+  const router = useRouter();
   const [user] = useAuthState(auth);
   const [loadingUserData, setLoadingUserData] = useState(false);
   
@@ -56,6 +104,25 @@ export default function PaymentComponent({
     postalCode: '',
   });
 
+  const tickets: Ingresso[] = useMemo(() => 
+    ticketData.map(ticket => ({
+      id: ticket.id,
+      nome: ticket.name,
+      descricao: '',
+      valor: ticket.price,
+      totalIngressos: ticket.quantity,
+      fimVendas: new Date().toISOString(),
+      status: 'active'
+    }))
+  , [ticketData]);
+
+  const selectedQuantities = useMemo(() => 
+    ticketData.reduce((acc, ticket) => ({
+      ...acc,
+      [ticket.id]: ticket.quantity
+    }), {})
+  , [ticketData]);
+
   const { 
     loading, 
     error, 
@@ -69,13 +136,17 @@ export default function PaymentComponent({
     showSuccessOverlay,
   } = usePaymentStatus(paymentResult, user!);
 
-  const totalAmount = useMemo(() => 
-    ticketData.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0)
-  , [ticketData]);
+  const totalAmount = useMemo(() => {
+    const subtotal = ticketData.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0);
+    const fees = ticketData.reduce((total, ticket) => {
+      const fee = calculatePlatformFee(ticket.price);
+      return total + (fee * ticket.quantity);
+    }, 0);
+    return subtotal + fees;
+  }, [ticketData]);
 
   useEffect(() => {
     let mounted = true;
-    let intervalId: ReturnType<typeof setTimeout> | null = null;
 
     const loadUserData = async () => {
       if (!user || !mounted) return;
@@ -114,8 +185,8 @@ export default function PaymentComponent({
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleSelectChange = (e: SelectChangeEvent<'PIX' | 'BOLETO' | 'CREDIT_CARD'>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+  const handleSelectChange = (value: 'PIX' | 'BOLETO' | 'CREDIT_CARD') => {
+    setFormData({ ...formData, paymentMethod: value });
   };
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -165,76 +236,118 @@ export default function PaymentComponent({
   };
 
   return (
-    <Box 
-      component="form" 
-      noValidate 
-      sx={{ 
-        mt: 3,
-        p: { xs: 2, sm: 3 },
-        bgcolor: '#f8f9fa',
-        borderRadius: '16px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        border: '1px solid rgba(0, 0, 0, 0.06)',
-        overflow: 'hidden'
-      }}
-    >
-      <Box sx={{ p: { xs: 3, sm: 4 } }}>
-        <PaymentSummary ticketData={ticketData} />
-      </Box>
+    <CheckoutContainer>
+      <Section>
+        <PaymentSummary tickets={tickets} selectedQuantities={selectedQuantities} />
+      </Section>
 
-      <Box 
-        sx={{ 
-          borderTop: '1px solid rgba(0, 0, 0, 0.12)',
-          width: '100%'
-        }} 
-      />
+      <Section>
+        {paymentResult ? (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            {paymentResult.billingType === 'PIX' && !showSuccessOverlay && (
+              <Box sx={{ maxWidth: '500px', width: '100%', mx: 'auto', p: 3, bgcolor: 'background.paper', borderRadius: 2, boxShadow: 1 }}>
+                <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'medium' }}>
+                  Pagamento via PIX
+                </Typography>
+                
+                <Typography variant="body2" color="text.secondary" gutterBottom>
+                  Pagamento para {ticketData[0]?.name}
+                </Typography>
 
-      <Box sx={{ p: { xs: 3, sm: 4 } }}>
-        <Grid container spacing={2.5}>
-          {paymentResult ? (
-            <Grid item xs={12}>
-              <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                {paymentResult.billingType === 'PIX' && !showSuccessOverlay && (
-                  <Box sx={{ textAlign: 'center', maxWidth: '500px', width: '100%', mx: 'auto' }}>
-                    <img
-                      src={`data:image/png;base64,${paymentResult.encodedImage}`}
-                      alt="PIX QR Code"
-                      style={{ maxWidth: 200 }}
-                    />
+                <Box sx={{ my: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                  <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main', mb: 1 }}>
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(paymentResult.value)}
+                  </Typography>
+                  
+                  {paymentResult.pixQrCode?.expirationDate && (
+                    <Typography variant="caption" color="error">
+                      Expira em: {new Date(paymentResult.pixQrCode.expirationDate).toLocaleString('pt-BR')}
+                    </Typography>
+                  )}
+                </Box>
+
+                <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <img
+                    src={`data:image/png;base64,${paymentResult.encodedImage}`}
+                    alt="PIX QR Code"
+                    style={{ maxWidth: 200, marginBottom: 16 }}
+                  />
+                  <Button
+                    variant="contained"
+                    onClick={() => paymentResult.payload && navigator.clipboard.writeText(paymentResult.payload)}
+                    startIcon={<ContentCopyIcon />}
+                    sx={{ mb: 1, width: '100%' }}
+                  >
+                    Copiar código PIX
+                  </Button>
+                  {paymentResult.invoiceUrl && (
                     <Button
                       variant="outlined"
-                      onClick={() => paymentResult.payload && navigator.clipboard.writeText(paymentResult.payload)}
-                      sx={{ mt: 1 }}
-                    >
-                      Copiar código PIX
-                    </Button>
-                  </Box>
-                )}
-
-                {paymentResult.billingType === 'BOLETO' && paymentResult.bankSlipUrl && (
-                  <Box sx={{ mt: 2, textAlign: 'center' }}>
-                    <Button
-                      variant="contained"
-                      href={paymentResult.bankSlipUrl}
+                      href={paymentResult.invoiceUrl}
                       target="_blank"
-                      rel="noopener noreferrer"
+                      startIcon={<LaunchIcon />}
+                      sx={{ width: '100%' }}
                     >
-                      Visualizar Boleto
+                      Ver comprovante
                     </Button>
-                  </Box>
-                )}
-              </Box>
-            </Grid>
-          ) : (
-            <>
-              <PaymentMethods
-                formData={formData}
-                onChange={handleChange}
-                onSelectChange={handleSelectChange}
-                disabled={loading}
-              />
+                  )}
+                </Box>
 
-              {formData.paymentMethod === 'CREDIT_CARD' && (
+                <Divider sx={{ my: 2 }} />
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Você pode fechar esta janela e pagar depois através do link enviado ao seu email
+                </Typography>
+
+                <Button
+                  variant="text"
+                  onClick={() => router.push(`/i/${paymentResult.id}`)}
+                  startIcon={<AssignmentIcon />}
+                  sx={{ width: '100%' }}
+                >
+                  Ver minhas inscrições
+                </Button>
+              </Box>
+            )}
+
+            {paymentResult.billingType === 'BOLETO' && paymentResult.bankSlipUrl && (
+              <Box sx={{ mt: 2, textAlign: 'center' }}>
+                <Button
+                  variant="contained"
+                  href={paymentResult.bankSlipUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  Visualizar Boleto
+                </Button>
+                <Divider sx={{ my: 2 }} />
+                
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Você pode fechar esta janela e pagar depois através do link enviado ao seu email
+                </Typography>
+
+                <Button
+                  variant="text"
+                  onClick={() => router.push(`/i/${paymentResult.id}`)}
+                  startIcon={<AssignmentIcon />}
+                  sx={{ width: '100%' }}
+                >
+                  Ver minhas inscrições
+                </Button>
+              </Box>
+            )}
+          </Box>
+        ) : (
+          <>
+            <PaymentMethods
+              formData={formData}
+              onChange={handleChange}
+              onSelectChange={handleSelectChange}
+              disabled={loading}
+            />
+
+            {formData.paymentMethod === 'CREDIT_CARD' && (
+              <Box sx={{ mt: 3 }}>
                 <CreditCardForm
                   formData={formData}
                   onCardNumberChange={handleCardNumberChange}
@@ -244,52 +357,33 @@ export default function PaymentComponent({
                   onPostalCodeChange={(value) => setFormData(prev => ({ ...prev, postalCode: value }))}
                   onInputFocus={handleInputFocus}
                 />
-              )}
-
-              {error && (
-                <Grid item xs={12}>
-                  <Alert severity="error">
-                    {error}
-                  </Alert>
-                </Grid>
-              )}
-
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', width: '100%' }}>
-                <Button
-                  variant="contained"
-                  onClick={handleSubmit}
-                  disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : <PaymentIcon />}
-                  sx={{ 
-                    minWidth: 200,
-                    py: 1.5,
-                    px: 4,
-                    borderRadius: '12px',
-                    textTransform: 'none',
-                    fontSize: '1.1rem',
-                    fontWeight: 600,
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                    '&:hover': {
-                      boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-                      transform: 'translateY(-1px)'
-                    },
-                    transition: 'all 0.2s ease'
-                  }}
-                >
-                  {loading ? 'Processando...' : `Pagar ${formatPrice(totalAmount)}`}
-                </Button>
               </Box>
-            </>
-          )}
-        </Grid>
-      </Box>
+            )}
+
+            {error && (
+              <Alert severity="error" sx={{ mt: 2 }}>
+                {error}
+              </Alert>
+            )}
+          </>
+        )}
+      </Section>
+
+      {!paymentResult && (
+        <Box sx={{ px: { xs: 2, sm: 0 }, pb: { xs: 7, sm: 0 } }}>
+          <SubmitButton
+            variant="contained"
+            onClick={handleSubmit}
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} /> : <PaymentIcon />}
+          >
+            {loading ? 'Processando...' : `Pagar ${formatPrice(totalAmount)}`}
+          </SubmitButton>
+        </Box>
+      )}
 
       {showSuccessModal && <PaymentSuccess />}
       {showSuccessOverlay && <PaymentSuccess />}
-    </Box>
+    </CheckoutContainer>
   );
 }
-
-const formatPrice = (price: number) => {
-  return `R$ ${price.toFixed(2)}`;
-};

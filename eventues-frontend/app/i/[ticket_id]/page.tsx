@@ -1,5 +1,7 @@
 'use client';
 
+'use client';
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
@@ -12,7 +14,6 @@ import {
   Paper,
   Chip,
   Button,
-  TextField,
   Stack,
 } from '@mui/material';
 import { useAuthState } from 'react-firebase-hooks/auth';
@@ -20,40 +21,82 @@ import { auth } from '../../../firebase';
 import { getIdToken } from 'firebase/auth';
 import axios from 'axios';
 import QRCode from 'react-qr-code';
-import { Dictionary } from 'lodash';
 import HomeIcon from '@mui/icons-material/Home';
 import PrintIcon from '@mui/icons-material/Print';
 import ShareIcon from '@mui/icons-material/Share';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
 
 interface TicketDetails {
   order_id: string;
   event_id: string;
+  event_type: string;
   event_name: string;
   event_date: string;
   event_location: string | null;
+  user_id: string;
   ticket_name: string | null;
   ticket_value: number | null;
-  quantity: number;
-  total_value: number | null;
+  quantity: number | null;
+  total_value: number;
   payment_datails: {
     transactionReceiptUrl: string | null;
+    custody: string | null;
+    postalService: boolean;
+    originalDueDate: string;
+    pixTransaction: string | null;
+    object: string;
     status: string;
+    nossoNumero: string | null;
+    invoiceNumber: string;
+    creditDate: string | null;
+    paymentDate: string | null;
+    pixQrCode: {
+      success: boolean;
+      expirationDate: string;
+      encodedImage: string;
+      payload: string;
+    };
+    customer: string;
+    externalReference: string | null;
+    interestValue: number | null;
+    clientPaymentDate: string | null;
     billingType: string;
-    bankSlipUrl?: string;
-    encodedImage?: string;
-    payload?: string;
-    expirationDate?: string;
-    value: number;
-    dueDate: string;
+    deleted: boolean;
     description: string;
-    [key: string]: any;
+    anticipated: boolean;
+    estimatedCreditDate: string | null;
+    id: string;
+    discount: {
+      value: number;
+      type: string;
+      limitDate: string | null;
+      dueDateLimitDays: number;
+    };
+    anticipable: boolean;
+    bankSlipUrl: string | null;
+    value: number;
+    escrow: string | null;
+    netValue: number;
+    paymentLink: string | null;
+    interest: {
+      value: number;
+      type: string;
+    };
+    refunds: string | null;
+    dueDate: string;
+    lastBankSlipViewedDate: string | null;
+    installmentNumber: string | null;
+    lastInvoiceViewedDate: string | null;
+    invoiceUrl: string;
+    fine: {
+      value: number;
+      type: string;
+    };
+    dateCreated: string;
+    originalValue: number | null;
   };
   status: string;
   created_at: string;
   payment_url: string;
-  user_id: string;
   participant_info: {
     name: string;
     email: string;
@@ -72,20 +115,7 @@ export default function TicketPage() {
   const [error, setError] = useState<string | null>(null);
   const [ticketDetails, setTicketDetails] = useState<TicketDetails | null>(null);
   const [unauthorized, setUnauthorized] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-
-  const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handlePrint = () => {
-    window.print();
-    handleMenuClose();
-  };
+  const handlePrint = () => window.print();
 
   const handleShare = async () => {
     if (navigator.share) {
@@ -96,17 +126,16 @@ export default function TicketPage() {
           url: window.location.href,
         });
       } catch (error) {
-        console.error('Error sharing:', error);
+        // Ignore share errors
       }
     }
-    handleMenuClose();
   };
 
   useEffect(() => {
     const fetchTicketDetails = async () => {
-      setLoading(true); // Garantir que loading começa como true
-      setUnauthorized(false); // Resetar unauthorized no início
-      setError(null); // Resetar error no início
+      setLoading(true);
+      setUnauthorized(false);
+      setError(null);
 
       if (!user) {
         setUnauthorized(true);
@@ -125,11 +154,7 @@ export default function TicketPage() {
           }
         );
 
-        // Garantindo que ambos são strings antes de comparar
-        const responseUserId = String(response.data.user_id).trim();
-        const currentUserId = String(user.uid).trim();
-        
-        if (responseUserId !== currentUserId) {
+        if (String(response.data.user_id).trim() !== String(user.uid).trim()) {
           setUnauthorized(true);
           setTicketDetails(null);
         } else {
@@ -138,11 +163,7 @@ export default function TicketPage() {
       } catch (err) {
         setError('Falha ao carregar detalhes do ingresso');
       } finally {
-        // Mover setLoading(false) para depois de um pequeno delay
-        // para evitar flash de conteúdo
-        setTimeout(() => {
-          setLoading(false);
-        }, 100);
+        setLoading(false);
       }
     };
 
@@ -193,7 +214,7 @@ export default function TicketPage() {
     });
   };
 
-  console.log('Estado final:', { unauthorized, error, ticketDetails }); // Log do estado antes do render
+
 
   if (unauthorized) {
     return (
@@ -391,55 +412,55 @@ export default function TicketPage() {
                     <Grid item xs={12}>
                       <Paper sx={{ p: 2 }}>
                         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
+                          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'medium' }}>
                             Pagamento via PIX
                           </Typography>
-                          {ticketDetails.payment_datails.status === 'PENDING' && (
-                            <>
-                              <Typography gutterBottom>
-                                Escaneie o QR Code ou copie o código PIX:
+                          
+                          <Typography variant="body2" color="text.secondary" gutterBottom>
+                            {ticketDetails.payment_datails.description}
+                          </Typography>
+
+                          <Box sx={{ my: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main', mb: 1 }}>
+                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ticketDetails.payment_datails.value)}
+                            </Typography>
+                            
+                            {ticketDetails.payment_datails.pixQrCode?.expirationDate && (
+                              <Typography variant="caption" color="error">
+                                Expira em: {new Date(ticketDetails.payment_datails.pixQrCode.expirationDate).toLocaleString('pt-BR')}
                               </Typography>
-                              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
-                                <img
-                                  src={`data:image/png;base64,${ticketDetails.payment_datails.encodedImage}`}
-                                  alt="PIX QR Code"
-                                  style={{ maxWidth: 200 }}
-                                />
-                              </Box>
-                              <TextField
-                                fullWidth
-                                multiline
-                                rows={2}
-                                value={ticketDetails.payment_datails.payload ?? ''}
-                                InputProps={{ readOnly: true }}
-                                sx={{ maxWidth: 500, mb: 1 }}
+                            )}
+                          </Box>
+
+                          <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+                            {ticketDetails.payment_datails.pixQrCode?.encodedImage && (
+                              <img
+                                src={`data:image/png;base64,${ticketDetails.payment_datails.pixQrCode.encodedImage}`}
+                                alt="PIX QR Code"
+                                style={{ maxWidth: 200, marginBottom: 16 }}
                               />
+                            )}
+                            <Button
+                              variant="contained"
+                              onClick={() =>
+                                ticketDetails.payment_datails.pixQrCode?.payload &&
+                                navigator.clipboard.writeText(ticketDetails.payment_datails.pixQrCode.payload)
+                              }
+                              sx={{ mb: 1, width: '100%', maxWidth: 400 }}
+                            >
+                              Copiar código PIX
+                            </Button>
+                            {ticketDetails.payment_datails.invoiceUrl && (
                               <Button
                                 variant="outlined"
-                                onClick={() =>
-                                  ticketDetails.payment_datails.payload &&
-                                  navigator.clipboard.writeText(ticketDetails.payment_datails.payload)
-                                }
-                                sx={{ mb: 2 }}
+                                href={ticketDetails.payment_datails.invoiceUrl}
+                                target="_blank"
+                                sx={{ width: '100%', maxWidth: 400 }}
                               >
-                                Copiar código PIX
+                                Ver comprovante
                               </Button>
-                              {ticketDetails.payment_datails.expirationDate && (
-                                <Typography variant="body2">
-                                  Expira em:{' '}
-                                  {new Date(ticketDetails.payment_datails.expirationDate).toLocaleString('pt-BR', {
-                                    year: 'numeric',
-                                    month: '2-digit',
-                                    day: '2-digit',
-                                    hour: '2-digit',
-                                    minute: '2-digit',
-                                    second: '2-digit',
-                                    hour12: false,
-                                  })}
-                                </Typography>
-                              )}
-                            </>
-                          )}
+                            )}
+                          </Box>
                         </Box>
                       </Paper>
                     </Grid>

@@ -124,6 +124,13 @@ export function usePaymentSubmit() {
               expiryMonth: formData.cardExpiry?.split('/')[0],
               expiryYear: formData.cardExpiry?.split('/')[1],
             } : undefined,
+            credit_card_holder_info: creditCardToken ? {
+              name: formData.name,
+              email: formData.email,
+              cpfCnpj: formData.cpfCnpj,
+              postalCode: formData.postalCode,
+              phone: formData.phone,
+            } : undefined
           }
         }),
       });

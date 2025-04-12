@@ -21,8 +21,7 @@ import {
   CircularProgress
 } from '@mui/material';
 import { getEventBySlug, getEventTickets, Event, Ingresso } from '@/app/apis/api';
-import TicketOptions from './components/TicketOptions';
-import PersonalInfoForm from './components/PersonalInfoForm';
+
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
@@ -32,6 +31,8 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import { motion } from 'framer-motion';
 import PaymentComponent from './components/payment/PaymentComponent';
 import { useSnackbar } from 'notistack';
+import TicketOptions from './components/ticket_options/TicketOptions';
+import PersonalInfoForm from './components/infos/PersonalInfoForm';
 
 // Styled components
 const StyledContainer = styled(Container)(({ theme }) => ({

@@ -20,7 +20,8 @@ import {
   Zoom,
   Tooltip,
   Badge,
-  Alert
+  Alert,
+  Stack
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
@@ -31,6 +32,7 @@ import InfoIcon from '@mui/icons-material/Info';
 import { motion } from 'framer-motion';
 import { formatPrice } from '@/app/utils/formatters';
 import { Ingresso } from '@/app/apis/api';
+import { calculatePlatformFee } from '../../utils/calculateFee';
 
 interface TicketOptionsProps {
   tickets: Ingresso[];
@@ -40,6 +42,16 @@ interface TicketOptionsProps {
 }
 
 // Styled components
+const TicketGrid = styled(Grid)(({ theme }) => ({
+  [theme.breakpoints.down('sm')]: {
+    flexDirection: 'column',
+    '& > .MuiGrid-item': {
+      width: '100%',
+      maxWidth: '100%'
+    }
+  }
+}));
+
 const TicketCard = styled(Card)(({ theme }) => ({
   position: 'relative',
   borderRadius: theme.spacing(2),
@@ -52,6 +64,9 @@ const TicketCard = styled(Card)(({ theme }) => ({
   '&:hover': {
     boxShadow: '0 12px 28px rgba(0,0,0,0.1)',
     transform: 'translateY(-4px)',
+  },
+  [theme.breakpoints.down('sm')]: {
+    marginBottom: theme.spacing(2)
   }
 }));
 
@@ -75,12 +90,29 @@ const TicketHeader = styled(Box)(({ theme }) => ({
   borderBottom: `1px solid ${alpha(theme.palette.divider, 0.5)}`,
 }));
 
-const TicketPrice = styled(Typography)(({ theme }) => ({
+const TicketPrice = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(0.5),
+}));
+
+const MainPrice = styled(Typography)(({ theme }) => ({
+  fontSize: '1.75rem',
   fontWeight: 700,
   color: theme.palette.primary.main,
+  lineHeight: 1.2,
+}));
+
+const FeeText = styled(Typography)(({ theme }) => ({
+  fontSize: '0.75rem',
+  color: theme.palette.text.secondary,
   display: 'flex',
   alignItems: 'center',
   gap: theme.spacing(0.5),
+  '& .MuiSvgIcon-root': {
+    fontSize: '0.875rem',
+    cursor: 'help',
+  },
 }));
 
 const QuantityControl = styled(Box)(({ theme }) => ({
@@ -88,6 +120,10 @@ const QuantityControl = styled(Box)(({ theme }) => ({
   alignItems: 'center',
   gap: theme.spacing(1),
   marginTop: theme.spacing(1),
+  [theme.breakpoints.down('sm')]: {
+    justifyContent: 'flex-end',
+    marginTop: theme.spacing(1)
+  }
 }));
 
 const StyledIconButton = styled(IconButton)(({ theme }) => ({
@@ -99,6 +135,31 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
   '&.Mui-disabled': {
     backgroundColor: alpha(theme.palette.action.disabled, 0.1),
     color: theme.palette.action.disabled,
+  },
+  border: `1px solid ${theme.palette.divider}`,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(0.5),
+  [theme.breakpoints.down('sm')]: {
+    padding: theme.spacing(1)
+  }
+}));
+
+const PriceInfo = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  [theme.breakpoints.down('sm')]: {
+    width: '100%',
+    marginTop: theme.spacing(1)
+  }
+}));
+
+const TicketInfo = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  justifyContent: 'space-between',
+  alignItems: 'flex-start',
+  width: '100%',
+  [theme.breakpoints.down('sm')]: {
+    flexDirection: 'column'
   }
 }));
 
@@ -126,7 +187,11 @@ export default function TicketOptions({
   loading = false
 }: TicketOptionsProps) {
   const theme = useTheme();
-  
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
+  };
+
   const handleQuantityChange = (ticket: Ingresso, change: number) => {
     const currentQuantity = selectedQuantities[ticket.id] || 0;
     const newQuantity = Math.max(0, Math.min(currentQuantity + change, 10)); // Max 10 tickets per person
@@ -140,7 +205,9 @@ export default function TicketOptions({
   const getTotalPrice = () => {
     return tickets.reduce((acc, ticket) => {
       const quantity = selectedQuantities[ticket.id] || 0;
-      return acc + (ticket.valor * quantity);
+      const ticketTotal = ticket.valor * quantity;
+      const fee = calculatePlatformFee(ticket.valor) * quantity;
+      return acc + ticketTotal + fee;
     }, 0);
   };
 
@@ -215,91 +282,98 @@ export default function TicketOptions({
           initial="hidden"
           animate="visible"
         >
-          <Grid container spacing={3}>
-            {tickets.map((ticket) => (
-              <Grid item xs={12} md={6} key={ticket.id} component={motion.div} variants={itemVariants}>
-                <TicketCard>
-                {ticket.totalIngressos <= 10 && (
-                    <TicketBadge>
-                      {ticket.totalIngressos <= 5 ? 'Últimas unidades!' : 'Quase esgotado!'}
-                    </TicketBadge>
-                  )}
-                  
-                  <TicketHeader>
-                    <Typography variant="h6" sx={{ fontWeight: 600, mb: 0.5 }}>
-                      {ticket.nome}
-                    </Typography>
-                    <TicketPrice variant="h5">
-                      {formatPrice(ticket.valor)}
-                    </TicketPrice>
-                  </TicketHeader>
-                  
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <TicketDescription variant="body2">
-                      {ticket.descricao || ""}
-                    </TicketDescription>
-                    
-                    <TicketInfoItem>
-                      <EventIcon fontSize="small" />
-                      <Typography variant="body2">
-                        Disponível até {new Date(ticket.fimVendas || new Date()).toLocaleDateString('pt-BR')}
+          <TicketGrid container spacing={3}>
+            {tickets.map((ticket) => {
+              const fee = calculatePlatformFee(ticket.valor);
+              return (
+                <Grid item xs={12} md={6} key={ticket.id} component={motion.div} variants={itemVariants}>
+                  <TicketCard>
+                    <TicketHeader>
+                      <Typography variant="h6" gutterBottom>
+                        {ticket.nome}
                       </Typography>
-                    </TicketInfoItem>
+                      <TicketPrice>
+                        <MainPrice>
+                          {formatPrice(ticket.valor)}
+                        </MainPrice>
+                        {ticket.valor > 0 && (
+                          <Tooltip
+                            title="Taxa de 7,99% para manutenção da plataforma. Valor mínimo de R$ 2,00 para ingressos abaixo de R$ 20,00."
+                            placement="bottom"
+                            arrow
+                          >
+                            <FeeText>
+                              + {formatPrice(fee)} taxa de serviço
+                              <InfoIcon />
+                            </FeeText>
+                          </Tooltip>
+                        )}
+                      </TicketPrice>
+                    </TicketHeader>
                     
-                    <TicketInfoItem>
-                      <AccessTimeIcon fontSize="small" />
-                      <Typography variant="body2">
-                        {ticket.totalIngressos} {ticket.totalIngressos === 1 ? 'ingresso disponível' : 'ingressos disponíveis'}
-                      </Typography>
-                    </TicketInfoItem>
-                    
-                    <Divider sx={{ my: 2 }} />
-                    
-                    <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                        Quantidade:
-                      </Typography>
+                    <CardContent sx={{ flexGrow: 1 }}>
+                      <TicketDescription variant="body2">
+                        {ticket.descricao || ""}
+                      </TicketDescription>
                       
-                      <QuantityControl>
-                        <StyledIconButton 
-                          size="small" 
-                          onClick={() => handleQuantityChange(ticket, -1)}
-                          disabled={!selectedQuantities[ticket.id] || selectedQuantities[ticket.id] === 0}
-                        >
-                          <RemoveIcon fontSize="small" />
-                        </StyledIconButton>
-                        
-                        <Typography variant="body1" sx={{ fontWeight: 600, minWidth: '24px', textAlign: 'center' }}>
-                          {selectedQuantities[ticket.id] || 0}
+                      <TicketInfoItem>
+                        <EventIcon fontSize="small" />
+                        <Typography variant="body2">
+                          Disponível até {new Date(ticket.fimVendas || new Date()).toLocaleDateString('pt-BR')}
+                        </Typography>
+                      </TicketInfoItem>
+                      
+                      <Divider sx={{ my: 2 }} />
+                      
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                          Quantidade:
                         </Typography>
                         
-                        <StyledIconButton 
-                          size="small" 
-                          onClick={() => handleQuantityChange(ticket, 1)}
-                          disabled={
-                            (selectedQuantities[ticket.id] || 0) >= Math.min(ticket.totalIngressos, 10) || 
-                            getTotalSelectedTickets() >= 10
-                          }
-                        >
-                          <AddIcon fontSize="small" />
-                        </StyledIconButton>
-                      </QuantityControl>
-                    </Box>
-                  </CardContent>
-                  
-                  <CardActions sx={{ p: 2, pt: 0, justifyContent: 'flex-end' }}>
-                    {(selectedQuantities[ticket.id] || 0) > 0 && (
-                      <Chip 
-                        label={`Total: ${formatPrice(ticket.valor * (selectedQuantities[ticket.id] || 0))}`}
-                        color="primary"
-                        sx={{ fontWeight: 600 }}
-                      />
-                    )}
-                  </CardActions>
-                </TicketCard>
-              </Grid>
-            ))}
-          </Grid>
+                        <QuantityControl>
+                          <StyledIconButton 
+                            size="small" 
+                            onClick={() => handleQuantityChange(ticket, -1)}
+                            disabled={!selectedQuantities[ticket.id] || selectedQuantities[ticket.id] === 0}
+                          >
+                            <RemoveIcon fontSize="small" />
+                          </StyledIconButton>
+                          
+                          <Typography variant="body1" sx={{ fontWeight: 600, minWidth: '24px', textAlign: 'center' }}>
+                            {selectedQuantities[ticket.id] || 0}
+                          </Typography>
+                          
+                          <StyledIconButton 
+                            size="small" 
+                            onClick={() => handleQuantityChange(ticket, 1)}
+                          >
+                            <AddIcon fontSize="small" />
+                          </StyledIconButton>
+                        </QuantityControl>
+                      </Box>
+                    </CardContent>
+                    
+                    <CardActions sx={{ p: 2, pt: 0, justifyContent: 'flex-end' }}>
+                      {(selectedQuantities[ticket.id] || 0) > 0 && (
+                        <Stack spacing={0.5} alignItems="flex-end">
+                          <Chip 
+                            label={`Total: ${formatPrice((ticket.valor + fee) * (selectedQuantities[ticket.id] || 0))}`}
+                            color="primary"
+                            sx={{ fontWeight: 600 }}
+                          />
+                          {ticket.valor > 0 && (
+                            <Typography variant="caption" color="text.secondary">
+                              Inclui taxa de serviço
+                            </Typography>
+                          )}
+                        </Stack>
+                      )}
+                    </CardActions>
+                  </TicketCard>
+                </Grid>
+              );
+            })}
+          </TicketGrid>
         </motion.div>
 
         {getTotalSelectedTickets() > 0 && (
@@ -323,6 +397,9 @@ export default function TicketOptions({
                 </Typography>
                 <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
                   Total: {formatPrice(getTotalPrice())}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Inclui taxas de serviço
                 </Typography>
               </Box>
               

@@ -20,12 +20,8 @@ import {
   DialogActions,
 } from "@mui/material";
 import {
-  Image as ImageIcon,
-  Assignment as FormIcon,
   CheckCircle as CheckCircleIcon,
   Error as ErrorIcon,
-  Policy as PolicyIcon,
-  Sports as SportsIcon,
   LocationOn as LocationOnIcon,
 } from "@mui/icons-material";
 import EventIcon from "@mui/icons-material/Event"; // Para eventos em geral
@@ -36,14 +32,8 @@ import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/
 import Image from "next/image"; // Next.js Image component
 import SummaryCard from "./Summary";
 import InformationCard from "./InformationCard";
-import BannerDocumentCard from "../utils/BannerDocumentCard";
-import TicketsCard from "../utils/TicketsCard";
 import FormCard from "./FormCard";
-import PolicyCard from "../utils/PolicyCard";
-import TicketsAndValues from "./TicketsAndValues";
 import CriarIngressoPage from "./TicketsAndValues";
-import Categories from "./Categories";
-import TicketOptions from '@/app/e/[slug]/components/TicketOptions';
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
 import api from "../apis/api";
 

@@ -16,14 +16,6 @@ payment_api = Blueprint(__name__)
 ASAAS_API_KEY = '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6Ojk1ZTUwZTlkLTUyYmQtNGMyYy05MjViLTUwNjQzMWUxODZlZTo6JGFhY2hfMjZkMTY3NjQtMDA3NC00ZTg2LTk1MzItMzVjMjc2ZjNlNmRj'
 ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3'
 
-cors_config = CORSConfig(
-    allow_origin='*',
-    allow_headers=['Content-Type', 'Authorization'],
-    max_age=600,
-    expose_headers=['Content-Type', 'Authorization'],
-    allow_credentials=True
-)
-
 class AsaasService:
     def __init__(self):
         self.headers = {

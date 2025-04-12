@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+'use client';
+
+import { type FC, forwardRef, useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -10,36 +12,30 @@ import {
   Select,
   MenuItem,
   Checkbox,
-  InputAdornment,
   Paper,
-  Button,
   useTheme,
   CircularProgress,
   Alert,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import CheckIcon from '@mui/icons-material/Check';
 import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
 import {
-  FormField,
-  UserProfile,
+  type FormField,
+  type UserProfile,
   getEventForm,
   getUserProfile,
 } from '@/app/apis/api';
 import { z } from 'zod';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { IMaskInput } from 'react-imask';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { auth } from '../../../../../firebase';
 
 interface PersonalInfoFormProps {
   eventId: string;
-  onFormDataChange: (data: Record<string, any>, isValid: boolean) => void;
+  onFormDataChange: (data: FormData, isValid: boolean) => void;
   formIndex?: number;
-  initialData?: Record<string, any>;
+  initialData?: FormData;
   ticketName?: string;
   ticketColor?: string;
   onParticipantChange?: (index: number) => void;
@@ -50,55 +46,46 @@ interface PersonalInfoFormProps {
   activeStep?: number;
 }
 
-// Componente para formatação de telefone
-interface CustomPhoneProps {
+type FormData = Record<string, string | boolean>;
+
+interface CustomInputProps {
   onChange: (event: { target: { name: string; value: string } }) => void;
   name: string;
 }
 
-const PhoneMaskCustom = React.forwardRef<HTMLInputElement, CustomPhoneProps>(
-  function PhoneMaskCustom(props, ref) {
+const PhoneMaskInput = forwardRef<HTMLInputElement, CustomInputProps>(
+  function PhoneMaskInput(props, ref) {
     const { onChange, name, ...other } = props;
     return (
       <IMaskInput
         {...other}
         mask="(00) 00000-0000"
-        definitions={{
-          '#': /[1-9]/,
-        }}
+        definitions={{ '#': /[1-9]/ }}
         inputRef={ref}
-        onAccept={(value: any) => onChange({ target: { name, value } })}
+        onAccept={(value: string) => onChange({ target: { name, value } })}
         overwrite
       />
     );
   },
 );
 
-// Componente para formatação de CPF
-interface CpfMaskProps {
-  onChange: (event: { target: { name: string; value: string } }) => void;
-  name: string;
-}
-
-const CpfMaskCustom = React.forwardRef<HTMLInputElement, CpfMaskProps>(
-  function CpfMaskCustom(props, ref) {
+const CpfMaskInput = forwardRef<HTMLInputElement, CustomInputProps>(
+  function CpfMaskInput(props, ref) {
     const { onChange, name, ...other } = props;
     return (
       <IMaskInput
         {...other}
         mask="000.000.000-00"
-        definitions={{
-          '#': /[1-9]/,
-        }}
+        definitions={{ '#': /[1-9]/ }}
         inputRef={ref}
-        onAccept={(value: any) => onChange({ target: { name, value } })}
+        onAccept={(value: string) => onChange({ target: { name, value } })}
         overwrite
       />
     );
   },
 );
 
-export default function PersonalInfoForm({
+const PersonalInfoForm: FC<PersonalInfoFormProps> = ({
   eventId,
   onFormDataChange,
   formIndex = 0,
@@ -111,117 +98,93 @@ export default function PersonalInfoForm({
   localStorageKey,
   activeParticipant,
   activeStep,
-}: PersonalInfoFormProps) {
+}: PersonalInfoFormProps) => {
+  const theme = useTheme();
   const [formFields, setFormFields] = useState<FormField[]>([]);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isForAnotherPerson, setIsForAnotherPerson] = useState(false);
   const [validationSchema, setValidationSchema] = useState<z.ZodObject<any>>(z.object({}));
-  const [user] = useAuthState(auth);
 
   // Criar o schema Zod dinamicamente com base nos campos do formulário
   const createValidationSchema = (fields: FormField[]) => {
-    const schemaMap: Record<string, any> = {};
-    
+    const schemaMap: Record<string, z.ZodTypeAny> = {};
+
     fields.forEach((field) => {
-      let fieldSchema;
-      
-      switch (field.type.toLowerCase()) {
-        case 'text':
-        case 'texto':
-          fieldSchema = z.string();
-          if (field.id === 'email') {
-            fieldSchema = z.string().email('Email inválido');
-          }
-          if (field.id === 'fullName') {
-            fieldSchema = z.string().min(3, 'Nome deve ter pelo menos 3 caracteres');
-          }
-          if (field.id === 'cpf' || field.label === 'CPF') {
-            fieldSchema = z.string()
-              .min(11, 'CPF inválido')
-              .refine((val) => {
-                // Remove formatação para validar
-                const numbers = val.replace(/[^0-9]/g, '');
-                return numbers.length === 11;
-              }, 'CPF inválido');
-          }
+      const fieldName = `participant${formIndex}_${field.id}`;
+
+      switch (field.type) {
+        case 'email':
+          schemaMap[fieldName] = field.required
+            ? z.string().min(1, 'Email é obrigatório').email('Email inválido')
+            : z.string().email('Email inválido').optional();
           break;
-        case 'number':
-          fieldSchema = z.string().refine((val: string) => !isNaN(Number(val)), {
-            message: 'Deve ser um número válido',
-          });
+        case 'text':
+          if (field.id === 'cpf') {
+            schemaMap[fieldName] = field.required
+              ? z.string().min(1, 'CPF é obrigatório').regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, 'CPF inválido')
+              : z.string().regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, 'CPF inválido').optional();
+          } else {
+            schemaMap[fieldName] = field.required
+              ? z.string().min(1, 'Este campo é obrigatório')
+              : z.string().optional();
+          }
           break;
         case 'date':
-          fieldSchema = z.string().refine((val: string) => !val || !isNaN(Date.parse(val)), {
-            message: 'Data inválida',
-          });
+          schemaMap[fieldName] = field.required
+            ? z.string().min(1, 'Data é obrigatória')
+            : z.string().optional();
           break;
         case 'select':
-          fieldSchema = z.string();
+          schemaMap[fieldName] = field.required
+            ? z.string().min(1, `Selecione ${field.label.toLowerCase()}`)
+            : z.string().optional();
           break;
         case 'checkbox':
-          fieldSchema = z.boolean();
+          schemaMap[fieldName] = field.required
+            ? z.boolean().refine((val) => val === true, { message: 'Este campo é obrigatório' })
+            : z.boolean().optional();
           break;
-        default:
-          fieldSchema = z.string();
+        case 'phone':
+          schemaMap[fieldName] = field.required
+            ? z.string().min(1, 'Telefone é obrigatório').regex(/^\(\d{2}\) \d{5}-\d{4}$/, 'Telefone inválido')
+            : z.string().regex(/^\(\d{2}\) \d{5}-\d{4}$/, 'Telefone inválido').optional();
+          break;
       }
-      
-      if (field.required) {
-        if (field.type === 'checkbox') {
-          fieldSchema = z.boolean().refine((val) => val === true, {
-            message: 'Este campo é obrigatório',
-          });
-        } else if (field.type === 'text' || field.type === 'select') {
-          fieldSchema = z.string().min(1, 'Este campo é obrigatório');
-        } else if (field.type === 'date') {
-          fieldSchema = z.string().min(1, 'Este campo é obrigatório');
-        } else if (field.type === 'number') {
-          fieldSchema = z.string().min(1, 'Este campo é obrigatório');
-        }
-      }
-      
-      schemaMap[field.id] = fieldSchema;
     });
-    
+
     return z.object(schemaMap);
   };
 
-  // Configuração do formulário com React Hook Form e Zod
   const {
     register,
-    control,
-    handleSubmit,
-    formState: { errors, isValid, isDirty },
+    formState: { errors },
     reset,
-    watch,
-    getValues
-  } = useForm<Record<string, any>>({
+    getValues,
+    handleSubmit
+  } = useForm<FormData>({
     resolver: zodResolver(validationSchema),
-    mode: 'onBlur',
-    defaultValues: {},
+    mode: 'onBlur'
   });
 
   // Salvar e avançar para o próximo participante
   const handleSaveAndNext = async () => {
     const formData = getValues();
-    const isCurrentFormValid = Object.keys(errors).length === 0 && 
-      formFields.every(field => field.required ? !!formData[field.id] : true);
+    const isValid = Object.keys(errors).length === 0;
 
-    // Salvar dados do formulário atual
+    if (!isValid) return;
+
     if (localStorageKey) {
-      const formState = {
+      localStorage.setItem(`${localStorageKey}_${formIndex}`, JSON.stringify({
         values: formData,
         isValid: true,
         timestamp: new Date().toISOString()
-      };
-      localStorage.setItem(`${localStorageKey}_${formIndex}`, JSON.stringify(formState));
+      }));
     }
 
-    // Notificar o componente pai com os dados atualizados
     onFormDataChange(formData, true);
 
-    // Avançar para o próximo participante
     if (formIndex < totalParticipants - 1 && onParticipantChange) {
       onParticipantChange(formIndex + 1);
     }
@@ -246,9 +209,7 @@ export default function PersonalInfoForm({
   useEffect(() => {
     // Usar uma referência para controlar se o componente está montado
     let isMounted = true;
-    
-    console.log('PersonalInfoForm useEffect triggered', { eventId, formFields: formFields.length, loading });
-    
+
     // Função para buscar dados
     const fetchData = async () => {
       if (!eventId) {
@@ -257,68 +218,64 @@ export default function PersonalInfoForm({
         setLoading(false);
         return;
       }
-      
+
       // Definir loading state
       setLoading(true);
-      
+
       try {
         // Buscar campos do formulário apenas se não tivermos campos ainda
         let fields: FormField[] = formFields;
         if (!fields || fields.length === 0) {
           try {
             fields = await getEventForm(eventId);
-            console.log('API Response for form fields:', fields);
           } catch (error) {
             console.error('Error fetching form fields:', error);
             fields = getDefaultFormFields();
             console.warn('Using default form fields due to API error');
           }
         }
-        
+
         // Verificar se os campos são válidos
         if (!fields || !Array.isArray(fields) || fields.length === 0) {
           console.warn('Using default form fields');
           fields = getDefaultFormFields();
         }
-        
+
         // Buscar perfil do usuário apenas se necessário
         let profile = userProfile;
         if (!profile && !isForAnotherPerson) {
           try {
             profile = await getUserProfile();
-            console.log('User profile loaded:', profile);
           } catch (error) {
             console.error('Error fetching user profile:', error);
           }
         }
-        
+
         // Verificar se o componente ainda está montado antes de atualizar o estado
         if (!isMounted) return;
-        
+
         // Ordenar campos por ordem
         const sortedFields = [...fields].sort((a, b) => a.order - b.order);
-        
+
         setFormFields(sortedFields);
         setUserProfile(profile);
-        
+
         // Construir schema de validação baseado nos campos
         const schema = createValidationSchema(sortedFields);
         setValidationSchema(schema);
-        
+
         // Preencher formulário com dados iniciais
         if (initialData && Object.keys(initialData).length > 0) {
-          console.log('Using initialData to populate form:', initialData);
           reset(initialData);
         } else if (profile && !isForAnotherPerson) {
           // Preencher com dados do perfil do usuário
           const profileData = mapProfileToFormData(profile, sortedFields);
-          console.log('Using user profile to populate form:', profileData);
           reset(profileData);
         }
       } catch (error) {
         console.error('Error in fetchData:', error);
         setError('Ocorreu um erro ao carregar os dados do formulário. Por favor, tente novamente.');
-        
+
         // Usar campos padrão em caso de erro
         const defaultFields = getDefaultFormFields();
         setFormFields(defaultFields);
@@ -329,9 +286,9 @@ export default function PersonalInfoForm({
         }
       }
     };
-    
+
     fetchData();
-    
+
     return () => {
       isMounted = false;
     };
@@ -340,7 +297,7 @@ export default function PersonalInfoForm({
   const handleToggleForAnotherPerson = () => {
     setIsForAnotherPerson((prev) => {
       const newValue = !prev;
-      
+
       if (newValue) {
         // Limpar formulário se for para outra pessoa
         const emptyData: Record<string, any> = {};
@@ -353,7 +310,7 @@ export default function PersonalInfoForm({
         const profileData = mapProfileToFormData(userProfile, formFields);
         reset(profileData);
       }
-      
+
       return newValue;
     });
   };
@@ -361,10 +318,10 @@ export default function PersonalInfoForm({
   // Criar função para mapear campos do perfil do usuário para o formulário
   const mapProfileToFormData = (profile: UserProfile, fields: FormField[]): Record<string, any> => {
     const mappedData: Record<string, any> = {};
-    
+
     fields.forEach((field) => {
       let value = '';
-      
+
       // Mapear campos específicos
       switch (field.id) {
         case 'fullName':
@@ -391,11 +348,11 @@ export default function PersonalInfoForm({
             value = profile[field.id as keyof UserProfile] as string || '';
           }
       }
-      
+
       // Definir valor inicial
       mappedData[field.id] = field.type === 'checkbox' ? false : value;
     });
-    
+
     return mappedData;
   };
 
@@ -403,7 +360,7 @@ export default function PersonalInfoForm({
   const renderField = (field: FormField, participantIndex: number) => {
     const fieldName = `participant${participantIndex}_${field.id}`;
     const error = errors[fieldName];
-    
+
     switch (field.type) {
       case 'text':
       case 'email':
@@ -485,7 +442,7 @@ export default function PersonalInfoForm({
             helperText={error?.message as string}
             size="small"
             InputProps={{
-              inputComponent: PhoneMaskCustom as any,
+              inputComponent: PhoneMaskInput as any,
             }}
           />
         );
@@ -520,8 +477,6 @@ export default function PersonalInfoForm({
     );
   }
 
-  const theme = useTheme();
-
   return (
     <Paper sx={{ p: 3, borderRadius: 2 }}>
       <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
@@ -536,7 +491,7 @@ export default function PersonalInfoForm({
         )}
       </Box>
 
-      <form onSubmit={(e) => e.preventDefault()}>
+      <form onSubmit={handleSubmit(handleSaveAndNext)}>
         {Array.from({ length: totalParticipants }).map((_, index) => (
           <Box 
             key={index}
@@ -581,7 +536,9 @@ export default function PersonalInfoForm({
       </form>
     </Paper>
   );
-}
+};
+
+export default PersonalInfoForm;
 
 // Função para retornar campos padrão
 function getDefaultFormFields(): FormField[] {

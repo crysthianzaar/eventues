@@ -5,6 +5,11 @@ export interface TicketData {
   quantity: number;
 }
 
+export interface PaymentTicket {
+  ticketId: string;
+  quantity: number;
+}
+
 export interface PaymentFormData {
   name: string;
   email: string;
@@ -18,6 +23,8 @@ export interface PaymentFormData {
   cardFocus: 'number' | 'name' | 'expiry' | 'cvc' | '';
   cardType: string;
   postalCode: string;
+  customerId?: string;
+  addressNumber?: string;
 }
 
 export interface PaymentResult {
@@ -37,6 +44,7 @@ export interface PaymentResult {
   encodedImage?: string;
   payload?: string;
   expirationDate?: string;
+  event_slug?: string;
 }
 
 export interface CustomerData {
