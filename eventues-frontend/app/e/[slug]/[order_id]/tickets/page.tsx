@@ -1,0 +1,304 @@
+'use client';
+
+import React from 'react';
+import { useParams } from 'next/navigation';
+import { Container, Box, CircularProgress, Alert, Button, Typography, Badge } from '@mui/material';
+import ConfirmationNumberIcon from '@mui/icons-material/ConfirmationNumber';
+import { getEventBySlug, getEventTickets, Event, Ingresso, getOrder } from '@/app/apis/api';
+import { calculatePlatformFee } from '../../tickets/utils/calculateFee';
+import TicketOptions from '../../tickets/components/ticket_options/TicketOptions';
+import Link from 'next/link';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CheckoutStepper from '@/app/components/CheckoutStepper';
+
+export default function EditTicketsPage() {
+  const params = useParams();
+  const slug = params?.slug as string;
+  const orderId = params?.order_id as string;
+  
+  const [event, setEvent] = React.useState<Event | null>(null);
+  const [tickets, setTickets] = React.useState<Ingresso[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [selectedQuantities, setSelectedQuantities] = React.useState<Record<string, number>>({});
+  const [isUpdatingOrder, setIsUpdatingOrder] = React.useState(false);
+
+  const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
+
+  // Fetch event data and order data
+  React.useEffect(() => {
+    if (!slug || !orderId) return;
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        // Fetch event data
+        const eventData = await getEventBySlug(slug);
+        setEvent(eventData);
+
+        // Fetch tickets data
+        const ticketsData = await getEventTickets(eventData.event_id);
+        setTickets(ticketsData);
+
+        // Fetch order data to get current quantities
+        const orderData = await getOrder(orderId);
+        
+        // Set initial quantities from order
+        const initialQuantities: Record<string, number> = {};
+        orderData.tickets.forEach((orderTicket: any) => {
+          initialQuantities[orderTicket.ticket_id] = orderTicket.quantity;
+        });
+        setSelectedQuantities(initialQuantities);
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Não foi possível carregar os dados. Por favor, tente novamente mais tarde.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [slug, orderId]);
+
+  // Handle ticket selection
+  const handleSelectTicket = (ticket: Ingresso, quantity: number) => {
+    setSelectedQuantities(prev => ({
+      ...prev,
+      [ticket.id]: quantity
+    }));
+  };
+
+  // Calculate total tickets selected
+  const totalTicketsSelected = Object.values(selectedQuantities).reduce((acc, quantity) => acc + quantity, 0);
+
+  const handleUpdateOrder = async () => {
+    setIsUpdatingOrder(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/update-order/${orderId}/tickets`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tickets: Object.entries(selectedQuantities)
+            .filter(([_, quantity]) => quantity > 0)
+            .map(([ticketId, quantity]) => {
+              const ticket = tickets.find(t => t.id === ticketId);
+              const valorBase = ticket?.valor || 0;
+              const taxa = calculatePlatformFee(valorBase);
+              return {
+                ticket_id: ticketId,
+                quantity,
+                ticket_name: ticket?.nome || '',
+                valor: valorBase,
+                taxa: taxa,
+                valor_total: (valorBase + taxa) * quantity
+              };
+            }),
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update order');
+      }
+
+      // Redirect to infos page
+      window.location.href = `/e/${slug}/${orderId}/infos`;
+    } catch (error) {
+      console.error('Error updating order:', error);
+      setError('Não foi possível atualizar o pedido. Por favor, tente novamente.');
+      setIsUpdatingOrder(false);
+    }
+  };
+
+  // Render loading state
+  if (loading) {
+    return (
+      <Container maxWidth="lg">
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+          <CircularProgress />
+        </Box>
+      </Container>
+    );
+  }
+
+  // Render error state
+  if (error && !event) {
+    return (
+      <Container maxWidth="lg">
+        <Alert severity="error" sx={{ mt: 4, borderRadius: 2 }}>
+          {error}
+        </Alert>
+      </Container>
+    );
+  }
+
+  return (
+    <Box>
+      <CheckoutStepper 
+        activeStep={0}
+        eventSlug={slug}
+        orderId={orderId}
+      />
+      <Container maxWidth="lg">
+        <Box 
+          sx={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            mb: 3,
+            mt: 2,
+            position: 'relative',
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              bottom: -8,
+              left: 0,
+              width: '100%',
+              height: '1px',
+              background: 'linear-gradient(90deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.05) 100%)',
+            }
+          }}
+        >
+          <Link href={`/e/${slug}`} passHref style={{ textDecoration: 'none' }}>
+            <Button
+              variant="text"
+              color="primary"
+              startIcon={
+                <Box
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    transition: 'transform 0.3s ease',
+                    '.MuiButton-root:hover &': {
+                      transform: 'translateX(-4px)'
+                    }
+                  }}
+                >
+                  <ArrowBackIcon />
+                </Box>
+              }
+              sx={{
+                fontSize: '0.95rem',
+                fontWeight: 500,
+                textTransform: 'none',
+                padding: '8px 16px',
+                borderRadius: '12px',
+                backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                '&:hover': {
+                  backgroundColor: 'rgba(25, 118, 210, 0.08)',
+                },
+                transition: 'all 0.3s ease',
+              }}
+            >
+              Voltar ao evento
+            </Button>
+          </Link>
+        </Box>
+        <Box sx={{ mt: 4, mb: { xs: 8, sm: 6 } }}>
+          <TicketOptions 
+            tickets={tickets} 
+            onSelectTicket={handleSelectTicket} 
+            selectedQuantities={selectedQuantities}
+          />
+        </Box>
+      </Container>
+      {totalTicketsSelected > 0 && (
+        <Box
+          sx={{
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            bgcolor: 'rgba(255, 255, 255, 0.95)',
+            borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+            py: { xs: 1.5, sm: 2 },
+            px: { xs: 2, sm: 3 },
+            zIndex: 1000,
+            backdropFilter: 'blur(10px)',
+            boxShadow: '0 -4px 16px rgba(0, 0, 0, 0.1)',
+            '@supports (-webkit-touch-callout: none)': {
+              // Fix for iOS Safari to account for bottom bar
+              paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+            }
+          }}
+        >
+          <Box
+            sx={{
+              maxWidth: 'lg',
+              mx: 'auto',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              width: '100%',
+            }}
+          >
+            <Box>
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                {totalTicketsSelected} {totalTicketsSelected === 1 ? 'ingresso selecionado' : 'ingressos selecionados'}
+              </Typography>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
+                Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
+                  tickets.reduce((total, ticket) => {
+                    const quantity = selectedQuantities[ticket.id] || 0;
+                    const valorBase = ticket.valor;
+                    const taxa = calculatePlatformFee(valorBase);
+                    return total + quantity * (valorBase + taxa);
+                  }, 0)
+                )}
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Inclui taxas de serviço
+              </Typography>
+            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Badge 
+                badgeContent={totalTicketsSelected} 
+                color="primary"
+                sx={{ 
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  '& .MuiBadge-badge': { fontWeight: 600 } 
+                }}
+              >
+                <ConfirmationNumberIcon color="primary" />
+              </Badge>
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={isUpdatingOrder}
+                onClick={handleUpdateOrder}
+                sx={{
+                  width: { xs: '100%', sm: 'auto' },
+                  py: 1.5,
+                  px: 4,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  borderRadius: 2,
+                  textTransform: 'none',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  transition: 'all 0.2s ease',
+                  '&:hover': {
+                    boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+                    transform: 'translateY(-1px)'
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)'
+                  }
+                }}
+              >
+                {isUpdatingOrder ? (
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                    <CircularProgress size={20} color="inherit" />
+                    Atualizando
+                  </Box>
+                ) : (
+                  'Atualizar e Continuar'
+                )}
+              </Button>
+            </Box>
+          </Box>
+        </Box>
+      )}
+    </Box>
+  );
+}

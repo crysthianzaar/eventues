@@ -1,29 +1,14 @@
 import { ReactNode } from "react";
 import Navbar from "./components/Navbar";
 import Footer from "./components/Footer";
+import SiteNavigationJsonLd from "./components/SiteNavigationJsonLd";
 
-// Exportar os metadados padrão
-export const metadata = {
-  title: "Eventues - Gestão Inteligente de Eventos",
-  description: "A Eventues é uma plataforma inovadora para gestão e organização de eventos.",
-  openGraph: {
-    title: "Eventues - Gestão Inteligente de Eventos",
-    description: "Simplifique a gestão dos seus eventos com a Eventues.",
-    url: "https://www.eventues.com",
-    images: [
-      {
-        url: "https://www.eventues.com/imagens/eventues_og_image.jpg",
-        alt: "Eventues Banner",
-      },
-    ],
-    type: "website",
-  },
-  icons: {
-    icon: [
-      { url: "/icon_eventues.png", type: "image/png", sizes: "32x32" }, // Ícone principal (PNG)
-    ],
-  },
-};
+// Metadata é importado do arquivo metadata.ts
+// Não definimos metadata aqui para evitar conflito
+import { metadata } from "./metadata";
+
+// Apenas exportamos o metadata importado
+export { metadata };
 
 // Exportar a configuração de viewport separadamente
 export const generateViewport = () => {
@@ -40,6 +25,9 @@ interface LayoutProps {
 export default function RootLayout({ children }: LayoutProps) {
   return (
     <html lang="pt-BR">
+      <head>
+        <SiteNavigationJsonLd />
+      </head>
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', margin: 0 }}>
         <Navbar />
         <main>{children}</main>

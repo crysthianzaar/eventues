@@ -5,6 +5,7 @@ export interface Ingresso {
   nome: string;
   descricao: string;
   valor: number;
+  taxa: number;
   totalIngressos: number;
   fimVendas: string;
   status: string;
@@ -40,6 +41,22 @@ export interface Event {
   user_id: string;
   created_at: string;
   updated_at: string;
+}
+
+export interface OrderTicket {
+  quantity: number;
+  ticket_id: string;
+  ticket_name?: string;
+  ticket_color?: string;
+}
+
+export interface Order {
+  event_id: string;
+  tickets: OrderTicket[];
+  created_at: string;
+  user_id: string;
+  updated_at: string;
+  total_amount: number;
 }
 
 export interface FormField {
@@ -97,7 +114,7 @@ export const createPaymentSession = async (data: {
 };
 
 export const getOrder = async (orderId: string) => {
-  const response = await fetch(`${API_BASE_URL}/orders/${orderId}`);
+  const response = await fetch(`${API_BASE_URL}/get-order/${orderId}`);
   if (!response.ok) {
     throw new Error('Failed to fetch order');
   }

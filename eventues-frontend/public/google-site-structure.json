@@ -1,0 +1,28 @@
+{
+  "siteStructure": {
+    "name": "Eventues | Plataforma de Inscrições e Venda de Ingressos!",
+    "url": "https://eventues.com.br",
+    "mainSections": [
+      {
+        "name": "Eventos",
+        "url": "https://eventues.com.br",
+        "description": "Encontre os melhores eventos perto de você!"
+      },
+      {
+        "name": "Login para participantes",
+        "url": "https://eventues.com.br/login",
+        "description": "Área do Participante com calendário, próximos eventos e histórico de participações."
+      },
+      {
+        "name": "Meus Eventos",
+        "url": "https://eventues.com.br/meus_eventos",
+        "description": "Confira o calendário completo com os melhores eventos."
+      },
+      {
+        "name": "Sobre a plataforma",
+        "url": "https://eventues.com.br/seja_organizador",
+        "description": "O Eventues é uma plataforma completa para organização e participação em eventos."
+      }
+    ]
+  }
+}

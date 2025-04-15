@@ -524,6 +524,112 @@ def create_order():
             headers={'Content-Type': 'application/json'}
         )
 
+@payment_api.route('/update-order/{order_id}/tickets', methods=['PATCH'], cors=cors_config)
+def update_order_tickets(order_id):
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+        if not data or 'tickets' not in data:
+            return Response(
+                body={'error': 'No tickets data provided'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Get the order
+        order_ref = db.collection('orders').document(order_id)
+        order_doc = order_ref.get()
+        if not order_doc.exists:
+            return Response(
+                body={'error': 'Order not found'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        order_data = order_doc.to_dict()
+        event_id = order_data.get('event_id')
+
+        # Calculate new total amount
+        total_amount = 0
+        tickets = data['tickets']
+        for ticket in tickets:
+            ticket_ref = db.collection('events').document(event_id).collection('tickets').document(ticket['ticket_id'])
+            ticket_doc = ticket_ref.get()
+            if not ticket_doc.exists:
+                return Response(
+                    body={'error': f'Ticket {ticket["ticket_id"]} not found'},
+                    status_code=404,
+                    headers={'Content-Type': 'application/json'}
+                )
+            ticket_data = ticket_doc.to_dict()
+            total_amount += ticket_data['valor'] * ticket['quantity']
+
+        # Update only the tickets and total_amount fields
+        order_ref.update({
+            'tickets': tickets,
+            'total_amount': total_amount,
+            'updated_at': datetime.now()
+        })
+
+        return Response(
+            body={
+                'message': 'Order tickets updated successfully',
+                'tickets': tickets,
+                'total_amount': total_amount
+            },
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/orders/{order_id}/participants', methods=['POST'], cors=cors_config)
+def update_order_participants(order_id):
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+
+        if not data or 'tickets' not in data:
+            return Response(
+                body={'error': 'No participant data provided'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Get the order
+        order_ref = db.collection('orders').document(order_id)
+        order_doc = order_ref.get()
+        if not order_doc.exists:
+            return Response(
+                body={'error': 'Order not found'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Update order with participant information
+        order_ref.update({
+            'tickets': data['tickets'],
+            'updated_at': datetime.now()
+        })
+
+        return Response(
+            body={'message': 'Participant information updated successfully'},
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
 @payment_api.route('/get-order/{order_id}', methods=['GET'], cors=cors_config)
 def get_order(order_id):
     try:
@@ -538,6 +644,9 @@ def get_order(order_id):
             )
 
         order_data = order_doc.to_dict()
+        # Convert datetime objects to ISO format strings
+        order_data['created_at'] = order_data['created_at'].isoformat()
+        order_data['updated_at'] = order_data['updated_at'].isoformat()
         # Ensure event_id is included in the response
         return Response(
             body={'event_id': order_data.get('event_id'), **order_data},

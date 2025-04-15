@@ -6,11 +6,11 @@ import { getAllEvents } from "./apis/api";
 import EventsJsonLd from "./components/EventsJsonLd";
 
 export const metadata: Metadata = {
-  title: "Eventues | Plataforma de Eventos e Venda de Ingressos",
+  title: "Eventues | Plataforma de Inscrições e Venda de Ingressos",
   description: "Encontre os melhores eventos, festivais, shows, conferências e workshops. Compre ingressos com facilidade e segurança na plataforma Eventues.",
   keywords: "eventos, ingressos, shows, festivais, conferências, workshops, comprar ingressos, eventos próximos",
   openGraph: {
-    title: "Eventues | Plataforma de Eventos e Venda de Ingressos",
+    title: "Eventues | Plataforma de Inscrições e Venda de Ingressos",
     description: "Encontre os melhores eventos, festivais, shows, conferências e workshops. Compre ingressos com facilidade e segurança na plataforma Eventues.",
     url: "https://eventues.com.br",
     siteName: "Eventues",

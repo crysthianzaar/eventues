@@ -15,7 +15,7 @@ export async function GET(
     }
 
     // Call backend API to get order details
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/orders/${orderId}`, {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/get-order/${orderId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',

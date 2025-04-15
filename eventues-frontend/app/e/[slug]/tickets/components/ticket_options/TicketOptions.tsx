@@ -350,44 +350,7 @@ export default function TicketOptions({
           </TicketGrid>
         </motion.div>
 
-        {getTotalSelectedTickets() > 0 && (
-          <Zoom in={true} timeout={500}>
-            <Paper 
-              elevation={3} 
-              sx={{ 
-                mt: 4, 
-                p: 2, 
-                borderRadius: 2,
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                bgcolor: alpha(theme.palette.primary.main, 0.05),
-                border: `1px solid ${alpha(theme.palette.primary.main, 0.1)}`
-              }}
-            >
-              <Box>
-                <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                  {getTotalSelectedTickets()} {getTotalSelectedTickets() === 1 ? 'ingresso selecionado' : 'ingressos selecionados'}
-                </Typography>
-                <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
-                  Total: {formatPrice(getTotalPrice())}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Inclui taxas de serviço
-                </Typography>
-              </Box>
-              <Tooltip title="Prossiga para preencher suas informações pessoais">
-                <Badge 
-                  badgeContent={getTotalSelectedTickets()} 
-                  color="primary"
-                  sx={{ '& .MuiBadge-badge': { fontWeight: 600 } }}
-                >
-                  <ConfirmationNumberIcon color="primary" sx={{ mr: 1 }} />
-                </Badge>
-              </Tooltip>
-            </Paper>
-          </Zoom>
-        )}
+
       </Box>
     </Fade>
   );
