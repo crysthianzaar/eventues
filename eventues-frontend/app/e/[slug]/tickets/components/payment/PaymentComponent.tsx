@@ -12,6 +12,8 @@ import PaymentIcon from '@mui/icons-material/Payment';
 import CreditCardIcon from '@mui/icons-material/CreditCard';
 import PersonIcon from '@mui/icons-material/Person';
 import ReceiptIcon from '@mui/icons-material/Receipt';
+import QrCodeIcon from '@mui/icons-material/QrCode';
+import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../../../../firebase';
 import { fetchUserData } from '../../api/userApi';
@@ -26,7 +28,6 @@ import { Ingresso } from '@/app/apis/api';
 import { calculatePlatformFee } from '../../utils/calculateFee';
 import { formatPrice } from '@/app/utils/formatPrice';
 
-// Modern styled components with improved responsiveness
 const CheckoutContainer = styled(Box)(({ theme }) => ({
   width: '100%',
   margin: '0 auto',
@@ -43,18 +44,22 @@ const CheckoutContainer = styled(Box)(({ theme }) => ({
 const CheckoutMain = styled(Box)(({ theme }) => ({
   flex: 1,
   width: '100%',
+  order: 2,
   [theme.breakpoints.up('md')]: {
     width: '60%',
+    order: 1,
   },
 }));
 
 const CheckoutSidebar = styled(Box)(({ theme }) => ({
   width: '100%',
   position: 'relative',
+  order: 1,
   [theme.breakpoints.up('md')]: {
     width: '40%',
     position: 'sticky',
     top: theme.spacing(2),
+    order: 2,
   },
 }));
 
@@ -63,22 +68,39 @@ const Section = styled(Box)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(3),
   marginBottom: theme.spacing(3),
-  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.1)',
-  transition: 'box-shadow 0.3s ease, transform 0.3s ease',
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+  transition: 'box-shadow 0.3s ease, transform 0.2s ease',
   '&:hover': {
-    boxShadow: '0 3px 6px rgba(0, 0, 0, 0.1), 0 3px 6px rgba(0, 0, 0, 0.08)',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.12)',
   },
   [theme.breakpoints.down('sm')]: {
     padding: theme.spacing(2),
     marginBottom: theme.spacing(2),
     borderRadius: theme.shape.borderRadius,
-    boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
+  }
+}));
+
+const OrderSummarySection = styled(Section)(({ theme }) => ({
+  [theme.breakpoints.down('md')]: {
+    marginBottom: theme.spacing(3),
+  }
+}));
+
+const CouponSection = styled(Box)(({ theme }) => ({
+  backgroundColor: theme.palette.background.paper,
+  borderRadius: theme.shape.borderRadius,
+  padding: theme.spacing(2.5),
+  marginBottom: theme.spacing(3),
+  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+  transition: 'all 0.2s ease',
+  [theme.breakpoints.down('sm')]: {
+    marginBottom: theme.spacing(2),
   }
 }));
 
 const SectionTitle = styled(Typography)(({ theme }) => ({
   fontSize: '1.25rem',
-  fontWeight: 600,
+  fontWeight: 700,
   color: theme.palette.primary.main,
   marginBottom: theme.spacing(2),
   display: 'flex',
@@ -115,8 +137,21 @@ const SubmitButton = styled(Button)(({ theme }) => ({
   }
 }));
 
-const PaymentMethodCard = styled(Box)(({ theme }) => ({
-  border: `1px solid ${theme.palette.divider}`,
+const FloatingButtonContainer = styled(Box)(({ theme }) => ({
+  [theme.breakpoints.down('sm')]: {
+    height: theme.spacing(8),
+    marginTop: theme.spacing(4),
+  }
+}));
+
+interface StyledCardProps {
+  selected?: boolean;
+}
+
+const PaymentMethodCard = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'selected'
+})<StyledCardProps>(({ theme, selected }) => ({
+  border: selected ? `2px solid ${theme.palette.primary.main}` : `1px solid ${theme.palette.divider}`,
   borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(2),
   marginBottom: theme.spacing(2),
@@ -125,23 +160,37 @@ const PaymentMethodCard = styled(Box)(({ theme }) => ({
   gap: theme.spacing(2),
   cursor: 'pointer',
   transition: 'all 0.2s ease',
+  backgroundColor: selected ? `${theme.palette.primary.light}20` : theme.palette.background.paper,
+  boxShadow: selected ? '0 4px 12px rgba(0, 0, 0, 0.08)' : 'none',
   '&:hover': {
     borderColor: theme.palette.primary.main,
-    backgroundColor: theme.palette.action.hover,
+    backgroundColor: selected ? `${theme.palette.primary.light}20` : theme.palette.action.hover,
+    transform: 'translateY(-2px)',
   },
 }));
 
-const PaymentMethodIcon = styled(Box)(({ theme }) => ({
+const CouponButton = styled(Button)(({ theme }) => ({
+  height: '100%',
+  borderTopLeftRadius: 0,
+  borderBottomLeftRadius: 0,
+  boxShadow: 'none',
+  fontWeight: 600,
+}));
+
+const PaymentMethodIcon = styled(Box, {
+  shouldForwardProp: (prop) => prop !== 'selected'
+})<StyledCardProps>(({ theme, selected }) => ({
   width: 48,
   height: 48,
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: theme.palette.primary.light,
+  backgroundColor: selected ? theme.palette.primary.main : theme.palette.primary.light,
   borderRadius: theme.shape.borderRadius,
-  color: theme.palette.primary.main,
+  color: selected ? theme.palette.common.white : theme.palette.primary.main,
+  transition: 'all 0.2s ease',
   '& svg': {
-    fontSize: '1.75rem',
+    fontSize: '2rem',
   }
 }));
 
@@ -156,6 +205,20 @@ const FormLabel = styled(Typography)(({ theme }) => ({
   color: theme.palette.text.secondary,
 }));
 
+const PaymentMethodsContainer = styled(Box)(({ theme }) => ({
+  display: 'flex',
+  flexDirection: 'column',
+  gap: theme.spacing(2),
+  [theme.breakpoints.up('sm')]: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    '& > *': {
+      flex: '1 0 calc(50% - 16px)',
+      maxWidth: 'calc(50% - 16px)',
+    }
+  }
+}));
+
 interface PaymentComponentProps {
   eventId: string;
   ticketId: string;
@@ -164,6 +227,8 @@ interface PaymentComponentProps {
   onPaymentSuccess: (orderId: string) => void;
   onPaymentError: (error: string) => void;
   orderTotal?: number;
+  orderSubtotal?: number;
+  orderFees?: number;
 }
 
 export default function PaymentComponent({
@@ -173,14 +238,17 @@ export default function PaymentComponent({
   ticketData,
   onPaymentSuccess,
   onPaymentError,
-  orderTotal
+  orderTotal,
+  orderSubtotal,
+  orderFees
 }: PaymentComponentProps) {
   const router = useRouter();
   const [user] = useAuthState(auth);
   const [loadingUserData, setLoadingUserData] = useState(false);
   
-  // Step-based state management
   const [currentStep, setCurrentStep] = useState<'method' | 'details'>('method');
+  
+  
   
   const [formData, setFormData] = useState<PaymentFormData>({
     name: customerData.name || '',
@@ -196,6 +264,8 @@ export default function PaymentComponent({
     cardType: '',
     postalCode: '',
   });
+  
+  const [couponCode, setCouponCode] = useState('');
 
   const tickets: Ingresso[] = useMemo(() => 
     ticketData.map(ticket => ({
@@ -206,7 +276,7 @@ export default function PaymentComponent({
       totalIngressos: ticket.quantity,
       fimVendas: new Date().toISOString(),
       status: 'active',
-      taxa: calculatePlatformFee(ticket.price) // Add the required taxa property
+      taxa: calculatePlatformFee(ticket.price)
     }))
   , [ticketData]);
 
@@ -230,33 +300,33 @@ export default function PaymentComponent({
     showSuccessOverlay,
   } = usePaymentStatus(paymentResult, user!);
 
-  // Calculate the display total amount for the payment button
   const totalAmount = useMemo(() => {
-    // Always prioritize the orderTotal from the API if available
     if (orderTotal !== undefined && orderTotal > 0) {
-      console.log('Using order total from API:', orderTotal);
       return orderTotal;
     }
     
-    // If no orderTotal is provided, calculate it from ticket data
-    const subtotal = ticketData.reduce((total, ticket) => total + (ticket.price * ticket.quantity), 0);
+    const subtotal = ticketData.reduce((total, ticket) => {
+      return total + (ticket.price * ticket.quantity);
+    }, 0);
+    
     const fees = ticketData.reduce((total, ticket) => {
       const fee = calculatePlatformFee(ticket.price);
       return total + (fee * ticket.quantity);
     }, 0);
     
     const calculatedTotal = subtotal + fees;
-    console.log('Calculated total with fees:', calculatedTotal);
+    
     return calculatedTotal;
   }, [ticketData, orderTotal]);
   
-  // Hard-code the payment button amount for testing (remove in production)
-  const displayAmount = 81.00; // This matches the screenshot showing R$ 81,00
+  const displayAmount = totalAmount;
   
-  // Form validation
+  
+
+  
   const formIsValid = useMemo(() => {
     if (formData.paymentMethod === 'CREDIT_CARD') {
-      return (
+      const isValid = (
         formData.name.trim() !== '' &&
         formData.email.trim() !== '' &&
         formData.cpfCnpj.trim() !== '' &&
@@ -266,6 +336,7 @@ export default function PaymentComponent({
         formData.cardCvv.trim().length >= 3 &&
         formData.cardHolderName.trim() !== ''
       );
+      return isValid;
     } else {
       return (
         formData.name.trim() !== '' &&
@@ -276,12 +347,7 @@ export default function PaymentComponent({
     }
   }, [formData]);
   
-  // Log the amounts to verify they're correct
-  useEffect(() => {
-    console.log('API total amount:', orderTotal);
-    console.log('Calculated total amount:', totalAmount);
-    console.log('Display amount for button:', displayAmount);
-  }, [totalAmount, orderTotal, displayAmount]);
+
 
   useEffect(() => {
     let mounted = true;
@@ -324,12 +390,13 @@ export default function PaymentComponent({
   };
 
   const handleSelectChange = (value: 'PIX' | 'BOLETO' | 'CREDIT_CARD') => {
-    setFormData({ ...formData, paymentMethod: value });
-    // Advance to the next step after selecting a payment method
+    setFormData(prev => ({
+      ...prev,
+      paymentMethod: value
+    }));
     setCurrentStep('details');
   };
   
-  // Handler to go back to payment method selection
   const handleBackToMethods = () => {
     setCurrentStep('method');
   };
@@ -364,8 +431,6 @@ export default function PaymentComponent({
 
   const handleSubmit = async () => {
     try {
-      // Log the payment amount to verify it's correct
-      console.log('Submitting payment with amount:', orderTotal || totalAmount);
       
       const result = await submitPayment(
         formData,
@@ -374,7 +439,7 @@ export default function PaymentComponent({
         ticketData
       );
       
-      if (result.billingType !== 'PIX' || result.status === 'CONFIRMED') {
+      if (result.billingType === 'CREDIT_CARD' && result.status === 'CONFIRMED') {
         onPaymentSuccess(result.id);
       }
     } catch (err) {
@@ -383,12 +448,14 @@ export default function PaymentComponent({
     }
   };
 
+  const handleCouponChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCouponCode(e.target.value);
+  };
+
   return (
     <CheckoutContainer>
-      {/* Left side - Payment form */}
       <CheckoutMain>
         <Section>
-
           {paymentResult ? (
             <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
               {paymentResult.billingType === 'PIX' && !showSuccessOverlay && (
@@ -470,7 +537,7 @@ export default function PaymentComponent({
                 </Box>
               )}
 
-              {paymentResult.billingType === 'BOLETO' && paymentResult.bankSlipUrl && (
+              {paymentResult.billingType === 'BOLETO' && (
                 <Box sx={{ width: '100%', textAlign: 'center', p: 3 }}>
                   <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 600, mb: 3 }}>
                     Boleto Bancário
@@ -482,21 +549,38 @@ export default function PaymentComponent({
                     </Typography>
                   </Box>
                   
-                  <Button
-                    variant="contained"
-                    href={paymentResult.bankSlipUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    sx={{ 
-                      width: '100%', 
-                      py: 1.5, 
-                      mb: 3,
-                      bgcolor: 'primary.main',
-                      '&:hover': { bgcolor: 'primary.dark' }
-                    }}
-                  >
-                    Visualizar Boleto
-                  </Button>
+                  {paymentResult.bankSlipUrl && (
+                    <Button
+                      variant="contained"
+                      href={paymentResult.bankSlipUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      sx={{ 
+                        width: '100%', 
+                        py: 1.5, 
+                        mb: 3,
+                        bgcolor: 'primary.main',
+                        '&:hover': { bgcolor: 'primary.dark' }
+                      }}
+                      onClick={() => window.open(paymentResult.bankSlipUrl, '_blank')}
+                    >
+                      Visualizar Boleto
+                    </Button>
+                  )}
+                  
+                  {!paymentResult.bankSlipUrl && (
+                    <Button
+                      variant="contained"
+                      disabled
+                      sx={{ 
+                        width: '100%', 
+                        py: 1.5, 
+                        mb: 3
+                      }}
+                    >
+                      Aguardando link do boleto...
+                    </Button>
+                  )}
                   
                   <Divider sx={{ my: 3 }} />
                   
@@ -515,275 +599,269 @@ export default function PaymentComponent({
                 </Box>
               )}
             </Box>
-          ) : (
+          ) : currentStep === 'method' ? (
             <>
-              {/* Step 1: Payment Method Selection */}
-              {currentStep === 'method' && (
-                <Box>
-                  <SectionTitle>
-                    <PaymentIcon /> Forma de Pagamento
-                  </SectionTitle>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Selecione como você deseja pagar
-                  </Typography>
-                  
-                  <Box sx={{ 
-                    display: 'grid', 
-                    gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
-                    gap: 2,
-                    mb: 4 
-                  }}>
-                    <PaymentMethodCard 
-                      onClick={() => handleSelectChange('CREDIT_CARD')}
-                      sx={{ 
-                        height: '100%',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 6px 12px rgba(0,0,0,0.1)'
-                        }
-                      }}
-                    >
-                      <Box sx={{ 
-                        width: 50, 
-                        height: 50, 
-                        bgcolor: '#4299e1', 
-                        borderRadius: 1, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        mb: 2
-                      }}>
-                        <CreditCardIcon sx={{ color: 'white' }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight={600}>Cartão de Crédito</Typography>
-                        <Typography variant="body2" color="text.secondary">Pagamento em até 12x</Typography>
-                      </Box>
-                    </PaymentMethodCard>
-                    
-                    <PaymentMethodCard 
-                      onClick={() => handleSelectChange('PIX')}
-                      sx={{ 
-                        height: '100%',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 6px 12px rgba(0,0,0,0.1)'
-                        }
-                      }}
-                    >
-                      <Box sx={{ 
-                        width: 50, 
-                        height: 50, 
-                        bgcolor: '#4299e1', 
-                        borderRadius: 1, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        mb: 2
-                      }}>
-                        <Typography sx={{ color: 'white', fontWeight: 'bold' }}>PIX</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight={600}>PIX</Typography>
-                        <Typography variant="body2" color="text.secondary">Pagamento instantâneo</Typography>
-                      </Box>
-                    </PaymentMethodCard>
-                    
-                    <PaymentMethodCard 
-                      onClick={() => handleSelectChange('BOLETO')}
-                      sx={{ 
-                        height: '100%',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: '0 6px 12px rgba(0,0,0,0.1)'
-                        }
-                      }}
-                    >
-                      <Box sx={{ 
-                        width: 50, 
-                        height: 50, 
-                        bgcolor: '#4299e1', 
-                        borderRadius: 1, 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        justifyContent: 'center',
-                        mb: 2
-                      }}>
-                        <ReceiptIcon sx={{ color: 'white' }} />
-                      </Box>
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight={600}>Boleto Bancário</Typography>
-                        <Typography variant="body2" color="text.secondary">Aprovação em até 3 dias úteis</Typography>
-                      </Box>
-                    </PaymentMethodCard>
-                  </Box>
-                </Box>
-              )}
+              <SectionTitle>
+                <PaymentIcon /> Escolha a forma de pagamento
+              </SectionTitle>
               
-              {/* Step 2: Personal Data and Payment Details */}
-              {currentStep === 'details' && (
-                <Box>
-                  <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                    <Button 
-                      startIcon={<ArrowBackIcon />} 
-                      onClick={handleBackToMethods}
-                      sx={{ mr: 2 }}
-                    >
-                      Voltar
-                    </Button>
-                    <SectionTitle sx={{ m: 0 }}>
-                      {formData.paymentMethod === 'CREDIT_CARD' && <CreditCardIcon sx={{ color: '#4299e1' }} />}
-                      {formData.paymentMethod === 'PIX' && (
-                        <Box sx={{ 
-                          fontSize: '0.9rem', 
-                          fontWeight: 'bold', 
-                          color: 'white',
-                          bgcolor: '#4299e1',
-                          p: 0.3,
-                          borderRadius: '4px',
-                          width: 24,
-                          height: 24,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          mr: 1
-                        }}>
-                          PIX
-                        </Box>
-                      )}
-                      {formData.paymentMethod === 'BOLETO' && <ReceiptIcon sx={{ color: '#4299e1' }} />}
-                      {formData.paymentMethod === 'CREDIT_CARD' && 'Pagamento com Cartão de Crédito'}
-                      {formData.paymentMethod === 'PIX' && 'Pagamento com PIX'}
-                      {formData.paymentMethod === 'BOLETO' && 'Pagamento com Boleto'}
-                    </SectionTitle>
+              <PaymentMethodsContainer>
+                <PaymentMethodCard 
+                  onClick={() => handleSelectChange('CREDIT_CARD')} 
+                  selected={formData.paymentMethod === 'CREDIT_CARD'}
+                >
+                  <PaymentMethodIcon selected={formData.paymentMethod === 'CREDIT_CARD'}>
+                    <CreditCardIcon />
+                  </PaymentMethodIcon>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      Cartão de Crédito
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Pagamento rápido e seguro
+                    </Typography>
                   </Box>
-                  
-                  {/* Personal data form */}
-                  <Box sx={{ mb: 4 }}>
-                    <SectionTitle sx={{ mb: 3 }}>
-                      <PersonIcon /> Dados Pessoais
-                    </SectionTitle>
-                    
-                    <FormField>
-                      <FormLabel>Nome Completo *</FormLabel>
-                      <TextField
-                        fullWidth
-                        name="name"
-                        value={formData.name}
-                        onChange={handleChange}
-                        placeholder="Digite seu nome completo"
-                        variant="outlined"
-                        size="small"
-                      />
-                    </FormField>
-                    
-                    <FormField>
-                      <FormLabel>Email *</FormLabel>
-                      <TextField
-                        fullWidth
-                        name="email"
-                        value={formData.email}
-                        onChange={handleChange}
-                        placeholder="Digite seu email"
-                        variant="outlined"
-                        size="small"
-                      />
-                    </FormField>
-                    
-                    <Grid container spacing={2}>
-                      <Grid item xs={12} sm={6}>
-                        <FormField>
-                          <FormLabel>CPF/CNPJ *</FormLabel>
-                          <TextField
-                            fullWidth
-                            name="cpfCnpj"
-                            value={formData.cpfCnpj}
-                            onChange={handleChange}
-                            placeholder="Digite seu CPF ou CNPJ"
-                            variant="outlined"
-                            size="small"
-                          />
-                        </FormField>
-                      </Grid>
-                      <Grid item xs={12} sm={6}>
-                        <FormField>
-                          <FormLabel>Telefone *</FormLabel>
-                          <TextField
-                            fullWidth
-                            name="phone"
-                            value={formData.phone}
-                            onChange={handleChange}
-                            placeholder="(00) 00000-0000"
-                            variant="outlined"
-                            size="small"
-                          />
-                        </FormField>
-                      </Grid>
-                    </Grid>
+                </PaymentMethodCard>
+                
+                <PaymentMethodCard 
+                  onClick={() => handleSelectChange('PIX')} 
+                  selected={formData.paymentMethod === 'PIX'}
+                >
+                  <PaymentMethodIcon selected={formData.paymentMethod === 'PIX'}>
+                    <QrCode2Icon />
+                  </PaymentMethodIcon>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      PIX
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Pagamento instantâneo
+                    </Typography>
                   </Box>
-
-                  {/* Credit card form */}
-                  {formData.paymentMethod === 'CREDIT_CARD' && (
-                    <Box sx={{ mt: 3 }}>
-                      <SectionTitle>
-                        <CreditCardIcon /> Dados do Cartão
-                      </SectionTitle>
-                      
-                      <CreditCardForm
-                        formData={formData}
-                        onCardNumberChange={handleCardNumberChange}
-                        onCardHolderNameChange={(value) => setFormData(prev => ({ ...prev, cardHolderName: value }))}
-                        onCardExpiryChange={handleCardExpiryChange}
-                        onCardCVVChange={handleCardCVVChange}
-                        onPostalCodeChange={(value) => setFormData(prev => ({ ...prev, postalCode: value }))}
-                        onInputFocus={handleInputFocus}
-                      />
+                </PaymentMethodCard>
+                
+                <PaymentMethodCard 
+                  onClick={() => handleSelectChange('BOLETO')} 
+                  selected={formData.paymentMethod === 'BOLETO'}
+                >
+                  <PaymentMethodIcon selected={formData.paymentMethod === 'BOLETO'}>
+                    <ReceiptIcon />
+                  </PaymentMethodIcon>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                      Boleto Bancário
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Vencimento em 3 dias úteis
+                    </Typography>
+                  </Box>
+                </PaymentMethodCard>
+              </PaymentMethodsContainer>
+            </>
+          ) : null}
+          
+          {/* Step 2: Personal Data and Payment Details */}
+          {!paymentResult && currentStep === 'details' && (
+            <Box>
+              <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                <Button 
+                  startIcon={<ArrowBackIcon />} 
+                  onClick={handleBackToMethods}
+                  sx={{ mr: 2 }}
+                >
+                  Voltar
+                </Button>
+                <SectionTitle sx={{ m: 0 }}>
+                  {formData.paymentMethod === 'CREDIT_CARD' && <CreditCardIcon sx={{ color: '#4299e1' }} />}
+                  {formData.paymentMethod === 'PIX' && (
+                    <Box sx={{ 
+                      display: 'flex',
+                      alignItems: 'center',
+                      mr: 1
+                    }}>
+                      <QrCode2Icon sx={{ color: '#4299e1', mr: 1 }} />
                     </Box>
                   )}
+                  {formData.paymentMethod === 'BOLETO' && <ReceiptIcon sx={{ color: '#4299e1' }} />}
+                  {formData.paymentMethod === 'CREDIT_CARD' && 'Pagamento com Cartão de Crédito'}
+                  {formData.paymentMethod === 'PIX' && 'Pagamento com PIX'}
+                  {formData.paymentMethod === 'BOLETO' && 'Pagamento com Boleto'}
+                </SectionTitle>
+              </Box>
+              
+              {/* Personal data form */}
+              <Box sx={{ mb: 4 }}>
+                <SectionTitle sx={{ mb: 3 }}>
+                  <PersonIcon /> Dados Pessoais
+                </SectionTitle>
+                
+                <FormField>
+                  <FormLabel>Nome Completo *</FormLabel>
+                  <TextField
+                    fullWidth
+                    name="name"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="Digite seu nome completo"
+                    variant="outlined"
+                    size="small"
+                  />
+                </FormField>
+                
+                <FormField>
+                  <FormLabel>Email *</FormLabel>
+                  <TextField
+                    fullWidth
+                    name="email"
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="Digite seu email"
+                    variant="outlined"
+                    size="small"
+                  />
+                </FormField>
+                
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <FormField>
+                      <FormLabel>CPF/CNPJ *</FormLabel>
+                      <TextField
+                        fullWidth
+                        name="cpfCnpj"
+                        value={formData.cpfCnpj}
+                        onChange={handleChange}
+                        placeholder="Digite seu CPF ou CNPJ"
+                        variant="outlined"
+                        size="small"
+                      />
+                    </FormField>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <FormField>
+                      <FormLabel>Telefone *</FormLabel>
+                      <TextField
+                        fullWidth
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleChange}
+                        placeholder="(00) 00000-0000"
+                        variant="outlined"
+                        size="small"
+                      />
+                    </FormField>
+                  </Grid>
+                </Grid>
+              </Box>
 
-                  {error && (
-                    <Alert 
-                      severity="error" 
-                      sx={{ 
-                        mt: 3, 
-                        borderRadius: 2,
-                        '& .MuiAlert-icon': { alignItems: 'center' }
-                      }}
-                    >
-                      {error}
-                    </Alert>
-                  )}
+              {/* Credit card form */}
+              {formData.paymentMethod === 'CREDIT_CARD' && (
+                <Box sx={{ mt: 3 }}>
+                  <SectionTitle>
+                    <CreditCardIcon /> Dados do Cartão
+                  </SectionTitle>
+                  
+                  <CreditCardForm
+                    formData={formData}
+                    onCardNumberChange={handleCardNumberChange}
+                    onCardHolderNameChange={(value) => setFormData(prev => ({ ...prev, cardHolderName: value }))}
+                    onCardExpiryChange={handleCardExpiryChange}
+                    onCardCVVChange={handleCardCVVChange}
+                    onPostalCodeChange={(value) => setFormData(prev => ({ ...prev, postalCode: value }))}
+                    onInputFocus={handleInputFocus}
+                  />
                 </Box>
               )}
-            </>
+
+              {error && (
+                <Alert 
+                  severity="error" 
+                  sx={{
+                    mt: 3,
+                    borderRadius: 2,
+                    "& .MuiAlert-icon": { alignItems: "center" }
+                  }}
+                >
+                  {error}
+                </Alert>
+              )}
+            </Box>
           )}
         </Section>
         
         {!paymentResult && currentStep === 'details' && (
-          <Box sx={{ px: { xs: 2, sm: 0 }, pb: { xs: 7, sm: 0 }, mt: 2 }}>
-            <SubmitButton
-              variant="contained"
-              onClick={handleSubmit}
-              disabled={loading || !formIsValid}
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PaymentIcon />}
-            >
-              {loading ? 'Processando...' : `Pagar ${formatPrice(displayAmount)}`}
-            </SubmitButton>
-          </Box>
+          <>
+            {/* Desktop button */}
+            <Box sx={{ px: { xs: 2, sm: 0 }, pb: { xs: 0, sm: 0 }, mt: 2, display: { xs: 'none', sm: 'block' } }}>
+              <SubmitButton
+                variant="contained"
+                onClick={handleSubmit}
+                disabled={loading || !formIsValid}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PaymentIcon />}
+              >
+                {loading ? 'Processando...' : `Pagar ${displayAmount}`}
+              </SubmitButton>
+            </Box>
+            
+            {/* Mobile floating button */}
+            <Box sx={{ display: { xs: 'block', sm: 'none' } }}>
+              <FloatingButtonContainer />
+              <SubmitButton
+                variant="contained"
+                onClick={handleSubmit}
+                disabled={loading || !formIsValid}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PaymentIcon />}
+              >
+                {loading ? 'Processando...' : `Pagar ${displayAmount}`}
+              </SubmitButton>
+            </Box>
+          </>
         )}
       </CheckoutMain>
       
       {/* Right side - Order summary */}
       <CheckoutSidebar>
-        <Section>
+        {/* Coupon Section */}
+        <CouponSection>
+          <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
+            Possui um cupom de desconto?
+          </Typography>
+          <Box sx={{ display: 'flex' }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Digite o código"
+              value={couponCode}
+              onChange={handleCouponChange}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  borderTopRightRadius: 0,
+                  borderBottomRightRadius: 0
+                }
+              }}
+            />
+            <CouponButton 
+              variant="contained" 
+              disabled={!couponCode}
+            >
+              Aplicar
+            </CouponButton>
+          </Box>
+        </CouponSection>
+        
+        {/* Order Summary Section */}
+        <OrderSummarySection>
           <SectionTitle>
             <ReceiptIcon /> Resumo do Pedido
           </SectionTitle>
-          <PaymentSummary tickets={tickets} selectedQuantities={selectedQuantities} />
-        </Section>
+          <PaymentSummary 
+            tickets={tickets} 
+            selectedQuantities={selectedQuantities}
+            backendTotal={orderTotal}
+            backendSubtotal={orderSubtotal}
+            backendFee={orderFees}
+            useBackendValuesOnly={orderTotal !== undefined && orderSubtotal !== undefined && orderFees !== undefined}
+          />
+        </OrderSummarySection>
       </CheckoutSidebar>
 
       {showSuccessModal && <PaymentSuccess />}

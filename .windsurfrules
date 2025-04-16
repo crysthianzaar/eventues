@@ -1,0 +1,32 @@
+# Project Structure
+- Frontend: Next.js 14, React, TypeScript
+- Backend: Python, AWS Chalice, Firebase
+- Payment Integration: Asaas
+- Architecture: Clean Architecture principles
+
+# Directories
+- Frontend: `eventues-frontend`
+  - Main app directory: `app`
+  - Components: `components`
+  - Utilities: `utils`
+  - Hooks: `hooks`
+  - Firebase configuration: `firebase.ts`
+  - TypeScript configuration: `tsconfig.json`
+- Backend: `eventues-backend`
+  - Chalice app: `app.py`
+  - Chalice libraries: `chalicelib`
+  - Models, Repositories, Use Cases: `chalicelib/src`
+
+# Platform Purpose
+- Eventues is a platform for event registration and management, focusing on sports events.
+
+# Rules
+- Ensure frontend and backend code adhere to TypeScript and Python best practices, respectively.
+- Maintain separation of concerns between frontend and backend.
+- Use environment variables for sensitive configurations.
+- Enforce code linting and formatting using ESLint for frontend and Pylint for backend.
+- Ensure all API endpoints are secured and authenticated.
+- Validate all incoming data on both frontend and backend.
+- Implement logging and error handling across the application.
+- Utilize Firebase for authentication, storage, and analytics.
+- Follow Clean Architecture principles in backend development.

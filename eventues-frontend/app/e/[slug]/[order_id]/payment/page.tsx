@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { Container, Box, CircularProgress, Alert, Typography, Paper } from '@mui/material';
+import { Container, Box, CircularProgress, Alert, Typography, Paper, useMediaQuery, useTheme } from '@mui/material';
 import { getOrder, Order, getEventBySlug } from '@/app/apis/api';
 import PaymentComponent from '../../tickets/components/payment/PaymentComponent';
 import { CustomerData, TicketData } from '../../tickets/components/payment/types';
@@ -22,8 +22,22 @@ export default function PaymentPage() {
   const [orderSummary, setOrderSummary] = useState({
     subtotal: 0,
     fees: 0,
-    totalAmount: 0
+    totalAmount: 0,
+    calculatedTotal: 0 // Added for debugging purposes
   });
+
+  // Adicionar log para debug dos valores
+  useEffect(() => {
+    if (order && orderSummary) {
+      console.log('Antes de renderizar - orderSummary:', orderSummary);
+      console.log('Antes de renderizar - order.total_amount:', order.total_amount);
+      console.log('Diferença entre valores:', {
+        'orderSummary.totalAmount': orderSummary.totalAmount,
+        'order.total_amount': order.total_amount,
+        'Diferença': orderSummary.totalAmount - (order.total_amount || 0)
+      });
+    }
+  }, [order, orderSummary]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +46,7 @@ export default function PaymentPage() {
       try {
         // Fetch order data
         const orderData = await getOrder(orderId);
+        console.log('Dados brutos da ordem:', orderData);
         setOrder(orderData);
 
         // Event data will be fetched later when processing tickets
@@ -76,29 +91,69 @@ export default function PaymentPage() {
         // Calculate the base subtotal from ticket prices
         const baseSubtotal = tickets.reduce((total: number, ticket: TicketData) => total + (ticket.price * ticket.quantity), 0);
         
-        // Use the total_amount from the API as the actual total
-        const totalFromApi = orderData.total_amount || baseSubtotal;
+        // Calcular as taxas da plataforma usando a mesma função do backend (7.99%)
+        const calculatePlatformFee = (price: number): number => {
+          if (price === 0) return 0; // Ingressos gratuitos não têm taxa
+          if (price < 20) return 2; // Taxa mínima
+          return Math.round((price * 7.99) / 100 * 100) / 100; // 7.99% com 2 casas decimais
+        };
         
-        // Calculate fees as the difference between total and subtotal
-        // This ensures the total shown in the payment button matches what's in the summary
-        const fees = totalFromApi - baseSubtotal > 0 ? totalFromApi - baseSubtotal : 0;
-        const subtotal = baseSubtotal;
+        // Calcular as taxas para cada ingresso
+        const calculatedFees = tickets.reduce((total: number, ticket: TicketData) => {
+          const fee = calculatePlatformFee(ticket.price);
+          return total + (fee * ticket.quantity);
+        }, 0);
         
-        // Set the order summary with the correct values
+        // Obter os valores do backend
+        const subtotalAmount = orderData.subtotal_amount || 0;
+        const feeAmount = orderData.fee_amount || 0;
+        const totalAmount = orderData.total_amount || 0;
+        
+        // Para debug, calcular também os valores no frontend
+        const calculatedTotal = baseSubtotal + calculatedFees;
+        
+        console.log('Valores da API vs. calculados:', {
+          'API': {
+            subtotal: subtotalAmount,
+            fees: feeAmount,
+            total: totalAmount
+          },
+          'Calculado': {
+            subtotal: baseSubtotal,
+            fees: calculatedFees,
+            total: calculatedTotal
+          }
+        });
+        
+        // Sempre usar os valores do backend quando disponíveis
         setOrderSummary({
-          subtotal: subtotal,
-          fees: fees,
-          totalAmount: totalFromApi // Use the total from API which includes fees
+          subtotal: subtotalAmount,
+          fees: feeAmount,
+          totalAmount: totalAmount,
+          calculatedTotal: calculatedTotal // Manter para debug
+        });
+        
+        console.log('Usando valores exatos do backend:', {
+          subtotal: subtotalAmount,
+          fees: feeAmount,
+          totalAmount: totalAmount
+        });
+        
+        console.log('Valores calculados para orderSummary:', {
+          subtotal: subtotalAmount,
+          fees: feeAmount,
+          totalAmount,
+          calculatedTotal
         });
         
         // Log the total amount to verify it's correct
-        console.log('Order total amount with fees:', totalFromApi);
+        console.log('Order total amount with fees:', totalAmount);
         
         // Ensure ticket prices include a portion of the fees for display purposes
         const updatedTickets = tickets.map((ticket: TicketData) => ({
           ...ticket,
           // Add a proportional part of the fees to each ticket for display
-          price: ticket.price + (fees * (ticket.quantity / orderData.tickets.reduce((sum: number, t: any) => sum + t.quantity, 0)) / ticket.quantity)
+          price: ticket.price + (calculatedFees * (ticket.quantity / orderData.tickets.reduce((sum: number, t: any) => sum + t.quantity, 0)) / ticket.quantity)
         }));
         
         setTicketData(updatedTickets);
@@ -107,10 +162,10 @@ export default function PaymentPage() {
         console.log('Order data:', orderData);
         console.log('Processed tickets:', updatedTickets);
         console.log('Order summary:', { 
-          subtotal, 
-          fees, 
-          totalFromApi, 
-          calculatedTotal: subtotal + fees 
+          subtotal: baseSubtotal, 
+          fees: calculatedFees, 
+          totalAmount, 
+          calculatedTotal 
         });
 
       } catch (err) {
@@ -133,6 +188,10 @@ export default function PaymentPage() {
     setError(errorMessage);
   };
 
+  // Initialize theme hooks outside of conditionals to follow React hooks rules
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   if (loading) {
     return (
       <Container maxWidth="lg">
@@ -153,23 +212,52 @@ export default function PaymentPage() {
     );
   }
 
+  // Os logs foram movidos para o useEffect existente para evitar erros de hooks
+
   return (
-    <Box>
-      <CheckoutStepper 
-        activeStep={2}
-        eventSlug={slug}
-        orderId={orderId}
-      />
-      <Container maxWidth="lg" sx={{ mt: 4 }}>
-        <Box sx={{ mb: 4 }}>
-          <Typography variant="h5" gutterBottom sx={{ fontWeight: 600, color: 'primary.main' }}>
+    <Box sx={{ 
+      background: 'linear-gradient(180deg, rgba(245,247,250,1) 0%, rgba(255,255,255,1) 100%)',
+      minHeight: '100vh',
+      pt: { xs: 2, md: 4 },
+      pb: { xs: 8, md: 6 }
+    }}>
+      <Container maxWidth="lg">
+        <CheckoutStepper 
+          activeStep={2}
+          eventSlug={slug}
+          orderId={orderId}
+        />
+        
+        <Box sx={{ 
+          mb: 4,
+          mt: 4,
+          textAlign: { xs: 'center', md: 'left' },
+          px: { xs: 2, md: 0 }
+        }}>
+          <Typography 
+            variant="h4" 
+            gutterBottom 
+            sx={{ 
+              fontWeight: 700, 
+              color: 'primary.main',
+              fontSize: { xs: '1.75rem', md: '2.25rem' }
+            }}
+          >
             Finalizar Pagamento
           </Typography>
-          <Typography variant="body1" color="text.secondary" gutterBottom>
-            Revise os detalhes do seu pedido e escolha a forma de pagamento
+          <Typography 
+            variant="body1" 
+            color="text.secondary" 
+            sx={{ 
+              maxWidth: { md: '70%' },
+              fontSize: { xs: '0.95rem', md: '1rem' }
+            }}
+          >
+            Revise os detalhes do seu pedido e escolha a forma de pagamento preferida
           </Typography>
         </Box>
         
+
         <PaymentComponent
           eventId={order.event_id}
           ticketId={ticketData[0].id} // Using first ticket's ID
@@ -177,7 +265,9 @@ export default function PaymentPage() {
           ticketData={ticketData}
           onPaymentSuccess={handlePaymentSuccess}
           onPaymentError={handlePaymentError}
-          orderTotal={order.total_amount}
+          orderTotal={orderSummary.totalAmount} // Valor total do backend
+          orderSubtotal={orderSummary.subtotal} // Subtotal do backend
+          orderFees={orderSummary.fees} // Taxas do backend
         />
       </Container>
     </Box>

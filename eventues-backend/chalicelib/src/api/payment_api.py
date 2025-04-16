@@ -254,7 +254,7 @@ def create_payment_session():
             )
 
         # Get ticket details
-        total_amount = 0
+        subtotal_amount = 0
         for ticket in tickets:
             ticket_ref = event_ref.collection('tickets').document(ticket['ticket_id'])
             ticket_doc = ticket_ref.get()
@@ -267,8 +267,29 @@ def create_payment_session():
 
             ticket_data = ticket_doc.to_dict()
             quantity = int(ticket['quantity'])
-            total_amount += float(ticket_data['valor']) * quantity
-
+            subtotal_amount += float(ticket_data['valor']) * quantity
+            
+        # Calculate fee and total amount using the same logic as frontend
+        # This matches the calculatePlatformFee function in the frontend
+        def calculate_platform_fee(price):
+            if price == 0:
+                return 0  # Free tickets have no fee
+            if price < 20:
+                return 2  # Minimum fee
+            return round((price * 7.99) / 100, 2)  # 7.99% with 2 decimal places
+        
+        # Calculate fees for each ticket
+        fee_amount = 0
+        for ticket in tickets:
+            ticket_ref = event_ref.collection('tickets').document(ticket['ticket_id'])
+            ticket_doc = ticket_ref.get()
+            ticket_data = ticket_doc.to_dict()
+            quantity = int(ticket['quantity'])
+            ticket_price = float(ticket_data['valor'])
+            fee_amount += calculate_platform_fee(ticket_price) * quantity
+            
+        total_amount = subtotal_amount + fee_amount
+    
         # Create payment
         payment_method = data['payment'].get('billingType', '').lower()
         due_date = (datetime.now() + timedelta(days=3 if payment_method == 'boleto' else 1)).strftime('%Y-%m-%d')
@@ -276,7 +297,7 @@ def create_payment_session():
         payment_data = {
             'customer': data['customer'],
             'billingType': payment_method.upper(),
-            'value': total_amount,
+            'value': total_amount,  # This now includes the fee
             'dueDate': due_date,
             'description': f"Compra de ingressos para o evento {event_data['name']}",
         }
@@ -319,13 +340,20 @@ def create_payment_session():
             'customer_id': data['customer'],
             'event_id': data['event_id'],
             'tickets': tickets,
-            'total_amount': total_amount,
+            'subtotal_amount': subtotal_amount,
+            'fee_amount': fee_amount,
+            'total_amount': total_amount,  # This now includes the fee
             'created_at': datetime.now(),
             'updated_at': datetime.now(),
             'payment_details': payment_result
         }
         order_ref.set(order_data)
 
+        # Add fee and subtotal information to the response
+        payment_result['subtotal_amount'] = subtotal_amount
+        payment_result['fee_amount'] = fee_amount
+        payment_result['total_amount'] = total_amount
+        
         return Response(
             body=payment_result,
             status_code=200,
@@ -484,9 +512,19 @@ def create_order():
                 headers={'Content-Type': 'application/json'}
             )
 
-        # Calculate total amount
-        total_amount = 0
+        # Define platform fee calculation function (same as frontend)
+        def calculate_platform_fee(price):
+            if price == 0:
+                return 0  # Free tickets have no fee
+            if price < 20:
+                return 2  # Minimum fee for low-priced tickets
+            return round((price * 7.99) / 100, 2)  # 7.99% fee with 2 decimal places
+        
+        # Calculate total amount including platform fees
+        subtotal = 0
+        total_fees = 0
         tickets = data['tickets']
+        
         for ticket in tickets:
             ticket_ref = db.collection('events').document(data['event_id']).collection('tickets').document(ticket['ticket_id'])
             ticket_doc = ticket_ref.get()
@@ -496,8 +534,20 @@ def create_order():
                     status_code=404,
                     headers={'Content-Type': 'application/json'}
                 )
+            
             ticket_data = ticket_doc.to_dict()
-            total_amount += ticket_data['valor'] * ticket['quantity']
+            ticket_price = ticket_data['valor']
+            ticket_quantity = ticket['quantity']
+            
+            # Calculate base price and fee for this ticket
+            ticket_subtotal = ticket_price * ticket_quantity
+            ticket_fee = calculate_platform_fee(ticket_price) * ticket_quantity
+            
+            subtotal += ticket_subtotal
+            total_fees += ticket_fee
+        
+        # Total amount is subtotal + fees
+        total_amount = subtotal + total_fees
 
         # Save order to database
         order_ref = db.collection('orders').document()
@@ -505,7 +555,9 @@ def create_order():
             'user_id': data['user_id'],
             'event_id': data['event_id'],
             'tickets': tickets,
-            'total_amount': total_amount,
+            'subtotal_amount': subtotal,
+            'fee_amount': total_fees,
+            'total_amount': total_amount,  # This now includes both subtotal and fees
             'created_at': datetime.now(),
             'updated_at': datetime.now(),
         }
@@ -549,9 +601,19 @@ def update_order_tickets(order_id):
         order_data = order_doc.to_dict()
         event_id = order_data.get('event_id')
 
-        # Calculate new total amount
-        total_amount = 0
+        # Define platform fee calculation function (same as frontend)
+        def calculate_platform_fee(price):
+            if price == 0:
+                return 0  # Free tickets have no fee
+            if price < 20:
+                return 2  # Minimum fee for low-priced tickets
+            return round((price * 7.99) / 100, 2)  # 7.99% fee with 2 decimal places
+        
+        # Calculate new total amount including platform fees
+        subtotal = 0
+        total_fees = 0
         tickets = data['tickets']
+        
         for ticket in tickets:
             ticket_ref = db.collection('events').document(event_id).collection('tickets').document(ticket['ticket_id'])
             ticket_doc = ticket_ref.get()
@@ -561,13 +623,27 @@ def update_order_tickets(order_id):
                     status_code=404,
                     headers={'Content-Type': 'application/json'}
                 )
+            
             ticket_data = ticket_doc.to_dict()
-            total_amount += ticket_data['valor'] * ticket['quantity']
+            ticket_price = ticket_data['valor']
+            ticket_quantity = ticket['quantity']
+            
+            # Calculate base price and fee for this ticket
+            ticket_subtotal = ticket_price * ticket_quantity
+            ticket_fee = calculate_platform_fee(ticket_price) * ticket_quantity
+            
+            subtotal += ticket_subtotal
+            total_fees += ticket_fee
+        
+        # Total amount is subtotal + fees
+        total_amount = subtotal + total_fees
 
-        # Update only the tickets and total_amount fields
+        # Update tickets, subtotal, fees, and total_amount fields
         order_ref.update({
             'tickets': tickets,
-            'total_amount': total_amount,
+            'subtotal_amount': subtotal,
+            'fee_amount': total_fees,
+            'total_amount': total_amount,  # This now includes both subtotal and fees
             'updated_at': datetime.now()
         })
 
@@ -575,6 +651,8 @@ def update_order_tickets(order_id):
             body={
                 'message': 'Order tickets updated successfully',
                 'tickets': tickets,
+                'subtotal_amount': subtotal,
+                'fee_amount': total_fees,
                 'total_amount': total_amount
             },
             status_code=200,

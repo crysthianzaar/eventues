@@ -73,22 +73,6 @@ const PhoneMaskInput = forwardRef<HTMLInputElement, CustomInputProps>(
   },
 );
 
-const CpfMaskInput = forwardRef<HTMLInputElement, CustomInputProps>(
-  function CpfMaskInput(props, ref) {
-    const { onChange, name, ...other } = props;
-    return (
-      <IMaskInput
-        {...other}
-        mask="000.000.000-00"
-        definitions={{ '#': /[1-9]/ }}
-        inputRef={ref}
-        onAccept={(value: string) => onChange({ target: { name, value } })}
-        overwrite
-      />
-    );
-  },
-);
-
 const PersonalInfoForm: FC<PersonalInfoFormProps> = ({
   orderId,
   onFormDataChange,
@@ -262,7 +246,8 @@ const PersonalInfoForm: FC<PersonalInfoFormProps> = ({
               if (field.id === 'cpf') {
                 schemaMap[fieldName] = z.string()
                   .min(1, `CPF é obrigatório para Participante ${i + 1}`)
-                  .regex(/^\d{3}\.\d{3}\.\d{3}-\d{2}$/, `CPF inválido para Participante ${i + 1}`);
+                  .transform(val => val.replace(/[^0-9]/g, ''))
+                  .refine(val => val.length === 11, `CPF inválido para Participante ${i + 1}`);
               } else {
                 schemaMap[fieldName] = z.string()
                   .min(1, `${field.label} é obrigatório para Participante ${i + 1}`);

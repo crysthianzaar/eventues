@@ -66,7 +66,8 @@ const TicketCard = styled(Card)(({ theme }) => ({
     transform: 'translateY(-4px)',
   },
   [theme.breakpoints.down('sm')]: {
-    marginBottom: theme.spacing(2)
+    marginBottom: theme.spacing(2),
+    padding: theme.spacing(2, 1.5)
   }
 }));
 
@@ -101,6 +102,9 @@ const MainPrice = styled(Typography)(({ theme }) => ({
   fontWeight: 700,
   color: theme.palette.primary.main,
   lineHeight: 1.2,
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '1.5rem'
+  }
 }));
 
 const FeeText = styled(Typography)(({ theme }) => ({
@@ -113,6 +117,9 @@ const FeeText = styled(Typography)(({ theme }) => ({
     fontSize: '0.875rem',
     cursor: 'help',
   },
+  [theme.breakpoints.down('sm')]: {
+    fontSize: '0.7rem',
+  }
 }));
 
 const QuantityControl = styled(Box)(({ theme }) => ({
@@ -122,7 +129,8 @@ const QuantityControl = styled(Box)(({ theme }) => ({
   marginTop: theme.spacing(1),
   [theme.breakpoints.down('sm')]: {
     justifyContent: 'flex-end',
-    marginTop: theme.spacing(1)
+    marginTop: theme.spacing(0),
+    gap: theme.spacing(0.75)
   }
 }));
 
@@ -140,7 +148,9 @@ const StyledIconButton = styled(IconButton)(({ theme }) => ({
   borderRadius: theme.shape.borderRadius,
   padding: theme.spacing(0.5),
   [theme.breakpoints.down('sm')]: {
-    padding: theme.spacing(1)
+    padding: theme.spacing(1.2),
+    minWidth: '42px',
+    minHeight: '42px'
   }
 }));
 
@@ -289,17 +299,24 @@ export default function TicketOptions({
                 <Grid item xs={12} key={ticket.id} component={motion.div} variants={itemVariants} sx={{ mb: 2 }}>
                   <TicketCard sx={{
                     display: 'flex',
-                    flexDirection: 'row',
-                    alignItems: 'center',
+                    flexDirection: { xs: 'column', sm: 'row' },
+                    alignItems: { xs: 'stretch', sm: 'center' },
                     justifyContent: 'space-between',
-                    padding: theme.spacing(2),
+                    padding: { xs: theme.spacing(2.5, 2), sm: theme.spacing(2) },
                     boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                     '&:hover': {
                       boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
                     },
                   }}>
-                    <Box sx={{ flex: 1 }}>
-                      <Typography variant="h6" gutterBottom>
+                    <Box sx={{ flex: 1, mb: { xs: 1.5, sm: 0 } }}>
+                      <Typography 
+                        variant="h6" 
+                        gutterBottom 
+                        sx={{ 
+                          fontSize: { xs: '1.1rem', sm: '1.25rem' },
+                          fontWeight: 600
+                        }}
+                      >
                         {ticket.nome}
                       </Typography>
                       <TicketPrice>
@@ -320,26 +337,47 @@ export default function TicketOptions({
                         )}
                       </TicketPrice>
                     </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: theme.spacing(2) }}>
-                      <Typography variant="body2">
+                    <Box sx={{ 
+                      display: 'flex', 
+                      flexDirection: { xs: 'row', sm: 'row' },
+                      alignItems: 'center', 
+                      justifyContent: { xs: 'space-between', sm: 'flex-end' },
+                      width: { xs: '100%', sm: 'auto' },
+                      mt: { xs: 1, sm: 0 }
+                    }}>
+                      <Typography 
+                        variant="body2" 
+                        sx={{ 
+                          fontSize: { xs: '0.8rem', sm: '0.875rem' },
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 0.5
+                        }}
+                      >
+                        <EventIcon fontSize="small" sx={{ color: 'text.secondary' }} />
                         Disponível até {new Date(ticket.fimVendas || new Date()).toLocaleDateString('pt-BR')}
                       </Typography>
-                      <QuantityControl>
+                      <QuantityControl sx={{ ml: { xs: 1, sm: 2 } }}>
                         <StyledIconButton 
-                          size="small" 
                           onClick={() => handleQuantityChange(ticket, -1)}
                           disabled={!selectedQuantities[ticket.id] || selectedQuantities[ticket.id] === 0}
+                          aria-label="Diminuir quantidade"
                         >
-                          <RemoveIcon fontSize="small" />
+                          <RemoveIcon />
                         </StyledIconButton>
-                        <Typography variant="body1" sx={{ fontWeight: 600, minWidth: '24px', textAlign: 'center' }}>
+                        <Typography variant="body1" sx={{ 
+                          fontWeight: 600, 
+                          minWidth: { xs: '32px', sm: '28px' }, 
+                          textAlign: 'center',
+                          fontSize: { xs: '1rem', sm: '0.9rem' }
+                        }}>
                           {selectedQuantities[ticket.id] || 0}
                         </Typography>
                         <StyledIconButton 
-                          size="small" 
                           onClick={() => handleQuantityChange(ticket, 1)}
+                          aria-label="Aumentar quantidade"
                         >
-                          <AddIcon fontSize="small" />
+                          <AddIcon />
                         </StyledIconButton>
                       </QuantityControl>
                     </Box>
