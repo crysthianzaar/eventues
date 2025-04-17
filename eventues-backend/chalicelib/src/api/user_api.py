@@ -141,16 +141,14 @@ def get_user_events(user_id):
             headers={'Content-Type': 'application/json'}
         )
 
-@user_api.route('/tickets/{payment_id}', methods=['GET'], cors=cors_config)
-def get_ticket_details(payment_id):
+@user_api.route('/tickets/{order_id}', methods=['GET'], cors=cors_config)
+def get_ticket_details(order_id):
     try:
         # Get the order associated with this ticket
-        orders = db.collection('orders').where('payment_id', '==', payment_id).limit(1).stream()
-        order = next(orders, None)
+        orders = db.collection('orders').document(order_id).get()
         
-        if not order:
-            # Try finding by order ID if ticket_id not found
-            order = db.collection('orders').document(payment_id).get()
+        if not orders:
+            order = db.collection('orders').document(order_id).get()
             if not order.exists:
                 return Response(
                     body={'error': 'Ticket not found'},
@@ -158,7 +156,7 @@ def get_ticket_details(payment_id):
                     headers={'Content-Type': 'application/json'}
                 )
             
-        order_data = order.to_dict()
+        order_data = orders.to_dict()
         
         # Get event details
         event_ref = db.collection('events').document(order_data.get('event_id', ''))
@@ -193,7 +191,7 @@ def get_ticket_details(payment_id):
         
         # Combine all data
         ticket_details = {
-            'order_id': order.id,
+            'order_id': order_id,
             'event_id': event.id,
             'event_type': event_data.get('event_type'),
             'event_name': event_data.get('name'),
@@ -204,16 +202,11 @@ def get_ticket_details(payment_id):
             'ticket_value': order_data.get('ticket_value'),
             'quantity': order_data.get('quantity'),
             'total_value': order_data.get('total_amount'),
-            'payment_datails': order_data.get('payment_details'),
+            'payment_details': order_data.get('payment_details'),
             'status': order_data.get('status'),
             'created_at': created_at,
             'payment_url': order_data.get('payment_url'),
-            'participant_info': {
-                'name': user_data.get('name', 'Não informado'),
-                'email': user_data.get('email', 'Não informado'),
-                'cpf': user_data.get('cpf', 'Não informado'),
-                'phone': user_data.get('phone_number', 'Não informado')
-            }
+            'tickets': order_data.get('tickets')
         }
         
         return Response(

@@ -10,6 +10,7 @@ import TicketOptions from './components/ticket_options/TicketOptions';
 import Link from 'next/link';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckoutStepper from '@/app/components/CheckoutStepper';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function TicketsPage() {
   const params = useParams();
@@ -72,6 +73,7 @@ export default function TicketsPage() {
             .map(([ticketId, quantity]) => {
               const ticket = tickets.find(t => t.id === ticketId);
               return {
+                qr_code_uuid: uuidv4(),
                 ticket_id: ticketId,
                 quantity,
                 ticket_name: ticket?.nome || ''

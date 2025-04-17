@@ -266,6 +266,7 @@ export default function PaymentComponent({
   });
   
   const [couponCode, setCouponCode] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
 
   const tickets: Ingresso[] = useMemo(() => 
     ticketData.map(ticket => ({
@@ -431,12 +432,19 @@ export default function PaymentComponent({
 
   const handleSubmit = async () => {
     try {
+      // Extrair o order_id da URL se disponível
+      const urlParts = window.location.pathname.split('/');
+      const orderIdIndex = urlParts.findIndex(part => part === 'payment') - 1;
+      const orderId = orderIdIndex > 0 ? urlParts[orderIdIndex] : undefined;
+      
+      console.log('Order ID from URL:', orderId);
       
       const result = await submitPayment(
         formData,
         user!,
         eventId,
-        ticketData
+        ticketData,
+        orderId // Passar o order_id para o hook
       );
       
       if (result.billingType === 'CREDIT_CARD' && result.status === 'CONFIRMED') {
@@ -450,6 +458,13 @@ export default function PaymentComponent({
 
   const handleCouponChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setCouponCode(e.target.value);
+    // Clear error when changing coupon code
+    if (couponError) setCouponError(null);
+  };
+
+  const handleApplyCoupon = () => {
+    // For now, always show that the coupon is invalid
+    setCouponError('Cupom inválido no momento.');
   };
 
   return (
@@ -825,26 +840,35 @@ export default function PaymentComponent({
           <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1.5 }}>
             Possui um cupom de desconto?
           </Typography>
-          <Box sx={{ display: 'flex' }}>
-            <TextField
-              fullWidth
-              size="small"
-              placeholder="Digite o código"
-              value={couponCode}
-              onChange={handleCouponChange}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  borderTopRightRadius: 0,
-                  borderBottomRightRadius: 0
-                }
-              }}
-            />
-            <CouponButton 
-              variant="contained" 
-              disabled={!couponCode}
-            >
-              Aplicar
-            </CouponButton>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+            <Box sx={{ display: 'flex' }}>
+              <TextField
+                fullWidth
+                size="small"
+                placeholder="Digite o código"
+                value={couponCode}
+                onChange={handleCouponChange}
+                error={!!couponError}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderTopRightRadius: 0,
+                    borderBottomRightRadius: 0
+                  }
+                }}
+              />
+              <CouponButton 
+                variant="contained" 
+                disabled={!couponCode}
+                onClick={handleApplyCoupon}
+              >
+                Aplicar
+              </CouponButton>
+            </Box>
+            {couponError && (
+              <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
+                {couponError}
+              </Typography>
+            )}
           </Box>
         </CouponSection>
         
@@ -854,12 +878,17 @@ export default function PaymentComponent({
             <ReceiptIcon /> Resumo do Pedido
           </SectionTitle>
           <PaymentSummary 
-            tickets={tickets} 
-            selectedQuantities={selectedQuantities}
+            tickets={ticketData.map(ticket => ({
+              ticket_id: ticket.id,
+              ticket_name: ticket.name,
+              valor: ticket.price,
+              taxa: calculatePlatformFee(ticket.price),
+              valor_total: ticket.price + calculatePlatformFee(ticket.price),
+              quantity: ticket.quantity
+            }))}
             backendTotal={orderTotal}
             backendSubtotal={orderSubtotal}
             backendFee={orderFees}
-            useBackendValuesOnly={orderTotal !== undefined && orderSubtotal !== undefined && orderFees !== undefined}
           />
         </OrderSummarySection>
       </CheckoutSidebar>

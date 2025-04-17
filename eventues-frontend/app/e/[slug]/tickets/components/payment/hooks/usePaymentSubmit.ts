@@ -15,7 +15,8 @@ export function usePaymentSubmit() {
     formData: PaymentFormData,
     user: User,
     eventId: string,
-    tickets: TicketData[]
+    tickets: TicketData[],
+    orderId?: string
   ) => {
     try {
       if (!user) {
@@ -114,6 +115,7 @@ export function usePaymentSubmit() {
             quantity: ticket.quantity
           })),
           user_id: user.uid,
+          order_id: orderId, // Incluir order_id se estiver disponível
           payment: {
             billingType: formData.paymentMethod,
             value: totalAmount,

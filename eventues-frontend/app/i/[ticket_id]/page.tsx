@@ -1,111 +1,93 @@
 'use client';
 
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
   Box,
-  Card,
+  Container,
   Typography,
   CircularProgress,
-  Grid,
   Divider,
   Paper,
-  Chip,
-  Button,
-  Stack,
+  styled,
+  Theme
 } from '@mui/material';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../firebase';
 import { getIdToken } from 'firebase/auth';
 import axios from 'axios';
-import QRCode from 'react-qr-code';
-import HomeIcon from '@mui/icons-material/Home';
-import PrintIcon from '@mui/icons-material/Print';
-import ShareIcon from '@mui/icons-material/Share';
 
-interface TicketDetails {
-  order_id: string;
-  event_id: string;
-  event_type: string;
-  event_name: string;
-  event_date: string;
-  event_location: string | null;
-  user_id: string;
-  ticket_name: string | null;
-  ticket_value: number | null;
-  quantity: number | null;
-  total_value: number;
-  payment_datails: {
-    transactionReceiptUrl: string | null;
-    custody: string | null;
-    postalService: boolean;
-    originalDueDate: string;
-    pixTransaction: string | null;
-    object: string;
-    status: string;
-    nossoNumero: string | null;
-    invoiceNumber: string;
-    creditDate: string | null;
-    paymentDate: string | null;
-    pixQrCode: {
-      success: boolean;
-      expirationDate: string;
-      encodedImage: string;
-      payload: string;
-    };
-    customer: string;
-    externalReference: string | null;
-    interestValue: number | null;
-    clientPaymentDate: string | null;
-    billingType: string;
-    deleted: boolean;
-    description: string;
-    anticipated: boolean;
-    estimatedCreditDate: string | null;
-    id: string;
-    discount: {
-      value: number;
-      type: string;
-      limitDate: string | null;
-      dueDateLimitDays: number;
-    };
-    anticipable: boolean;
-    bankSlipUrl: string | null;
-    value: number;
-    escrow: string | null;
-    netValue: number;
-    paymentLink: string | null;
-    interest: {
-      value: number;
-      type: string;
-    };
-    refunds: string | null;
-    dueDate: string;
-    lastBankSlipViewedDate: string | null;
-    installmentNumber: string | null;
-    lastInvoiceViewedDate: string | null;
-    invoiceUrl: string;
-    fine: {
-      value: number;
-      type: string;
-    };
-    dateCreated: string;
-    originalValue: number | null;
-  };
-  status: string;
-  created_at: string;
-  payment_url: string;
-  participant_info: {
-    name: string;
-    email: string;
-    cpf: string;
-    phone: string;
-  };
-}
+// Importando componentes modulares
+import DigitalTicket from './components/DigitalTicket';
+import PaymentDetails from './components/PaymentDetails';
+import ActionButtons from './components/ActionButtons';
+import OrderInfo from './components/OrderInfo';
 
-interface ApiResponse extends TicketDetails { }
+// Componentes estilizados para a página
+const PageContainer = styled(Box)(({ theme }) => ({
+  minHeight: '100vh',
+  background: 'linear-gradient(145deg, #f5f5f5 0%, #e8e8e8 100%)',
+  padding: theme.spacing(3),
+  fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+}));
+
+const ContentContainer = styled(Container)(({ theme }) => ({
+  maxWidth: 900,
+  marginBottom: theme.spacing(4),
+}));
+
+const PaymentSection = styled(Paper)(({ theme }) => ({
+  padding: theme.spacing(3),
+  borderRadius: 12,
+  marginTop: theme.spacing(3),
+  position: 'relative',
+  overflow: 'hidden',
+  boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+  background: '#fff',
+}));
+
+// Estilos de tipografia padronizados
+const TypographyStyles = {
+  h4: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 500,
+    fontSize: '1.75rem',
+    lineHeight: 1.2,
+  },
+  h5: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 500,
+    fontSize: '1.5rem',
+    lineHeight: 1.2,
+  },
+  h6: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 500,
+    fontSize: '1.25rem',
+    lineHeight: 1.2,
+  },
+  body1: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 400,
+    fontSize: '1rem',
+    lineHeight: 1.5,
+  },
+  body2: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 400,
+    fontSize: '0.875rem',
+    lineHeight: 1.43,
+  },
+  caption: {
+    fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif',
+    fontWeight: 400,
+    fontSize: '0.75rem',
+    lineHeight: 1.66,
+  },
+};
+
+// Importando tipos
+import { TicketDetails, ApiResponse } from './types';
 
 export default function TicketPage() {
   const [user] = useAuthState(auth);
@@ -128,6 +110,29 @@ export default function TicketPage() {
       } catch (error) {
         // Ignore share errors
       }
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'cancelled':
+        return 'error';
+      default:
+        return 'default';
     }
   };
 
@@ -180,41 +185,17 @@ export default function TicketPage() {
           justifyContent: 'center', 
           alignItems: 'center', 
           minHeight: '100vh',
-          gap: 2 
+          gap: 2,
+          fontFamily: '"Roboto", "Helvetica", "Arial", sans-serif'
         }}
       >
         <CircularProgress />
-        <Typography color="text.secondary">
+        <Typography color="text.secondary" sx={TypographyStyles.body1}>
           Carregando detalhes do ingresso...
         </Typography>
       </Box>
     );
   }
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'success';
-      case 'pending':
-        return 'warning';
-      case 'cancelled':
-        return 'error';
-      default:
-        return 'default';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'long',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
-
 
   if (unauthorized) {
     return (
@@ -229,19 +210,18 @@ export default function TicketPage() {
           gap: 2,
         }}
       >
-        <Typography variant="h5" color="error" gutterBottom>
+        <Typography variant="h5" color="error" gutterBottom sx={TypographyStyles.h5}>
           Página Indisponível
         </Typography>
-        <Typography color="text.secondary" align="center" sx={{ maxWidth: 400, mb: 2 }}>
+        <Typography color="text.secondary" align="center" sx={{ ...TypographyStyles.body1, maxWidth: 400, mb: 2 }}>
           Você não tem permissão para visualizar este ingresso. Apenas o comprador pode acessar estas informações.
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={() => router.push('/minha_conta')}
-        >
-          Ir para Minhas Inscrições
-        </Button>
+        <ActionButtons 
+          router={router}
+          handlePrint={handlePrint}
+          handleShare={handleShare}
+          showShareButton={false}
+        />
       </Box>
     );
   }
@@ -249,356 +229,118 @@ export default function TicketPage() {
   if (error || !ticketDetails) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
-        <Typography color="error">{error || 'Ingresso não encontrado'}</Typography>
+        <Typography color="error" sx={TypographyStyles.body1}>{error || 'Ingresso não encontrado'}</Typography>
       </Box>
     );
   }
 
+  const hasShareSupport = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+  
   return (
-    <Box
-      sx={{
-        minHeight: '100vh',
-        padding: { xs: '20px', md: '40px' },
-        backgroundColor: '#f5f5f5',
-      }}
-    >
-      <Grid container spacing={3} justifyContent="center">
-        <Grid item xs={12} md={8}>
-          <Stack
-            direction={{ xs: 'column', sm: 'row' }}
-            spacing={1}
-            sx={{
-              mb: 3,
-              '& .MuiButton-root': {
-                flex: { xs: '1', sm: '0 auto' },
-                minWidth: { sm: '160px' }
-              }
-            }}
-          >
-            <Button
-              variant="outlined"
-              color="primary"
-              startIcon={<HomeIcon />}
-              onClick={() => router.push('/minha_conta')}
-              fullWidth
-            >
-              Minhas Inscrições
-            </Button>
-            <Button
-              variant="outlined"
-              color="primary"
-              startIcon={<PrintIcon />}
-              onClick={handlePrint}
-              fullWidth
-            >
-              Imprimir
-            </Button>
-            {typeof navigator !== 'undefined' && typeof navigator.share === 'function' && (
-              <Button
-                variant="outlined"
-                color="primary"
-                startIcon={<ShareIcon />}
-                onClick={handleShare}
-                fullWidth
-              >
-                Compartilhar
-              </Button>
-            )}
-          </Stack>
-          <Card sx={{ padding: 3, marginBottom: 3 }}>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-              <Typography variant="h4" gutterBottom>
-                Detalhes do Ingresso
-              </Typography>
-              <Chip
-                label={ticketDetails.status === 'completed' ? 'Confirmado' : ticketDetails.status}
-                color={getStatusColor(ticketDetails.status)}
-                sx={{ textTransform: 'capitalize' }}
-              />
-            </Box>
-            <Divider sx={{ marginY: 2 }} />
-
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={8}>
-                <Typography variant="h5" gutterBottom>
-                  {ticketDetails.event_name}
-                </Typography>
-                <Typography variant="body1" color="textSecondary" paragraph>
-                  {ticketDetails.event_location}
-                </Typography>
-                <Typography variant="body1" paragraph>
-                  <strong>Data do Evento:</strong> {formatDate(ticketDetails.event_date)}
-                </Typography>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <Box
-                  sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    gap: 2,
-                    '@media print': {
-                      pageBreakInside: 'avoid',
-                    },
-                  }}
-                >
-                  <QRCode value={ticketDetails.order_id} size={128} />
-                  <Typography variant="caption" align="center">
-                    Código do Ingresso: {ticketDetails.order_id}
-                  </Typography>
-                </Box>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ marginY: 2 }} />
-
-            <Typography variant="h6" gutterBottom>
-              Informações do Pedido
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Protocolo
-                  </Typography>
-                  <Typography variant="body1">{ticketDetails.order_id}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Data da Compra
-                  </Typography>
-                  <Typography variant="body1">{formatDate(ticketDetails.created_at)}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Tipo de Ingresso
-                  </Typography>
-                  <Typography variant="body1">{ticketDetails.ticket_name}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Quantidade
-                  </Typography>
-                  <Typography variant="body1">{ticketDetails.quantity}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Valor Total
-                  </Typography>
-                  <Typography variant="h6" color="primary">
-                    R$ {ticketDetails?.total_value?.toFixed(2) ?? '0.00'}
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-
-            <Divider sx={{ marginY: 2 }} />
-
-            <Typography variant="h6" gutterBottom>
-              Informações do Pagamento
-            </Typography>
-            <Grid container spacing={2}>
-              {ticketDetails.payment_datails && (
-                <>
-                  {ticketDetails.payment_datails.billingType === 'PIX' && (
-                    <Grid item xs={12}>
-                      <Paper sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <Typography variant="h6" gutterBottom sx={{ color: 'primary.main', fontWeight: 'medium' }}>
-                            Pagamento via PIX
-                          </Typography>
-                          
-                          <Typography variant="body2" color="text.secondary" gutterBottom>
-                            {ticketDetails.payment_datails.description}
-                          </Typography>
-
-                          <Box sx={{ my: 2, p: 2, bgcolor: '#f5f5f5', borderRadius: 1 }}>
-                            <Typography variant="h5" sx={{ fontWeight: 'bold', color: 'success.main', mb: 1 }}>
-                              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(ticketDetails.payment_datails.value)}
-                            </Typography>
-                            
-                            {ticketDetails.payment_datails.pixQrCode?.expirationDate && (
-                              <Typography variant="caption" color="error">
-                                Expira em: {new Date(ticketDetails.payment_datails.pixQrCode.expirationDate).toLocaleString('pt-BR')}
-                              </Typography>
-                            )}
-                          </Box>
-
-                          <Box sx={{ mb: 3, display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
-                            {ticketDetails.payment_datails.pixQrCode?.encodedImage && (
-                              <img
-                                src={`data:image/png;base64,${ticketDetails.payment_datails.pixQrCode.encodedImage}`}
-                                alt="PIX QR Code"
-                                style={{ maxWidth: 200, marginBottom: 16 }}
-                              />
-                            )}
-                            <Button
-                              variant="contained"
-                              onClick={() =>
-                                ticketDetails.payment_datails.pixQrCode?.payload &&
-                                navigator.clipboard.writeText(ticketDetails.payment_datails.pixQrCode.payload)
-                              }
-                              sx={{ mb: 1, width: '100%', maxWidth: 400 }}
-                            >
-                              Copiar código PIX
-                            </Button>
-                            {ticketDetails.payment_datails.invoiceUrl && (
-                              <Button
-                                variant="outlined"
-                                href={ticketDetails.payment_datails.invoiceUrl}
-                                target="_blank"
-                                sx={{ width: '100%', maxWidth: 400 }}
-                              >
-                                Ver comprovante
-                              </Button>
-                            )}
-                          </Box>
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  )}
-
-                  {ticketDetails.payment_datails.billingType === 'BOLETO' && (
-                    <Grid item xs={12}>
-                      <Paper sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                            Pagamento via Boleto
-                          </Typography>
-                          {ticketDetails.payment_datails.bankSlipUrl && (
-                            <Button
-                              variant="contained"
-                              href={ticketDetails.payment_datails.bankSlipUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              sx={{ mt: 1 }}
-                            >
-                              Visualizar Boleto
-                            </Button>
-                          )}
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  )}
-
-                  {ticketDetails.payment_datails.billingType === 'CREDIT_CARD' && (
-                    <Grid item xs={12}>
-                      <Paper sx={{ p: 2 }}>
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <Typography variant="subtitle2" color="textSecondary" gutterBottom>
-                            Pagamento via Cartão de Crédito
-                          </Typography>
-                          {ticketDetails.payment_datails.status === 'CONFIRMED' &&
-                            ticketDetails.payment_datails.transactionReceiptUrl && (
-                              <Button
-                                variant="outlined"
-                                href={ticketDetails.payment_datails.transactionReceiptUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                sx={{ mt: 1 }}
-                              >
-                                Visualizar Recibo
-                              </Button>
-                            )}
-                        </Box>
-                      </Paper>
-                    </Grid>
-                  )}
-                </>
-              )}
-            </Grid>
-
-            <Divider sx={{ marginY: 2 }} />
-
-            <Typography variant="h6" gutterBottom>
-              Informações do Participante
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Nome
-                  </Typography>
-                  <Typography variant="body1">{ticketDetails.participant_info.name}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    E-mail
-                  </Typography>
-                  <Typography variant="body1">{ticketDetails.participant_info.email}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    CPF
-                  </Typography>
-                  <Typography variant="body1">{ticketDetails.participant_info.cpf}</Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <Paper sx={{ p: 2 }}>
-                  <Typography variant="subtitle2" color="textSecondary">
-                    Telefone
-                  </Typography>
-                  <Typography variant="body1">{ticketDetails.participant_info.phone}</Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-
-            {ticketDetails.status === 'pending' && ticketDetails.payment_url && (
-              <Box sx={{ mt: 3, display: 'flex', justifyContent: 'center', gap: 2 }}>
-                <Button
-                  variant="contained"
-                  color="primary"
-                  size="large"
-                  onClick={() => (window.location.href = ticketDetails.payment_url)}
-                >
-                  Finalizar Pagamento
-                </Button>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="large"
-                  onClick={() => router.push('/minha_conta')}
-                >
-                  Ver Minhas Inscrições
-                </Button>
-              </Box>
-            )}
-          </Card>
-        </Grid>
-      </Grid>
+    <PageContainer>
+      <ContentContainer maxWidth="md" id="print-container">
+        <Box sx={{ mb: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <ActionButtons 
+            router={router}
+            handlePrint={handlePrint}
+            handleShare={handleShare}
+            showShareButton={hasShareSupport}
+          />
+        </Box>
+        
+        {/* Ticket digital com design de bilhete físico */}
+        <Box className="digital-ticket-container">
+          <DigitalTicket 
+            ticketDetails={ticketDetails} 
+            formatDate={formatDate} 
+          />
+        </Box>
+        
+        {/* Seção de informações do pedido */}
+        <PaymentSection className="order-info-section">
+          <OrderInfo 
+            ticketDetails={ticketDetails} 
+            formatDate={formatDate} 
+          />
+        </PaymentSection>
+      </ContentContainer>
       <style jsx global>{`
         @media print {
+          /* Reset da página */
+          @page {
+            size: auto;
+            margin: 0;
+          }
+          
+          /* Esconder elementos da página que não fazem parte do ingresso */
           body * {
             visibility: hidden;
           }
-          .MuiCard-root, .MuiCard-root * {
-            visibility: visible;
-          }
-          .MuiCard-root {
+          
+          /* Mostrar apenas o DigitalTicket */
+          .digital-ticket-container {
+            visibility: visible !important;
             position: absolute;
-            left: 0;
-            top: 0;
+            left: 50%;
+            top: 10px;
+            transform: translateX(-50%);
             width: 100%;
+            max-width: 600px;
             box-shadow: none !important;
+            padding: 0;
+            margin: 0;
           }
-          .no-print {
+          
+          /* Garantir que todo o conteúdo do ingresso seja visível */
+          .digital-ticket-container * {
+            visibility: visible !important;
+            overflow: visible !important;
+          }
+          
+          /* Manter cores e estilos originais */
+          .digital-ticket-container .MuiPaper-root {
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1) !important;
+            border-radius: 12px !important;
+            overflow: hidden !important;
+            page-break-inside: avoid !important;
+            background-color: #fff !important;
+            color: #000 !important;
+          }
+          
+          /* Preservar o cabeçalho colorido */
+          .digital-ticket-container [class*="TicketHeader"] {
+            background-color: #1976d2 !important;
+            color: white !important;
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+          }
+          
+          /* Preservar o chip de status */
+          .digital-ticket-container .MuiChip-root {
+            print-color-adjust: exact !important;
+            -webkit-print-color-adjust: exact !important;
+          }
+          
+          /* Garantir que o QR code seja impresso corretamente */
+          .digital-ticket-container svg {
+            max-height: 150px !important;
+          }
+          
+          /* Esconder botões de ação */
+          .MuiButton-root, .no-print {
+            display: none !important;
+          }
+          
+          /* Esconder a seção de informações do pedido separada */
+          .order-info-section {
             display: none !important;
           }
         }
+        
+        body {
+          font-family: "Roboto", "Helvetica", "Arial", sans-serif;
+        }
       `}</style>
-    </Box>
+    </PageContainer>
   );
 }

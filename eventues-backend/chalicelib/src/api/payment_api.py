@@ -330,24 +330,18 @@ def create_payment_session():
             if pix_data:
                 payment_result['pixQrCode'] = pix_data
 
+        if payment_result.get('status') == 'PENDING':
+            order_status = 'PAGAMENTO PENDENTE'
+        if payment_result.get('status') == 'CONFIRMED':
+            order_status = 'CONFIRMADO'
         # Save order to database
-        order_ref = db.collection('orders').document()
-        order_data = {
+        order_ref = db.collection('orders').document(data["order_id"])
+        order_ref.update({
             'payment_id': payment_result['id'],
-            'user_id': data['user_id'],
             'payment_url': payment_result.get('invoiceUrl'),
-            'status': payment_result['status'],
-            'customer_id': data['customer'],
-            'event_id': data['event_id'],
-            'tickets': tickets,
-            'subtotal_amount': subtotal_amount,
-            'fee_amount': fee_amount,
-            'total_amount': total_amount,  # This now includes the fee
-            'created_at': datetime.now(),
-            'updated_at': datetime.now(),
+            'status': order_status or payment_result['status'],
             'payment_details': payment_result
-        }
-        order_ref.set(order_data)
+        })
 
         # Add fee and subtotal information to the response
         payment_result['subtotal_amount'] = subtotal_amount
@@ -462,10 +456,18 @@ def check_payment_status(payment_id):
         # Consultar status na Asaas
         asaas_payment = asaas_service.get_payment_status(payment_id)
         
+        if asaas_payment['status'] == 'PENDING':
+            order_status = 'PAGAMENTO PENDENTE'
+        if asaas_payment['status'] == 'CONFIRMED':
+            order_status = 'CONFIRMANO'
+        if asaas_payment['status'] == 'RECEIVED':
+            order_status = 'CONFIRMADO'
+        if asaas_payment['status'] == 'IN_ANALYSIS':
+            order_status = 'PAGAMENTO EM ANÁLISE'
         # Atualizar status no banco de dados se necessário
         if order.to_dict()['status'] != asaas_payment['status']:
             order.reference.update({
-                'status': asaas_payment['status'],
+                'status': order_status,
                 'updated_at': datetime.now()
             })
 
@@ -517,7 +519,7 @@ def create_order():
             if price == 0:
                 return 0  # Free tickets have no fee
             if price < 20:
-                return 2  # Minimum fee for low-priced tickets
+                return 2
             return round((price * 7.99) / 100, 2)  # 7.99% fee with 2 decimal places
         
         # Calculate total amount including platform fees
@@ -554,10 +556,11 @@ def create_order():
         order_data = {
             'user_id': data['user_id'],
             'event_id': data['event_id'],
+            "status": "AGUARDANDO INFORMAÇÕES",
             'tickets': tickets,
             'subtotal_amount': subtotal,
             'fee_amount': total_fees,
-            'total_amount': total_amount,  # This now includes both subtotal and fees
+            'total_amount': total_amount,
             'created_at': datetime.now(),
             'updated_at': datetime.now(),
         }
@@ -692,6 +695,7 @@ def update_order_participants(order_id):
         # Update order with participant information
         order_ref.update({
             'tickets': data['tickets'],
+            "status": "PAGAMENTO PENDENTE",
             'updated_at': datetime.now()
         })
 

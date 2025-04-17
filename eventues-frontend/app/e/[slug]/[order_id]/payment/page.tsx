@@ -69,20 +69,13 @@ export default function PaymentPage() {
         
         // Transform tickets data to match PaymentComponent's expected format
         const tickets = orderData.tickets.map((ticket: any) => {
-          // Find matching ticket in event data to get price
-          const eventTicket = eventTickets.find((et: any) => et.id === ticket.ticket_id);
-          const ticketPrice = eventTicket?.valor || 0;
-          
-          // Calculate individual ticket price if total_amount is provided
-          // This ensures we're using the actual prices from the order
-          const calculatedPrice = orderData.total_amount && orderData.tickets.length > 0 ? 
-            (orderData.total_amount / orderData.tickets.reduce((sum: number, t: any) => sum + t.quantity, 0)) : ticketPrice;
-          
           return {
             id: ticket.ticket_id,
             name: ticket.ticket_name || '',
-            price: calculatedPrice,
-            quantity: ticket.quantity
+            price: ticket.valor || 0,
+            quantity: ticket.quantity,
+            taxa: ticket.taxa || 0,
+            valor_total: ticket.valor_total || 0
           };
         });
         

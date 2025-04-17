@@ -1,7 +1,5 @@
 import { Box, Typography, Divider } from '@mui/material';
 import { styled } from '@mui/material/styles';
-import { Ingresso } from '@/app/apis/api';
-import { calculatePlatformFee } from '../../utils/calculateFee';
 import { formatPrice } from '@/app/utils/formatPrice';
 
 const SummaryContainer = styled(Box)(({ theme }) => ({
@@ -57,92 +55,61 @@ const TotalValue = styled(Typography)(({ theme }) => ({
   }
 }));
 
+interface OrderTicket {
+  ticket_id: string;
+  ticket_name: string;
+  valor: number;
+  taxa: number;
+  valor_total: number;
+  quantity: number;
+}
+
 interface PaymentSummaryProps {
-  tickets: Ingresso[];
-  selectedQuantities: { [key: string]: number };
+  tickets: OrderTicket[];
   // Backend-calculated values (preferably used when available)
   backendFee?: number;
   backendTotal?: number;
   backendSubtotal?: number;
-  // Flag to force using backend values only
-  useBackendValuesOnly?: boolean;
 }
 
 export default function PaymentSummary({ 
   tickets, 
-  selectedQuantities, 
   backendFee, 
   backendTotal, 
-  backendSubtotal,
-  useBackendValuesOnly = false 
+  backendSubtotal
 }: PaymentSummaryProps) {
   console.log('[PaymentSummary] Rendering with props:', { 
     tickets, 
-    selectedQuantities, 
     backendFee, 
     backendTotal, 
-    backendSubtotal,
-    useBackendValuesOnly 
+    backendSubtotal
   });
-  const calculateSubtotal = () => {
-    console.log('[PaymentSummary] Calculating subtotal with tickets:', tickets);
-    const result = tickets.reduce((total, ticket) => {
-      const quantity = selectedQuantities[ticket.id] || 0;
-      console.log(`[PaymentSummary] Ticket ${ticket.nome}: price=${ticket.valor}, quantity=${quantity}, subtotal=${ticket.valor * quantity}`);
-      return total + (ticket.valor * quantity);
-    }, 0);
-    console.log('[PaymentSummary] Final subtotal:', result);
-    return result;
-  };
-
-  const calculateFees = () => {
-    console.log('[PaymentSummary] Calculating fees');
-    const result = tickets.reduce((total, ticket) => {
-      const quantity = selectedQuantities[ticket.id] || 0;
-      const fee = calculatePlatformFee(ticket.valor);
-      console.log(`[PaymentSummary] Ticket ${ticket.nome}: price=${ticket.valor}, fee=${fee}, quantity=${quantity}, total fee=${fee * quantity}`);
-      return total + (fee * quantity);
-    }, 0);
-    console.log('[PaymentSummary] Final fees:', result);
-    return result;
-  };
-
-  console.log('[PaymentSummary] Starting calculations');
   
-  // Calculate frontend values
-  const calculatedSubtotal = calculateSubtotal();
-  const calculatedFees = calculateFees();
+  // Calculate totals directly from ticket data
+  const calculatedSubtotal = tickets.reduce((total, ticket) => {
+    return total + (ticket.valor * ticket.quantity);
+  }, 0);
   
-  // Determine whether to use frontend or backend values
-  let subtotal: number;
-  let fees: number;
-  let total: number;
-
-  if (useBackendValuesOnly) {
-    // When forced to use backend values only, use zeros as fallbacks
-    subtotal = backendSubtotal ?? 0;
-    fees = backendFee ?? 0;
-    total = backendTotal ?? 0;
-    console.log('[PaymentSummary] Using backend values only');
-  } else {
-    // Use backend values if available, otherwise use calculated values
-    subtotal = backendSubtotal !== undefined ? backendSubtotal : calculatedSubtotal;
-    fees = backendFee !== undefined ? backendFee : calculatedFees;
-    total = backendTotal !== undefined ? backendTotal : (calculatedSubtotal + calculatedFees);
-  }
+  const calculatedFees = tickets.reduce((total, ticket) => {
+    return total + (ticket.taxa * ticket.quantity);
+  }, 0);
   
-  console.log('[PaymentSummary] Final values:', {
+  const calculatedTotal = tickets.reduce((total, ticket) => {
+    return total + (ticket.valor_total * ticket.quantity);
+  }, 0);
+  
+  // Use backend values if available, otherwise use calculated values
+  const subtotal = backendSubtotal ?? calculatedSubtotal;
+  const fees = backendFee ?? calculatedFees;
+  const total = backendTotal ?? calculatedTotal;
+  
+  console.log('[PaymentSummary] Values:', {
     calculatedSubtotal,
     calculatedFees,
-    backendSubtotal,
-    backendFee,
-    backendTotal,
+    calculatedTotal,
     subtotal,
     fees,
-    total,
-    usingBackendOnly: useBackendValuesOnly,
-    ticketsCount: tickets.length,
-    selectedTicketsCount: Object.values(selectedQuantities).filter(q => q > 0).length
+    total
   });
 
   return (
@@ -152,29 +119,17 @@ export default function PaymentSummary({
       </Typography>
 
       {tickets.map((ticket) => {
-        const quantity = selectedQuantities[ticket.id] || 0;
-        console.log(`[PaymentSummary] Rendering ticket ${ticket.nome}: quantity=${quantity}`);
-        if (quantity === 0) return null;
-
-        // For display purposes only - the actual pricing is controlled by the backend
-        const ticketTotal = ticket.valor * quantity;
-        const ticketFee = calculatePlatformFee(ticket.valor) * quantity;
-        console.log(`[PaymentSummary] Ticket ${ticket.nome} details:`, {
-          price: ticket.valor,
-          quantity,
-          ticketTotal,
-          fee: calculatePlatformFee(ticket.valor),
-          ticketFee
-        });
+        console.log(`[PaymentSummary] Rendering ticket ${ticket.ticket_name}: quantity=${ticket.quantity}`);
+        if (ticket.quantity === 0) return null;
 
         return (
-          <Box key={ticket.id} sx={{ mb: 2 }}>
+          <Box key={ticket.ticket_id} sx={{ mb: 2 }}>
             <SummaryRow>
               <SummaryLabel>
-                {ticket.nome} x {quantity}
+                {ticket.ticket_name} x {ticket.quantity}
               </SummaryLabel>
               <SummaryValue>
-                {formatPrice(subtotal)}
+                {formatPrice(ticket.valor * ticket.quantity)}
               </SummaryValue>
             </SummaryRow>
             <SummaryRow>
@@ -182,7 +137,7 @@ export default function PaymentSummary({
                 Taxa de serviço
               </SummaryLabel>
               <SummaryValue sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                {formatPrice(fees)}
+                {formatPrice(ticket.taxa * ticket.quantity)}
               </SummaryValue>
             </SummaryRow>
           </Box>
