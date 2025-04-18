@@ -242,6 +242,13 @@ export default function PaymentComponent({
   orderSubtotal,
   orderFees
 }: PaymentComponentProps) {
+  const [orderId, setOrderId] = React.useState<string | undefined>('');
+  React.useEffect(() => {
+    const urlParts = window.location.pathname.split('/');
+    const orderIdIndex = urlParts.findIndex(part => part === 'payment') - 1;
+    const extractedOrderId = orderIdIndex > 0 ? urlParts[orderIdIndex] : undefined;
+    setOrderId(extractedOrderId);
+  }, []);
   const router = useRouter();
   const [user] = useAuthState(auth);
   const [loadingUserData, setLoadingUserData] = useState(false);
@@ -543,7 +550,7 @@ export default function PaymentComponent({
 
                   <Button
                     variant="text"
-                    onClick={() => router.push(`/i/${paymentResult.id}`)}
+                    onClick={() => router.push(`/i/${orderId}`)}
                     startIcon={<AssignmentIcon />}
                     sx={{ width: '100%', py: 1.5 }}
                   >
@@ -605,7 +612,7 @@ export default function PaymentComponent({
 
                   <Button
                     variant="text"
-                    onClick={() => router.push(`/i/${paymentResult.id}`)}
+                    onClick={() => router.push(`/i/${orderId}`)}
                     startIcon={<AssignmentIcon />}
                     sx={{ width: '100%', py: 1.5 }}
                   >

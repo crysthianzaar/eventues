@@ -5,6 +5,7 @@ import { useState, useEffect } from 'react';
 import {
   Box,
   Card,
+  CardMedia,
   Typography,
   CircularProgress,
   Snackbar,
@@ -14,6 +15,7 @@ import {
   CardContent,
   CardActions,
   Avatar,
+  Chip,
 } from '@mui/material';
 import {
   Info as InfoIcon,
@@ -35,18 +37,11 @@ interface Event {
   event_status: string;
   imageUrl: string;
   start_date: string;
-  location: string;
   order_id: string;
   ticket_id: string;
-  ticket_name: string;
-  ticket_value: number;
-  quantity: number;
-  total_value: number;
-  created_at: string;
-  payment_url: string;
+  status: string;
   payment_id: string;
-  dateObj?: Date;
-  registrationDate?: Date;
+  payment_url: string;
 }
 
 interface ApiResponse {
@@ -58,12 +53,40 @@ interface UserInfo {
   email: string;
   birth_date: string; // Data formatada
   phone_number: string;
+  cpf: string;
+}
+
+function getStatusColor(status: string):
+  | 'success'
+  | 'info'
+  | 'warning'
+  | 'error'
+  | 'default' {
+  switch (status?.toUpperCase()) {
+    case 'CONFIRMADO':
+    case 'PAGO':
+    case 'CONCLUÍDO':
+      return 'success';
+    case 'PAGAMENTO PENDENTE':
+    case 'PENDENTE':
+      return 'warning';
+    case 'PAGAMENTO EM ANÁLISE':
+    case 'EM ANÁLISE':
+      return 'info';
+    case 'CANCELADO':
+      return 'error';
+    case 'EXPIRADO':
+      return 'default';
+    default:
+      return 'default';
+  }
 }
 
 const MinhaContaPage = () => {
   const [user, loadingAuth, errorAuth] = useAuthState(auth);
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: '',
+    cpf: '',
     email: '',
     birth_date: '-',
     phone_number: '-',
@@ -86,10 +109,11 @@ const MinhaContaPage = () => {
             },
           });
 
-          const { name, email, birth_date, phone_number } = response.data as UserInfo;
+          const { name, email, birth_date, phone_number, cpf } = response.data as UserInfo;
 
           setUserInfo({
-            name: name || 'Atleta',
+            name: name || 'Usuário',
+            cpf: cpf || '-',
             email: email || '-',
             birth_date: birth_date || '-',
             phone_number: phone_number || '-',
@@ -112,13 +136,8 @@ const MinhaContaPage = () => {
           },
         });
 
-        const eventsData = response.data.events.map((event) => ({
-          ...event,
-          dateObj: new Date(event.start_date),
-          registrationDate: new Date(event.created_at)
-        }));
-
-        setEvents(eventsData);
+        // O backend já retorna os campos no formato correto
+        setEvents(response.data.events);
         setLoading(false);
       } catch (err) {
         setLoadError('Falha ao carregar eventos.');
@@ -136,7 +155,7 @@ const MinhaContaPage = () => {
   const handleEventAction = (action: string, event: Event) => {
     switch (action) {
       case 'info':
-        router.push(`/i/${event.payment_id}`);
+        router.push(`/i/${event.order_id}`);
         break;
       case 'resend':
         // Redirecionar para a URL de pagamento se ainda estiver pendente
@@ -146,20 +165,6 @@ const MinhaContaPage = () => {
           setPopupMessage('Não é possível reenviar confirmação para este pedido.');
           setPopupOpen(true);
         }
-        break;
-      case 'view':
-        // Mostrar detalhes do pedido
-        setPopupMessage(`
-          Detalhes do Pedido:
-          Protocolo: ${event.order_id}
-          Evento: ${event.name}
-          Ingresso: ${event.ticket_name}
-          Quantidade: ${event.quantity}
-          Valor Total: R$ ${event.total_value.toFixed(2)}
-          Status: ${event.event_status}
-          Data da Compra: ${new Date(event.created_at).toLocaleDateString('pt-BR')}
-        `);
-        setPopupOpen(true);
         break;
       case 'cancel':
         const { canCancel, message } = canCancelRegistration(event);
@@ -178,7 +183,6 @@ const MinhaContaPage = () => {
   const canCancelRegistration = (event: Event): { canCancel: boolean; message?: string } => {
     const today = new Date();
     const eventDate = new Date(event.start_date);
-    const registrationDate = new Date(event.created_at);
 
     // Verificar se o evento já foi concluído
     if (event.event_status === 'Concluído' || event.event_status === 'Cancelado') {
@@ -192,15 +196,6 @@ const MinhaContaPage = () => {
     if (daysUntilEvent < 3) {
       return { canCancel: false, message: 'Não é possível cancelar, faltam menos de 3 dias para o evento.' };
     }
-
-    // Calcular dias desde a data de inscrição
-    const timeDiffRegistration = today.getTime() - registrationDate.getTime();
-    const daysSinceRegistration = Math.ceil(timeDiffRegistration / (1000 * 3600 * 24));
-
-    if (daysSinceRegistration > 7) {
-      return { canCancel: false, message: 'Não é possível cancelar, a inscrição foi realizada há mais de 7 dias.' };
-    }
-
     // Cancelamento permitido
     return { canCancel: true };
   };
@@ -361,6 +356,9 @@ const MinhaContaPage = () => {
                   <Typography variant="body1" sx={{ color: 'text.secondary', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: '4px', md: '8px' } }}>
                     <strong style={{ color: '#2c2c2c' }}>Telefone:</strong> {userInfo.phone_number}
                   </Typography>
+                  <Typography variant="body1" sx={{ color: 'text.secondary', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: '4px', md: '8px' } }}>
+                    <strong style={{ color: '#2c2c2c' }}>CPF:</strong> {userInfo.cpf}
+                  </Typography>
                 </Box>
               </Box>
             </Box>
@@ -409,6 +407,37 @@ const MinhaContaPage = () => {
                         },
                       }}
                     >
+                      {event.imageUrl ? (
+                        <CardMedia
+                          component="img"
+                          image={event.imageUrl}
+                          alt={event.name}
+                          sx={{
+                            height: { xs: 140, md: 180 },
+                            width: '100%',
+                            objectFit: 'cover',
+                            borderTopLeftRadius: '8px',
+                            borderTopRightRadius: '8px',
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          sx={{
+                            height: { xs: 140, md: 180 },
+                            width: '100%',
+                            backgroundColor: '#f5f5f5',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderTopLeftRadius: '8px',
+                            borderTopRightRadius: '8px',
+                          }}
+                        >
+                          <Typography variant="subtitle2" color="text.secondary">
+                            Sem imagem
+                          </Typography>
+                        </Box>
+                      )}
                       <CardContent 
                         sx={{ 
                           flexGrow: 1,
@@ -421,7 +450,7 @@ const MinhaContaPage = () => {
                           variant="h6" 
                           sx={{ 
                             fontWeight: 'bold', 
-                            mb: 1,
+                            mb: 0.5,
                             fontSize: { xs: '1rem', md: '1.25rem' },
                           }}
                         >
@@ -429,14 +458,19 @@ const MinhaContaPage = () => {
                         </Typography>
                         <Typography
                           variant="body2"
-                          sx={{
-                            color: event.event_status === 'Concluído' ? 'success.main' : 'warning.main',
-                            mb: 2,
-                            fontSize: { xs: '0.875rem', md: '1rem' },
-                          }}
+                          color="text.secondary"
+                          sx={{ mb: 1 }}
                         >
-                          <strong>Status:</strong> {event.event_status}
+                          {event.start_date ? `Evento: ${new Date(event.start_date).toLocaleDateString('pt-BR')}` : ''}
                         </Typography>
+                        <Chip
+                          label={event.status}
+                          color={getStatusColor(event.status)}
+                          variant="filled"
+                          size="small"
+                          sx={{ mb: 2, fontWeight: 'bold', fontSize: { xs: '0.85rem', md: '1rem' }, alignSelf: 'flex-start', textTransform: 'capitalize' }}
+                          aria-label={`Status: ${event.status}`}
+                        />
                         <Button
                           fullWidth
                           variant="outlined"

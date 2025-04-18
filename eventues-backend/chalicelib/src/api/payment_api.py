@@ -462,7 +462,7 @@ def check_payment_status(payment_id):
             order_status = 'CONFIRMANO'
         if asaas_payment['status'] == 'RECEIVED':
             order_status = 'CONFIRMADO'
-        if asaas_payment['status'] == 'IN_ANALYSIS':
+        else:
             order_status = 'PAGAMENTO EM ANÁLISE'
         # Atualizar status no banco de dados se necessário
         if order.to_dict()['status'] != asaas_payment['status']:

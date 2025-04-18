@@ -308,8 +308,13 @@ const DigitalTicket = ({ ticketDetails, formatDate }: DigitalTicketProps) => {
                 </QRCodeContainer>
               )}
               <Typography variant="caption" color="text.secondary" align="center">
-                Apresente este QR Code na entrada do evento
+                Apresente este QR Code
               </Typography>
+              {activeTicket?.qr_code_uuid && (
+                <Typography variant="caption" color="text.secondary" align="center" sx={{ wordBreak: 'break-all' }}>
+                  {activeTicket.qr_code_uuid}
+                </Typography>
+              )}
             </Box>
           </Box>
           

@@ -86,7 +86,6 @@ def get_user_events(user_id):
         events_list = []
         for order in orders:
             order_data = order.to_dict()
-            
             # Get event details
             event_ref = db.collection('events').document(order_data['event_id'])
             event = event_ref.get()
@@ -110,21 +109,20 @@ def get_user_events(user_id):
                 if hasattr(created_at, 'isoformat'):
                     created_at = created_at.isoformat()
                 
+                # Get banner from documents subcollection
+                documents = list(event_ref.collection('documents').stream())
+                banners = [doc.to_dict() for doc in documents if doc.to_dict().get('file_name', '').lower().startswith('banner')]
+                banner_url = banners[-1].get('url') if banners else ''
+
                 events_list.append({
                     'event_id': event.id,
                     'name': event_data.get('name', ''),
                     'event_status': event_status,
-                    'imageUrl': event_data.get('imageUrl', ''),
+                    'imageUrl': banner_url,
                     'start_date': event_data.get('start_date', ''),
-                    'location': event_data.get('location', ''),
                     'order_id': order.id,
                     'ticket_id': order_data.get('ticket_id', order.id),  # Use order ID as ticket ID if not present
-                    'ticket_name': order_data.get('ticket_name', ''),
-                    'ticket_value': order_data.get('ticket_value', 0),
-                    'quantity': order_data.get('quantity', 0),
-                    'total_value': order_data.get('total_value', 0),
-                    'created_at': created_at,
-                    'payment_url': order_data.get('payment_url', ''),
+                    'status': order_data.get('status', 'pending'),
                     'payment_id': order_data.get('payment_id', ''),
                 })
         
@@ -160,7 +158,8 @@ def get_ticket_details(order_id):
         
         # Get event details
         event_ref = db.collection('events').document(order_data.get('event_id', ''))
-        event = event_ref.get()
+        if event_ref:
+            event = event_ref.get()
         
         if not event.exists:
             return Response(

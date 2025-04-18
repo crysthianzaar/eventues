@@ -24,12 +24,14 @@ interface UserInfo {
   email: string;
   birth_date: string; // Data formatada
   phone_number: string;
+  cpf: string;
 }
 
 const ConfigurarPerfilPage = () => {
   const [user, loadingAuth, errorAuth] = useAuthState(auth);
   const [userInfo, setUserInfo] = useState<UserInfo>({
     name: '',
+    cpf: '',
     email: '',
     birth_date: '', // Campo editável
     phone_number: '', // Campo editável
@@ -61,6 +63,7 @@ const ConfigurarPerfilPage = () => {
 
           setUserInfo({
             name: data.name || '',
+            cpf: data.cpf || '',
             email: data.email || '',
             birth_date: data.birth_date || '',
             phone_number: data.phone_number || '',
@@ -117,6 +120,7 @@ const ConfigurarPerfilPage = () => {
         },
         body: JSON.stringify({
           name: userInfo.name,
+          cpf: userInfo.cpf,
           birth_date: userInfo.birth_date,
           phone_number: userInfo.phone_number,
           email: userInfo.email,
@@ -246,7 +250,17 @@ const ConfigurarPerfilPage = () => {
               fullWidth
               sx={{ marginBottom: '15px' }}
             />
-
+            
+            {/* CPF */}
+            <TextField
+              label="CPF"
+              name="cpf"
+              value={userInfo.cpf}
+              onChange={handleInputChange}
+              fullWidth
+              sx={{ marginBottom: '15px' }}
+            />
+            
             {/* Botão de Salvar */}
             <Button
               variant="contained"

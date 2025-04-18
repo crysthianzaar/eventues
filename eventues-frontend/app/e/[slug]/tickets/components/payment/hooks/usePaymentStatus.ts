@@ -5,7 +5,7 @@ import { User } from 'firebase/auth';
 import { checkPaymentStatus } from '../../../api/paymentApi';
 import { PaymentResult } from '../types';
 
-export function usePaymentStatus(paymentResult: PaymentResult | null, user: User | null) {
+export function usePaymentStatus(paymentResult: PaymentResult | null, user: User | null, orderId?: string) {
   const [checkingPayment, setCheckingPayment] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
@@ -38,7 +38,9 @@ export function usePaymentStatus(paymentResult: PaymentResult | null, user: User
           }
           setTimeout(() => {
             if (mounted) {
-              window.location.href = `/i/${paymentResult?.id}`;
+              if (orderId) {
+                window.location.href = `/i/${orderId}`;
+              }
             }
           }, 2000);
         }
@@ -74,7 +76,9 @@ export function usePaymentStatus(paymentResult: PaymentResult | null, user: User
     ) {
       setShowSuccessOverlay(true);
       const timer = setTimeout(() => {
-        window.location.href = `/i/${paymentResult.id}`;
+        if (orderId) {
+          window.location.href = `/i/${orderId}`;
+        }
       }, 2000);
       return () => clearTimeout(timer);
     }
