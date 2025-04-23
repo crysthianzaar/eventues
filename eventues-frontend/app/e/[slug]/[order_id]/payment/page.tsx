@@ -15,7 +15,8 @@ export default function PaymentPage() {
   const orderId = params?.order_id as string;
   
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
   const [order, setOrder] = useState<Order | null>(null);
   const [customerData, setCustomerData] = useState<CustomerData | null>(null);
   const [ticketData, setTicketData] = useState<TicketData[]>([]);
@@ -25,19 +26,6 @@ export default function PaymentPage() {
     totalAmount: 0,
     calculatedTotal: 0 // Added for debugging purposes
   });
-
-  // Adicionar log para debug dos valores
-  useEffect(() => {
-    if (order && orderSummary) {
-      console.log('Antes de renderizar - orderSummary:', orderSummary);
-      console.log('Antes de renderizar - order.total_amount:', order.total_amount);
-      console.log('Diferença entre valores:', {
-        'orderSummary.totalAmount': orderSummary.totalAmount,
-        'order.total_amount': order.total_amount,
-        'Diferença': orderSummary.totalAmount - (order.total_amount || 0)
-      });
-    }
-  }, [order, orderSummary]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -163,7 +151,7 @@ export default function PaymentPage() {
 
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError('Não foi possível carregar os dados do pedido. Por favor, tente novamente mais tarde.');
+        setLoadError('Não foi possível carregar os dados do pedido. Por favor, tente novamente mais tarde.');
       } finally {
         setLoading(false);
       }
@@ -178,7 +166,7 @@ export default function PaymentPage() {
   };
 
   const handlePaymentError = (errorMessage: string) => {
-    setError(errorMessage);
+    setPaymentError(errorMessage);
   };
 
   // Initialize theme hooks outside of conditionals to follow React hooks rules
@@ -195,11 +183,11 @@ export default function PaymentPage() {
     );
   }
 
-  if (error || !order || !customerData || !ticketData.length) {
+  if (loadError || !order || !customerData || !ticketData.length) {
     return (
       <Container maxWidth="lg">
         <Alert severity="error" sx={{ mt: 4, borderRadius: 2 }}>
-          {error || 'Erro ao carregar dados do pedido'}
+          {loadError || 'Erro ao carregar dados do pedido'}
         </Alert>
       </Container>
     );
@@ -220,7 +208,6 @@ export default function PaymentPage() {
           eventSlug={slug}
           orderId={orderId}
         />
-        
         <Box sx={{ 
           mb: 4,
           mt: 4,
@@ -249,8 +236,11 @@ export default function PaymentPage() {
             Revise os detalhes do seu pedido e escolha a forma de pagamento preferida
           </Typography>
         </Box>
-        
-
+        {paymentError && (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {paymentError}
+          </Alert>
+        )}
         <PaymentComponent
           eventId={order.event_id}
           ticketId={ticketData[0].id} // Using first ticket's ID

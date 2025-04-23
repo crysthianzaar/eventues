@@ -29,7 +29,7 @@ class AsaasService:
             json=customer_data,
             headers=self.headers
         )
-        return response.json() if response.ok else None
+        return response.json()
 
     def tokenize_card(self, tokenization_data: Dict[str, Any]) -> Dict[str, Any]:
         print("[DEBUG] Tokenizing card with data:", json.dumps(tokenization_data, indent=2))
@@ -49,7 +49,7 @@ class AsaasService:
         print("[DEBUG] Asaas API Response:", response.status_code)
         if not response.ok:
             print("[ERROR] Tokenization failed:", response.text)
-        return response.json() if response.ok else None
+        return response.json()
 
     def create_payment(self, payment_data: Dict[str, Any]) -> Tuple[Dict[str, Any], int]:
         response = requests.post(
@@ -119,9 +119,16 @@ def create_customer():
             customer_data['phone'] = data['phone']
 
         customer = asaas_service.create_customer(customer_data)
-        if not customer:
+        # Se a resposta da Asaas indicar erro, retorne a mensagem detalhada
+        if not customer or customer.get('errors'):
+            error_msg = 'Failed to create customer'
+            # Tenta extrair mensagem detalhada dos erros da Asaas
+            if customer and customer.get('errors'):
+                # Pode ser uma lista de erros
+                error_details = [err.get('description') or err.get('message') or str(err) for err in customer['errors']]
+                error_msg = "; ".join(error_details) if error_details else error_msg
             return Response(
-                body={'error': 'Failed to create customer'},
+                body={'error': error_msg},
                 status_code=400,
                 headers={'Content-Type': 'application/json'}
             )
@@ -169,13 +176,17 @@ def tokenize_card():
             'creditCardHolderInfo': data['creditCardHolderInfo'],
             'remoteIp': request.context.get('identity', {}).get('sourceIp', '')
         }
-        print("[DEBUG] Prepared tokenization data:", json.dumps(tokenization_data, indent=2))
 
         token = asaas_service.tokenize_card(tokenization_data)
-        if not token:
-            print("[ERROR] Failed to get token from Asaas")
+        # Se houver erro, retorne a mensagem detalhada
+        if not token or token.get('errors'):
+            error_msg = 'Failed to tokenize card'
+            if token and token.get('errors'):
+                error_details = [err.get('description') or err.get('message') or str(err) for err in token['errors']]
+                error_msg = "; ".join(error_details) if error_details else error_msg
+            print("[ERROR] Tokenization failed:", error_msg)
             return Response(
-                body={'error': 'Failed to tokenize card'},
+                body={'error': error_msg},
                 status_code=400,
                 headers={'Content-Type': 'application/json'}
             )
@@ -456,15 +467,22 @@ def check_payment_status(payment_id):
         # Consultar status na Asaas
         asaas_payment = asaas_service.get_payment_status(payment_id)
         
-        if asaas_payment['status'] == 'PENDING':
-            order_status = 'PAGAMENTO PENDENTE'
-        if asaas_payment['status'] == 'CONFIRMED':
-            order_status = 'CONFIRMANO'
-        if asaas_payment['status'] == 'RECEIVED':
-            order_status = 'CONFIRMADO'
-        else:
-            order_status = 'PAGAMENTO EM ANÁLISE'
-        # Atualizar status no banco de dados se necessário
+        status_map = {
+            'PENDING': 'PAGAMENTO PENDENTE',
+            'RECEIVED': 'CONFIRMADO',
+            'CONFIRMED': 'CONFIRMADO',
+            'OVERDUE': 'CANCELADO',
+            'REFUNDED': 'CANCELADO',
+            'PARTIALLY_REFUNDED': 'CANCELADO',
+            'CHARGEBACK_REQUESTED': 'CANCELADO',
+            'CHARGEBACK_DISPUTE': 'CANCELADO',
+            'DELETED': 'CANCELADO',
+            'RESTORED': 'CANCELADO',
+            'ANTICIPATED': 'CONFIRMADO',
+            'RECEIVED_IN_CASH_UNDONE': 'CANCELADO'
+        }
+        order_status = status_map.get(asaas_payment['status'], 'PAGAMENTO EM ANÁLISE')
+
         if order.to_dict()['status'] != asaas_payment['status']:
             order.reference.update({
                 'status': order_status,
@@ -701,6 +719,48 @@ def update_order_participants(order_id):
 
         return Response(
             body={'message': 'Participant information updated successfully'},
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/orders/{order_id}/update-user', methods=['PUT'], cors=cors_config)
+def update_order_user(order_id):
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+
+        if not data or 'user_id' not in data:
+            return Response(
+                body={'error': 'user_id is required'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Get the order
+        order_ref = db.collection('orders').document(order_id)
+        order_doc = order_ref.get()
+        if not order_doc.exists:
+            return Response(
+                body={'error': 'Order not found'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Update user_id of the order
+        order_ref.update({
+            'user_id': data['user_id'],
+            'updated_at': datetime.now()
+        })
+
+        return Response(
+            body={'message': 'Order user_id updated successfully'},
             status_code=200,
             headers={'Content-Type': 'application/json'}
         )

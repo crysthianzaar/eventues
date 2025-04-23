@@ -72,11 +72,16 @@ export default function TicketsPage() {
             .filter(([_, quantity]) => quantity > 0)
             .map(([ticketId, quantity]) => {
               const ticket = tickets.find(t => t.id === ticketId);
+              const valorBase = ticket?.valor || 0;
+              const taxa = calculatePlatformFee(valorBase);
               return {
                 qr_code_uuid: uuidv4(),
                 ticket_id: ticketId,
                 quantity,
-                ticket_name: ticket?.nome || ''
+                ticket_name: ticket?.nome || '',
+                valor: valorBase,
+                taxa: taxa,
+                valor_total: valorBase + taxa
               };
             }),
         }),
@@ -215,9 +220,10 @@ export default function TicketsPage() {
                 <Typography variant="h6" sx={{ fontWeight: 700, color: 'primary.main' }}>
                   Total: {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(
                     tickets.reduce((total, ticket) => {
-                      const ticketTotal = (selectedQuantities[ticket.id] || 0) * ticket.valor;
-                      const fee = calculatePlatformFee(ticketTotal);
-                      return total + ticketTotal + fee;
+                      const quantity = selectedQuantities[ticket.id] || 0;
+                      const valorBase = ticket.valor;
+                      const taxa = calculatePlatformFee(valorBase);
+                      return total + quantity * (valorBase + taxa);
                     }, 0)
                   )}
                 </Typography>

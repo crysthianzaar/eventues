@@ -101,6 +101,21 @@ export function CreditCardForm({
       {/* Formulário */}
       <Grid item xs={12}>
         <Grid container spacing={2}>
+        <Grid item xs={12}>
+            <TextField
+              required
+              fullWidth
+              label="Informe o seu CEP do seu Endereço"
+              name="postalCode"
+              value={formData.postalCode}
+              onChange={(e) => onPostalCodeChange(e.target.value.replace(/\D/g, ''))}
+              sx={{
+                '& .MuiOutlinedInput-root': {
+                  bgcolor: 'white'
+                }
+              }}
+            />
+          </Grid>
           <Grid item xs={12}>
             <TextField
               required
@@ -163,21 +178,6 @@ export function CreditCardForm({
               onChange={onCardCVVChange}
               onFocus={onInputFocus}
               inputProps={{ maxLength: 4 }}
-              sx={{
-                '& .MuiOutlinedInput-root': {
-                  bgcolor: 'white'
-                }
-              }}
-            />
-          </Grid>
-          <Grid item xs={12}>
-            <TextField
-              required
-              fullWidth
-              label="CEP"
-              name="postalCode"
-              value={formData.postalCode}
-              onChange={(e) => onPostalCodeChange(e.target.value.replace(/\D/g, ''))}
               sx={{
                 '& .MuiOutlinedInput-root': {
                   bgcolor: 'white'

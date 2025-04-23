@@ -1,7 +1,8 @@
 // components/LoginPage.tsx
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Box, Card, CircularProgress } from '@mui/material';
 import useAuth from '../hooks/useAuth';
 import Image from 'next/image';
@@ -21,6 +22,19 @@ const LoginPage = () => {
   } = useAuth();
 
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    // Check if redirected from a protected route
+    const message = searchParams.get('message');
+    if (message === 'auth_required') {
+      setAuthMessage('Faça login antes de continuar');
+    } else {
+      setAuthMessage(null);
+    }
+  }, [searchParams]);
 
   return (
     <Box
@@ -48,6 +62,22 @@ const LoginPage = () => {
         }}
       >
         <Image src="/logo.png" alt="Eventues Logo" width={200} height={60} style={{ objectFit: 'contain' }} />
+
+        {authMessage && (
+          <Box
+            sx={{
+              backgroundColor: '#f0f8ff',
+              padding: '10px',
+              marginBottom: '15px',
+              borderRadius: '5px',
+              border: '1px solid #007bff',
+              color: '#007bff',
+              fontWeight: 'bold',
+            }}
+          >
+            {authMessage}
+          </Box>
+        )}
 
         {signingIn ? (
           <CircularProgress />

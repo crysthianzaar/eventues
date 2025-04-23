@@ -3,6 +3,7 @@ import { Metadata } from 'next';
 import axios from 'axios';
 import { notFound } from 'next/navigation';
 import EventDetails from './components/EventDetails';
+import PageViewTracker from './components/PageViewTracker';
 import { formatDate } from '@/utils/formatters';
 import { Box } from '@mui/material';
 
@@ -147,6 +148,22 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
+// Função para registrar visualização de página
+const recordPageView = async (eventId: string) => {
+  try {
+    await fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events/${eventId}/pageview`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    console.log('Visualização registrada com sucesso');
+  } catch (error) {
+    // Silencioso em caso de falha - não queremos interromper o carregamento da página
+    console.error('Erro ao registrar visualização:', error);
+  }
+};
+
 export default async function EventPage({ params }: { params: { slug: string } }) {
   const { slug } = params;
   const eventDetail = await fetchPublicEventDetail(slug);
@@ -154,6 +171,9 @@ export default async function EventPage({ params }: { params: { slug: string } }
   if (!eventDetail) {
     notFound();
   }
+  
+  // Esta parte será executada no cliente
+  // Usamos "use client" diretiva para componentes cliente
 
   return (
     <Box 
@@ -165,6 +185,8 @@ export default async function EventPage({ params }: { params: { slug: string } }
         pb: { xs: 4, md: 8 }
       }}
     >
+      {/* Componente invisível que rastreia visualizações de página */}
+      <PageViewTracker eventId={eventDetail.event_id} />
       <EventDetails event={eventDetail} />
     </Box>
   );

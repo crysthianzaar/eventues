@@ -78,12 +78,6 @@ export default function PaymentSummary({
   backendTotal, 
   backendSubtotal
 }: PaymentSummaryProps) {
-  console.log('[PaymentSummary] Rendering with props:', { 
-    tickets, 
-    backendFee, 
-    backendTotal, 
-    backendSubtotal
-  });
   
   // Calculate totals directly from ticket data
   const calculatedSubtotal = tickets.reduce((total, ticket) => {
@@ -102,15 +96,6 @@ export default function PaymentSummary({
   const subtotal = backendSubtotal ?? calculatedSubtotal;
   const fees = backendFee ?? calculatedFees;
   const total = backendTotal ?? calculatedTotal;
-  
-  console.log('[PaymentSummary] Values:', {
-    calculatedSubtotal,
-    calculatedFees,
-    calculatedTotal,
-    subtotal,
-    fees,
-    total
-  });
 
   return (
     <SummaryContainer>
@@ -119,17 +104,19 @@ export default function PaymentSummary({
       </Typography>
 
       {tickets.map((ticket) => {
-        console.log(`[PaymentSummary] Rendering ticket ${ticket.ticket_name}: quantity=${ticket.quantity}`);
-        if (ticket.quantity === 0) return null;
+        const valor = Number(ticket.valor) || 0;
+        const taxa = Number(ticket.taxa) || 0;
+        const quantity = Number(ticket.quantity) || 1;
+        if (!quantity || quantity === 0) return null;
 
         return (
           <Box key={ticket.ticket_id} sx={{ mb: 2 }}>
             <SummaryRow>
               <SummaryLabel>
-                {ticket.ticket_name} x {ticket.quantity}
+                {ticket.ticket_name} x {quantity}
               </SummaryLabel>
               <SummaryValue>
-                {formatPrice(ticket.valor * ticket.quantity)}
+                {formatPrice(valor * quantity)}
               </SummaryValue>
             </SummaryRow>
             <SummaryRow>
@@ -137,7 +124,7 @@ export default function PaymentSummary({
                 Taxa de serviço
               </SummaryLabel>
               <SummaryValue sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                {formatPrice(ticket.taxa * ticket.quantity)}
+                {formatPrice(taxa * quantity)}
               </SummaryValue>
             </SummaryRow>
           </Box>

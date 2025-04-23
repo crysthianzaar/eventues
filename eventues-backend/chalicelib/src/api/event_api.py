@@ -5,6 +5,7 @@ import json
 from chalice import Blueprint, Response, CORSConfig
 from chalicelib.src.usecases.event_usecase import EventUseCase
 from chalicelib.src.usecases.form_usecase import FormUseCase
+from chalicelib.src.repositories.analytics_repository import AnalyticsRepository
 from chalicelib.src.utils.firebase import verify_token, db
 from chalicelib.src.utils.formatters import generate_slug
 
@@ -15,8 +16,148 @@ cors_config = CORSConfig(
 )
 
 event_api = Blueprint(__name__)
+event_api.cors = cors_config
 use_case = EventUseCase()
 form_use_case = FormUseCase()
+analytics_repository = AnalyticsRepository(db)
+
+@event_api.route('/organizer_detail/{event_id}/dashboard', methods=['GET'], cors=cors_config)
+def get_event_dashboard(event_id):
+    try:
+        # Verificar se o evento existe
+        event_ref = db.collection('events').document(event_id)
+        event = event_ref.get()
+        
+        if not event.exists:
+            return Response(
+                body=json.dumps({"error": "Evento não encontrado"}),
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+
+        # Buscar todos os pedidos relacionados a este evento
+        orders = db.collection('orders').where('event_id', '==', event_id).stream()
+        
+        # Inicializar estatísticas
+        stats = {
+            'vendasTotais': 0,
+            'vendasPendentes': 0,
+            'vendasCanceladas': 0,
+            'receitaLiquida': 0,
+            'valorRepassado': 0,
+            'valorAReceber': 0,
+            'visualizacoes': event.to_dict().get('views', 0),
+            'taxaConversao': 0,
+            'totalPedidos': 0,
+            'pedidosConfirmados': 0,
+            'metodosPagamento': {
+                'cartaoCredito': 0,
+                'pix': 0,
+                'boleto': 0,
+                'outros': 0
+            },
+            'pedidos': []
+        }
+        
+        # Processar pedidos
+        all_orders = []
+        for order in orders:
+            order_data = order.to_dict()
+            all_orders.append(order_data)
+            
+            order_total = order_data.get('total_amount', 0)
+            order_status = order_data.get('status', '')
+            
+            # Obter o método de pagamento dos detalhes de pagamento
+            payment_details = order_data.get('payment_details', {})
+            billing_type = payment_details.get('billingType', '') if payment_details else ''
+            
+            # Contabilizar métodos de pagamento
+            if billing_type == 'CREDIT_CARD':
+                stats['metodosPagamento']['cartaoCredito'] += 1
+            elif billing_type == 'PIX':
+                stats['metodosPagamento']['pix'] += 1
+            elif billing_type == 'BOLETO':
+                stats['metodosPagamento']['boleto'] += 1
+            else:
+                stats['metodosPagamento']['outros'] += 1
+            
+            # Incrementar contagem total de pedidos
+            stats['totalPedidos'] += 1
+            
+            # Classificar por status
+            if order_status in ['CONFIRMADO', 'CONFIRMED', 'RECEIVED']:
+                stats['vendasTotais'] += order_total
+                stats['valorRepassado'] += order_total
+                stats['pedidosConfirmados'] += 1
+            elif order_status in ['PAGAMENTO PENDENTE', 'PENDING']:
+                stats['vendasPendentes'] += order_total
+                stats['valorAReceber'] += order_total
+            elif order_status in ['CANCELADO', 'REFUNDED', 'DELETED', 'CHARGEBACK_REQUESTED']:
+                stats['vendasCanceladas'] += order_total
+        
+        # Calcular receita líquida (total - cancelamentos)
+        stats['receitaLiquida'] = stats['vendasTotais'] - stats['vendasCanceladas']
+        
+        # Obter total de visualizações do repositório de analytics
+        visualizacoes = analytics_repository.get_page_views(event_id)
+        stats['visualizacoes'] = visualizacoes
+        
+        # Calcular taxa de conversão
+        if stats['visualizacoes'] > 0:
+            stats['taxaConversao'] = round((stats['pedidosConfirmados'] / stats['visualizacoes']) * 100, 2)
+        
+        # Obter todos os pedidos ordenados por data (mais recentes primeiro)
+        all_orders.sort(key=lambda x: x.get('created_at', 0), reverse=True)
+        
+        stats['pedidos'] = [{
+            'idPedido': order.get('payment_id', ''),
+            'status': order.get('status', ''),
+            'valor': order.get('subtotal_amount', 0),
+            'total_amount': order.get('total_amount', ''),
+            'fee_amount': order.get('fee_amount', ''),
+            'payment_url': order.get('payment_url', ''),
+            'data': order.get('created_at').isoformat() if order.get('created_at') else '',
+            'metodoPagamento': order.get('payment_details', {}).get('billingType', '') if order.get('payment_details') else 'Não especificado'
+        } for order in all_orders]
+        
+        return Response(
+            body=json.dumps(stats),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        print(f"Erro ao buscar dashboard do evento: {str(e)}")
+        return Response(
+            body=json.dumps({'error': str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+
+@event_api.route('/events/{event_id}/pageview', methods=['POST'], cors=cors_config)
+def record_page_view(event_id):
+    """
+    Registra uma nova visualização para o evento especificado.
+    Não requer autenticação para permitir contabilizar todas as visualizações públicas.
+    """
+    try:
+        # Incrementar contador de visualizações
+        total_views = analytics_repository.increment_page_view(event_id)
+        
+        return Response(
+            body=json.dumps({'visualizacoes': total_views}),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        print(f"Erro ao registrar visualização: {str(e)}")
+        return Response(
+            body=json.dumps({'error': 'Erro ao registrar visualização'}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
 
 @event_api.route('/events', methods=['POST'], cors=cors_config)
 def create_event():

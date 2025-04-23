@@ -80,18 +80,9 @@ export default function OrderInfoPage() {
           console.log('Final participant data:', participantData);
 
           setInitialData(participantData);
-        } else {
-          const savedData = localStorage.getItem(`order_${order_id}_form_data`);
-          if (savedData) {
-            setInitialData(JSON.parse(savedData) as FormData);
-          }
         }
       } catch (error) {
         console.error('Error loading initial data:', error);
-        const savedData = localStorage.getItem(`order_${order_id}_form_data`);
-        if (savedData) {
-          setInitialData(JSON.parse(savedData));
-        }
       } finally {
         setLoading(false);
       }
@@ -106,7 +97,6 @@ export default function OrderInfoPage() {
       console.log('Form validation failed');
       return;
     }
-    localStorage.setItem(`order_${order_id}_form_data`, JSON.stringify(data));
   };
 
   if (loading) {

@@ -58,6 +58,10 @@ const Navbar: React.FC = () => {
 
   const handleLogout = () => {
     auth.signOut();
+    // Limpar dados de autenticação do localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('user_id');
+    }
     router.push("/");
   };
 

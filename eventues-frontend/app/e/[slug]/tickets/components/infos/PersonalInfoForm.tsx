@@ -209,9 +209,6 @@ const PersonalInfoForm: FC<PersonalInfoFormProps> = ({
           if (!response.ok) {
             throw new Error('Failed to update order with participant information');
           }
-
-          localStorage.setItem(`order_${orderId}_form_data`, JSON.stringify(formData));
-
           router.push(`/e/${eventSlug}/${orderId}/payment`);
         } catch (error) {
           console.error('Error updating order:', error);

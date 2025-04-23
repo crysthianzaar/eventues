@@ -46,7 +46,16 @@ export function usePaymentSubmit() {
       });
 
       if (!customerResponse.ok) {
-        throw new Error('Falha ao criar cliente');
+        let errorMsg = 'Falha ao criar cliente';
+        try {
+          const errorData = await customerResponse.json();
+          if (errorData && errorData.error) {
+            errorMsg += `: ${errorData.error}`;
+          }
+        } catch (e) {
+          // Ignore JSON parse errors, fallback to generic message
+        }
+        throw new Error(errorMsg);
       }
 
       const customer = await customerResponse.json();
