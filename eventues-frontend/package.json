@@ -47,6 +47,7 @@
     "react-hot-toast": "^2.5.2",
     "react-imask": "^7.6.1",
     "react-qr-code": "^2.0.15",
+    "react-qr-scanner": "^1.0.0-alpha.11",
     "react-quill": "^2.0.0",
     "recharts": "^2.15.3",
     "sharp": "^0.33.5",

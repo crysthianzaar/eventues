@@ -242,7 +242,7 @@ const MinhaContaPage = () => {
         justifyContent: 'center',
         alignItems: { xs: 'flex-start', md: 'center' },
         padding: { xs: '0', md: '40px' },
-        backgroundImage: { xs: 'none', md: 'url("/cycling.jpg")' },
+        backgroundImage: { xs: 'none', md: 'url("/banner_template.png")' },
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

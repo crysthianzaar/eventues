@@ -159,7 +159,7 @@ const ConfigurarPerfilPage = () => {
         justifyContent: 'center',
         alignItems: 'center',
         padding: { xs: '20px', md: '40px' },
-        backgroundImage: 'url("/cycling.jpg")',
+        backgroundImage: 'url("/banner_template.png")',
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',

@@ -396,47 +396,143 @@ def get_pix_qrcode(payment_id):
             headers={'Content-Type': 'application/json'}
         )
 
-@payment_api.route('/webhook', methods=['POST'], cors=cors_config)
+@payment_api.route('/webhook/asaas', methods=['POST'], cors=cors_config)
 def webhook():
     try:
         request = payment_api.current_request
         event = request.json_body
         
-        # Get payment details
-        payment_id = event.get('payment', {}).get('id')
-        if not payment_id:
+        # Log webhook event for debugging
+        print(f"[DEBUG] Received Asaas webhook: {json.dumps(event, indent=2)}")
+        
+        # 1. Validate webhook signature (if available)
+        # Asaas may include a signature header that should be validated in production
+        # This is a placeholder for future signature validation
+        
+        # 2. Extract event information
+        event_type = event.get('event')
+        if not event_type:
+            print("[ERROR] No event type in webhook data")
             return Response(
-                body={'error': 'Invalid webhook data'},
+                body={'error': 'Invalid webhook data: missing event type'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+        # 3. Get payment details
+        payment = event.get('payment')
+        if not payment:
+            print("[ERROR] No payment data in webhook")
+            return Response(
+                body={'error': 'Invalid webhook data: missing payment'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+        payment_id = payment.get('id')
+        if not payment_id:
+            print("[ERROR] No payment ID in webhook data")
+            return Response(
+                body={'error': 'Invalid webhook data: missing payment ID'},
                 status_code=400,
                 headers={'Content-Type': 'application/json'}
             )
 
-        # Get order by payment_id
+        # 4. Get order by payment_id
         orders = db.collection('orders').where('payment_id', '==', payment_id).limit(1).get()
-        if not orders:
+        if not orders or len(orders) == 0:
+            print(f"[ERROR] No order found for payment_id {payment_id}")
             return Response(
-                body={'error': 'Order not found'},
+                body={'error': f'Order not found for payment_id {payment_id}'},
                 status_code=404,
                 headers={'Content-Type': 'application/json'}
             )
 
         order = orders[0]
+        order_data = order.to_dict()
         
-        # Update order status
-        order.reference.update({
-            'status': event['payment']['status'],
-            'updated_at': datetime.now()
-        })
+        # 5. Map Asaas status to Eventues status
+        asaas_status = payment.get('status')
+        if not asaas_status:
+            print("[ERROR] No status in payment data")
+            return Response(
+                body={'error': 'Invalid webhook data: missing payment status'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+        # Use the same status mapping as in check_payment_status
+        status_map = {
+            'PENDING': 'PAGAMENTO PENDENTE',
+            'RECEIVED': 'CONFIRMADO',
+            'CONFIRMED': 'CONFIRMADO',
+            'OVERDUE': 'CANCELADO',
+            'REFUNDED': 'CANCELADO',
+            'PARTIALLY_REFUNDED': 'CANCELADO',
+            'CHARGEBACK_REQUESTED': 'CANCELADO',
+            'CHARGEBACK_DISPUTE': 'CANCELADO',
+            'DELETED': 'CANCELADO',
+            'RESTORED': 'CANCELADO',
+            'ANTICIPATED': 'CONFIRMADO',
+            'RECEIVED_IN_CASH_UNDONE': 'CANCELADO'
+        }
+        
+        eventues_status = status_map.get(asaas_status, 'PAGAMENTO EM ANÁLISE')
+        
+        # 6. Check if status has actually changed
+        current_status = order_data.get('status')
+        if current_status != eventues_status:
+            print(f"[INFO] Updating order {order.id} status from {current_status} to {eventues_status}")
+            
+            # 7. Update order with new status
+            update_data = {
+                'status': eventues_status,
+                'updated_at': datetime.now(),
+                'payment_details': {
+                    'status': asaas_status,
+                    'last_event': event_type,
+                    'last_update': datetime.now().isoformat()
+                }
+            }
+            
+            # Include additional payment information if available
+            if 'value' in payment:
+                update_data['payment_details']['value'] = float(payment['value'])
+            if 'netValue' in payment:
+                update_data['payment_details']['netValue'] = float(payment['netValue'])
+            if 'billingType' in payment:
+                update_data['payment_details']['billingType'] = payment['billingType']
+            if 'paymentDate' in payment:
+                update_data['payment_details']['paymentDate'] = payment['paymentDate']
+                
+            # Update the order
+            order.reference.update(update_data)
+            
+            # 8. Handle specific status transitions (if needed)
+            # Example: If payment confirmed, you might want to generate tickets, send emails, etc.
+            if eventues_status == 'CONFIRMADO' and current_status != 'CONFIRMADO':
+                # This is where you could trigger additional actions like sending confirmation emails
+                # For now, we're just logging it
+                print(f"[INFO] Payment confirmed for order {order.id} - additional actions could be triggered here")
+        else:
+            print(f"[INFO] Order {order.id} status unchanged: {current_status}")
 
+        # 9. Return success response
         return Response(
-            body={'status': 'received'},
+            body={
+                'status': 'success',
+                'message': f'Webhook processed successfully',
+                'order_id': order.id,
+                'new_status': eventues_status
+            },
             status_code=200,
             headers={'Content-Type': 'application/json'}
         )
 
     except Exception as e:
+        print(f"[ERROR] Error processing webhook: {str(e)}")
         return Response(
-            body={'error': str(e)},
+            body={'error': f'Error processing webhook: {str(e)}'},
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
@@ -795,6 +891,329 @@ def get_order(order_id):
             status_code=200,
             headers={'Content-Type': 'application/json'}
         )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/events/{event_id}/participants', methods=['GET'], cors=cors_config)
+def get_event_participants(event_id):
+    try:
+        # Buscar todos os pedidos confirmados para este evento
+        orders = db.collection('orders').where('event_id', '==', event_id).where('status', 'in', 
+                                            ['CONFIRMADO', 'CONFIRMED', 'RECEIVED']).stream()
+        
+        participants = []
+        for order in orders:
+            order_data = order.to_dict()
+            if 'tickets' in order_data and isinstance(order_data['tickets'], list):
+                for ticket_idx, ticket in enumerate(order_data['tickets']):
+                    # Extrair informações principais do participante 
+                    participant_info = {}
+                    # Obter o primeiro participante da lista (geralmente só há um por ticket)
+                    if 'participants' in ticket and isinstance(ticket['participants'], list) and len(ticket['participants']) > 0:
+                        first_participant = ticket['participants'][0]
+                        
+                        # Extrair informações básicas
+                        participant_info['fullName'] = first_participant.get('fullName', 'Nome não informado')
+                        participant_info['gender'] = first_participant.get('gender', '')
+                        participant_info['birthDate'] = first_participant.get('birthDate', '')
+                        
+                        # Extrair categoria se existir (qualquer campo que não é um campo padrão)
+                        standard_fields = ['fullName', 'gender', 'birthDate', 'termsAccepted']
+                        categories = {}
+                        for key, value in first_participant.items():
+                            if key not in standard_fields:
+                                categories[key] = value
+                        participant_info['categories'] = categories
+                    
+                    # Criar um participante flat com todas as informações necessárias
+                    flat_participant = {
+                        'order_id': order.id,
+                        'participant_index': ticket_idx,
+                        'fullName': participant_info.get('fullName', 'Nome não informado'),
+                        'gender': participant_info.get('gender', ''),
+                        'birthDate': participant_info.get('birthDate', ''),
+                        'categories': participant_info.get('categories', {}),
+                        'ticket_name': ticket.get('ticket_name', ''),
+                        'ticket_id': ticket.get('ticket_id', ''),
+                        'qr_code_uuid': ticket.get('qr_code_uuid', ''),
+                        'order_status': order_data.get('status', ''),
+                        'created_at': order_data.get('created_at').isoformat() if 'created_at' in order_data else None,
+                        'user_id': order_data.get('user_id', ''),
+                        'checkin': ticket.get('checkin', False),
+                        'checkin_timestamp': ticket.get('checkin_timestamp', None),
+                        'checkin_by': ticket.get('checkin_by', None)
+                    }
+                    
+                    participants.append(flat_participant)
+        
+        return Response(
+            body={'participants': participants},
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@payment_api.route('/events/{event_id}/participants/{order_id}/checkin', methods=['POST'], cors=cors_config)
+def update_participant_checkin(event_id, order_id):
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+        
+        if not data or 'participant_index' not in data or 'checkin_status' not in data or 'user_id' not in data:
+            return Response(
+                body={'error': 'Missing required fields: participant_index, checkin_status, and user_id'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        participant_index = data['participant_index']
+        checkin_status = data['checkin_status']
+        user_id = data['user_id']
+        
+        # Buscar o pedido
+        order_ref = db.collection('orders').document(order_id)
+        order_doc = order_ref.get()
+        
+        if not order_doc.exists:
+            return Response(
+                body={'error': 'Order not found'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        order_data = order_doc.to_dict()
+        
+        # Verificar se o pedido pertence ao evento correto
+        if order_data.get('event_id') != event_id:
+            return Response(
+                body={'error': 'Order does not belong to this event'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        # Verificar se o pedido está confirmado
+        if order_data.get('status') not in ['CONFIRMADO', 'CONFIRMED', 'RECEIVED']:
+            return Response(
+                body={'error': 'Cannot check in participants from unconfirmed orders'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        # Verificar se existem tickets no pedido
+        if 'tickets' not in order_data or not isinstance(order_data['tickets'], list):
+            return Response(
+                body={'error': 'No tickets found in this order'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        # Verificar se o índice do participante é válido
+        if participant_index < 0 or participant_index >= len(order_data['tickets']):
+            return Response(
+                body={'error': 'Invalid participant index'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        # Implementar atualização com controle de concorrência otimista
+        try:
+            # Primeiro obter os dados atuais para verificar
+            order_snapshot = order_ref.get()
+            current_order_data = order_snapshot.to_dict()
+            
+            # Verificar se o estado do ticket não mudou desde a leitura inicial
+            if len(current_order_data['tickets']) <= participant_index:
+                return Response(
+                    body={'error': 'Participant index out of bounds'},
+                    status_code=400,
+                    headers={'Content-Type': 'application/json'}
+                )
+            
+            # Atualizar o status de checkin
+            current_order_data['tickets'][participant_index]['checkin'] = checkin_status
+            current_order_data['tickets'][participant_index]['checkin_timestamp'] = datetime.now().isoformat() if checkin_status else None
+            current_order_data['tickets'][participant_index]['checkin_by'] = user_id if checkin_status else None
+            
+            # Atualizar o documento
+            order_ref.update({
+                'tickets': current_order_data['tickets'],
+                'updated_at': datetime.now()
+            })
+            
+            updated_participant = current_order_data['tickets'][participant_index]
+            
+            # Extrair os dados do participante para exibição no frontend
+            participant_info = {}
+            if 'participants' in updated_participant and isinstance(updated_participant['participants'], list) \
+               and len(updated_participant['participants']) > 0:
+                first_participant = updated_participant['participants'][0]
+                participant_info = {
+                    'fullName': first_participant.get('fullName', 'Nome não informado'),
+                    'gender': first_participant.get('gender', ''),
+                    'birthDate': first_participant.get('birthDate', '')
+                }
+            
+            # Criar um participante flat com dados importantes para exibição
+            flat_participant = {
+                'order_id': order_id,
+                'participant_index': participant_index,
+                'fullName': participant_info.get('fullName', 'Nome não informado'),
+                'gender': participant_info.get('gender', ''),
+                'ticket_name': updated_participant.get('ticket_name', ''),
+                'checkin': updated_participant.get('checkin', False),
+                'checkin_timestamp': updated_participant.get('checkin_timestamp', None),
+                'checkin_by': updated_participant.get('checkin_by', None)
+            }
+            
+            return Response(
+                body={
+                    'message': f"Participant check-in {'completed' if checkin_status else 'reverted'} successfully",
+                    'participant': flat_participant
+                },
+                status_code=200,
+                headers={'Content-Type': 'application/json'}
+            )
+        except ValueError as ve:
+            return Response(
+                body={'error': str(ve)},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+
+@payment_api.route('/events/{event_id}/qr-checkin', methods=['POST'], cors=cors_config)
+def qr_code_checkin(event_id):
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+        
+        if not data or 'qr_code_uuid' not in data or 'checkin_status' not in data or 'user_id' not in data:
+            return Response(
+                body={'error': 'Missing required fields: qr_code_uuid, checkin_status, and user_id'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        qr_code_uuid = data['qr_code_uuid']
+        checkin_status = data['checkin_status']
+        user_id = data['user_id']
+        
+        # Buscar todas as ordens confirmadas para este evento
+        orders = db.collection('orders').where('event_id', '==', event_id).where('status', 'in', 
+                                            ['CONFIRMADO', 'CONFIRMED', 'RECEIVED']).stream()
+        
+        # Variáveis para armazenar os resultados da busca
+        found_order = None
+        found_ticket_index = -1
+        found_ticket = None
+        
+        # Procurar pelo QR code entre todos os tickets
+        for order in orders:
+            order_data = order.to_dict()
+            if 'tickets' in order_data and isinstance(order_data['tickets'], list):
+                for ticket_idx, ticket in enumerate(order_data['tickets']):
+                    if ticket.get('qr_code_uuid') == qr_code_uuid:
+                        found_order = order
+                        found_ticket_index = ticket_idx
+                        found_ticket = ticket
+                        break
+            if found_order:
+                break
+        
+        # Se não encontrou o QR code
+        if not found_order or found_ticket_index == -1:
+            return Response(
+                body={'error': 'QR code não encontrado ou inválido para este evento'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        # Atualizar o check-in
+        order_ref = db.collection('orders').document(found_order.id)
+        
+        # Implementar atualização com controle de concorrência otimista
+        try:
+            # Primeiro obter os dados atuais para verificar
+            order_snapshot = order_ref.get()
+            current_order_data = order_snapshot.to_dict()
+            
+            # Verificar se o estado do ticket não mudou desde a leitura inicial
+            if len(current_order_data['tickets']) <= found_ticket_index:
+                return Response(
+                    body={'error': 'Participant index out of bounds'},
+                    status_code=400,
+                    headers={'Content-Type': 'application/json'}
+                )
+            
+            # Atualizar o status de checkin
+            current_order_data['tickets'][found_ticket_index]['checkin'] = checkin_status
+            current_order_data['tickets'][found_ticket_index]['checkin_timestamp'] = datetime.now().isoformat() if checkin_status else None
+            current_order_data['tickets'][found_ticket_index]['checkin_by'] = user_id if checkin_status else None
+            
+            # Atualizar o documento
+            order_ref.update({
+                'tickets': current_order_data['tickets'],
+                'updated_at': datetime.now()
+            })
+            
+            updated_ticket = current_order_data['tickets'][found_ticket_index]
+            
+            # Extrair os dados do participante para exibição no frontend
+            participant_info = {}
+            if 'participants' in updated_ticket and isinstance(updated_ticket['participants'], list) \
+            and len(updated_ticket['participants']) > 0:
+                first_participant = updated_ticket['participants'][0]
+                participant_info = {
+                    'fullName': first_participant.get('fullName', 'Nome não informado'),
+                    'gender': first_participant.get('gender', ''),
+                    'birthDate': first_participant.get('birthDate', '')
+                }
+            
+            # Criar um participante flat com dados importantes para exibição
+            flat_participant = {
+                'order_id': found_order.id,
+                'participant_index': found_ticket_index,
+                'fullName': participant_info.get('fullName', 'Nome não informado'),
+                'gender': participant_info.get('gender', ''),
+                'ticket_name': updated_ticket.get('ticket_name', ''),
+                'qr_code_uuid': qr_code_uuid,
+                'checkin': updated_ticket.get('checkin', False),
+                'checkin_timestamp': updated_ticket.get('checkin_timestamp', None),
+                'checkin_by': updated_ticket.get('checkin_by', None)
+            }
+            
+            return Response(
+                body={
+                    'message': f"Check-in {'realizado' if checkin_status else 'revertido'} com sucesso por QR code",
+                    'participant': flat_participant
+                },
+                status_code=200,
+                headers={'Content-Type': 'application/json'}
+            )
+        except ValueError as ve:
+            return Response(
+                body={'error': str(ve)},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
 
     except Exception as e:
         return Response(

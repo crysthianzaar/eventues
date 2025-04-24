@@ -29,11 +29,13 @@ import InfoIcon from "@mui/icons-material/Info"; // Para detalhes do evento
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn"; // Para ingressos e valores
 import AssignmentIcon from "@mui/icons-material/Assignment"; // Para formulários de inscrição
 import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/resumo
+import HowToRegIcon from "@mui/icons-material/HowToReg"; // Para check-in de participantes
 import Image from "next/image"; // Next.js Image component
 import SummaryCard from "./Summary";
 import InformationCard from "./InformationCard";
 import FormCard from "./FormCard";
 import CriarIngressoPage from "./TicketsAndValues";
+import CheckinCard from "./CheckinCard";
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
 import api from "../apis/api";
 
@@ -319,6 +321,19 @@ const OrganizatorEventDetail: React.FC = () => {
       ),
       description:
         "Personalização do formulário que os participantes devem preencher ao se inscrever.",
+    },
+      {
+      icon: <HowToRegIcon />, // Ícone de check-in para controle de participantes
+      title: "Check-in",
+      component: (
+        <CheckinCard
+          eventId={eventDetail.event_id}
+          onNotify={(message, severity) =>
+            handleNotifyAndAction(message, severity, () => {})
+          }
+        />
+      ),
+      description: "Gerenciamento de check-in dos participantes do evento.",
     },
     // Adicione mais cards conforme necessário...
   ];

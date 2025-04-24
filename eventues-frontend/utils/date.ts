@@ -1,10 +1,11 @@
-import { format } from 'date-fns';
-import { ptBR } from 'date-fns/locale';
-
+// Função para formatar datas em formato brasileiro (dia de mês de ano)
 export const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  const day = format(date, 'd');
-  const month = format(date, 'MMMM');
-  const year = format(date, 'yyyy');
+  
+  // Usando Intl API para garantir que a data está em português brasileiro
+  const day = date.getDate();
+  const month = date.toLocaleString('pt-BR', { month: 'long' });
+  const year = date.getFullYear();
+  
   return `${day} de ${month} de ${year}`;
 };

@@ -1,7 +1,7 @@
-// app/meus_eventos/ClientMeusEventosPage.tsx
+// app/meus_eventos/components/ClientMeusEventosPage.tsx
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import MyEvents from './MyEvents';
 
 const ClientMeusEventosPage: React.FC = () => {
