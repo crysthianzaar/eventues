@@ -1,30 +1,44 @@
 "use client";
 
-import React, { useEffect, useState } from 'react';
-import { 
-  Container,
-  Grid,
+import React, { useState, useEffect } from 'react';
+import {
+  Box,
+  Button,
   Card,
   CardMedia,
-  CardContent,
-  Typography,
-  Button,
-  Box,
-  Paper,
-  Chip,
-  IconButton,
-  Stack,
   Divider,
+  Grid,
+  IconButton,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Paper,
+  Skeleton,
+  Stack,
+  Typography,
+  styled,
   useTheme,
   useMediaQuery,
+  Container,
+  CardContent,
+  Chip,
   Fade,
   Zoom
 } from '@mui/material';
-import { 
+import {
+  AccessTime as AccessTimeIcon,
+  CalendarToday as CalendarTodayIcon,
+  LocationOn as LocationOnIcon,
   Share as ShareIcon,
-  CalendarToday,
-  LocationOn,
-  AccessTime,
+  ArrowForward as ArrowForwardIcon,
+  InfoOutlined as InfoOutlinedIcon,
+  Facebook as FacebookIcon,
+  Twitter as TwitterIcon,
+  WhatsApp as WhatsAppIcon,
+  Telegram as TelegramIcon,
+  LinkedIn as LinkedInIcon,
+  ContentCopy as ContentCopyIcon,
   Groups2
 } from '@mui/icons-material';
 import InformationCard from './InformationCard';
@@ -128,8 +142,54 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     setCacheBuster(Date.now());
   }, [bannerUrl]);
 
+  // Função para compartilhamento em redes sociais específicas
+  const shareOnSocialMedia = (platform: 'facebook' | 'twitter' | 'whatsapp' | 'telegram' | 'linkedin' | 'copy') => {
+    const url = window.location.href;
+    const title = `${event.name} - ${event.city}`;
+    const description = [
+      `🎯 ${event.event_type}: ${event.name}`,
+      `📅 Data: ${formatEventDate(event.start_date)}`,
+      `⏰ Horário: ${event.start_time} às ${event.end_time}`,
+      `📍 Local: ${event.city}, ${event.state}`,
+      '',
+      '🎟️ Garanta sua vaga agora!'
+    ].join('\n');
+    
+    // Cada plataforma tem um formato de compartilhamento diferente
+    switch (platform) {
+      case 'facebook':
+        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+        break;
+      case 'twitter':
+        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(title)}&url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+        break;
+      case 'whatsapp':
+        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${title}\n\n${description}\n\n${url}`)}`, '_blank');
+        break;
+      case 'telegram':
+        window.open(`https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`${title}\n\n${description}`)}`, '_blank');
+        break;
+      case 'linkedin':
+        window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`, '_blank', 'width=600,height=400');
+        break;
+      case 'copy':
+        navigator.clipboard.writeText(`${title}\n\n${description}\n\n${url}`)
+          .then(() => {
+            alert('Link copiado para a área de transferência!');
+          })
+          .catch((err) => {
+            console.error('Erro ao copiar: ', err);
+          });
+        break;
+    }
+  };
+  
+  // Estado para o menu de compartilhamento
+  const [shareAnchorEl, setShareAnchorEl] = useState<null | HTMLElement>(null);
+  
   const handleShare = async () => {
     try {
+      // Preparar dados para compartilhamento nativo
       const shareData = {
         title: `${event.name} - ${event.city}`,
         text: [
@@ -143,18 +203,29 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
         ].join('\n'),
         url: window.location.href,
       };
-
+      
+      // Tenta compartilhamento padrão (sem imagem)
       if (navigator.canShare && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
-        // Fallback for browsers that don't support Web Share API
+        // Fallback para navegadores que não suportam a Web Share API
+        // Usa o menu de compartilhamento personalizado ou copia para a área de transferência
+        // Por enquanto, vamos apenas copiar para a área de transferência
         await navigator.clipboard.writeText(
           `${shareData.title}\n\n${shareData.text}\n\nSaiba mais: ${shareData.url}`
         );
-        // You might want to show a toast/notification here
+        alert('Link copiado para a área de transferência!');
       }
     } catch (error) {
-      console.error('Error sharing:', error);
+      console.error('Erro ao compartilhar:', error);
+      // Se falhar, tenta copiar para a área de transferência
+      try {
+        const fallbackText = `${event.name} - ${event.city}\n\nSaiba mais: ${window.location.href}`;
+        await navigator.clipboard.writeText(fallbackText);
+        alert('Link copiado para a área de transferência!');
+      } catch (clipboardError) {
+        console.error('Erro ao copiar:', clipboardError);
+      }
     }
   };
 
@@ -388,7 +459,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                 </Button>
 
                 <IconButton
-                  onClick={handleShare}
+                  onClick={(e) => setShareAnchorEl(e.currentTarget)}
                   sx={{
                     bgcolor: colors.surface.highlight,
                     color: colors.primary,
@@ -404,6 +475,75 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                 >
                   <ShareIcon />
                 </IconButton>
+                
+                {/* Menu de compartilhamento */}
+                <Menu
+                  anchorEl={shareAnchorEl}
+                  open={Boolean(shareAnchorEl)}
+                  onClose={() => setShareAnchorEl(null)}
+                  PaperProps={{
+                    elevation: 3,
+                    sx: { borderRadius: 2, mt: 1 }
+                  }}
+                >
+                  <MenuItem onClick={() => {
+                    shareOnSocialMedia('facebook');
+                    setShareAnchorEl(null);
+                  }}>
+                    <ListItemIcon><FacebookIcon color="primary" /></ListItemIcon>
+                    <ListItemText primary="Facebook" />
+                  </MenuItem>
+                  
+                  <MenuItem onClick={() => {
+                    shareOnSocialMedia('twitter');
+                    setShareAnchorEl(null);
+                  }}>
+                    <ListItemIcon><TwitterIcon style={{ color: '#1DA1F2' }} /></ListItemIcon>
+                    <ListItemText primary="Twitter" />
+                  </MenuItem>
+                  
+                  <MenuItem onClick={() => {
+                    shareOnSocialMedia('whatsapp');
+                    setShareAnchorEl(null);
+                  }}>
+                    <ListItemIcon><WhatsAppIcon style={{ color: '#25D366' }} /></ListItemIcon>
+                    <ListItemText primary="WhatsApp" />
+                  </MenuItem>
+                  
+                  <MenuItem onClick={() => {
+                    shareOnSocialMedia('telegram');
+                    setShareAnchorEl(null);
+                  }}>
+                    <ListItemIcon><TelegramIcon style={{ color: '#0088cc' }} /></ListItemIcon>
+                    <ListItemText primary="Telegram" />
+                  </MenuItem>
+                  
+                  <MenuItem onClick={() => {
+                    shareOnSocialMedia('linkedin');
+                    setShareAnchorEl(null);
+                  }}>
+                    <ListItemIcon><LinkedInIcon style={{ color: '#0077B5' }} /></ListItemIcon>
+                    <ListItemText primary="LinkedIn" />
+                  </MenuItem>
+                  
+                  <MenuItem onClick={() => {
+                    shareOnSocialMedia('copy');
+                    setShareAnchorEl(null);
+                  }}>
+                    <ListItemIcon><ContentCopyIcon /></ListItemIcon>
+                    <ListItemText primary="Copiar Link" />
+                  </MenuItem>
+                  
+                  <Divider />
+                  
+                  <MenuItem onClick={() => {
+                    handleShare();
+                    setShareAnchorEl(null);
+                  }}>
+                    <ListItemIcon><ShareIcon /></ListItemIcon>
+                    <ListItemText primary="Compartilhamento nativo" secondary="Usar compartilhamento do dispositivo" />
+                  </MenuItem>
+                </Menu>
               </Paper>
             </Grid>
 

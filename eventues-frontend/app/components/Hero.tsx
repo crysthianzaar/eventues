@@ -63,7 +63,7 @@ const Hero: React.FC = () => {
           backgroundSize: 'cover', // Ajusta a imagem para preencher o contêiner mantendo a proporção
           backgroundRepeat: 'no-repeat', // Impede que a imagem se repita
           transition: 'background 1s ease-in-out',
-          filter: 'grayscale(80%)', // Filtro preto e branco apenas no fundo
+          filter: 'grayscale(90%)', // Filtro preto e branco apenas no fundo
           zIndex: -1, // Para garantir que o background fique atrás do conteúdo
         }}
       />

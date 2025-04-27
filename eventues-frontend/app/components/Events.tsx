@@ -43,15 +43,17 @@ const EventCard: React.FC<EventCardProps> = ({ event, onEventClick }) => {
   return (
     <Card
       sx={{
-        width: { xs: '100%', sm: '90%', md: '300px' },
-        margin: { xs: '10px auto', md: '0 auto' },
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         boxShadow: '0 10px 30px rgba(0, 0, 0, 0.2)',
         border: '2px solid rgba(0, 0, 0, 0.2)',
         borderRadius: '20px',
         overflow: 'hidden',
         transition: 'transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease',
         '&:hover': {
-          transform: 'scale(1.05)',
+          transform: 'scale(1.03)',
           boxShadow: '0 15px 40px rgba(0, 0, 0, 0.3)',
           borderColor: '#5A67D8',
         },
@@ -183,14 +185,18 @@ const Events: React.FC = () => {
         container
         spacing={4}
         justifyContent="center"
-        sx={{ flexDirection: { xs: 'column', md: 'row' }, alignItems: 'center' }}
+        sx={{ px: { xs: 2, sm: 4, md: 6 } }}
       >
         {events.map((event, index) => (
           <Grid
             item
             key={event.event_id}
-            sx={{ width: { xs: '100%', md: 'auto' } }}
+            xs={12}        // 1 por linha em dispositivos muito pequenos
+            sm={6}         // 2 por linha em dispositivos pequenos
+            md={4}         // 3 por linha em dispositivos médios
+            lg={3}         // 4 por linha em dispositivos grandes
             ref={index === events.length - 1 ? lastEventElementRef : null}
+            sx={{ mb: 3 }} // Adiciona margem inferior para separar as linhas
           >
             <EventCard event={event} onEventClick={handleEventClick} />
           </Grid>
