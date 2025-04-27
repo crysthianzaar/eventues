@@ -9,15 +9,15 @@ const Hero: React.FC = () => {
   const items = [
     {
       color: '#2C3BBA',
-      backgroundImage: 'url("/event_esportivo.png")',
+      backgroundImage: 'url("/sport.jpg")',
     },
     {
       color: '#68D391',
-      backgroundImage: 'url("/event_musical.jpg")',
+      backgroundImage: 'url("/music.jpg")',
     },
     {
       color: '#FF5733',
-      backgroundImage: 'url("/event_cultural.jpg")',
+      backgroundImage: 'url("/estadio.png")',
     },
   ];
 
@@ -63,7 +63,7 @@ const Hero: React.FC = () => {
           backgroundSize: 'cover', // Ajusta a imagem para preencher o contêiner mantendo a proporção
           backgroundRepeat: 'no-repeat', // Impede que a imagem se repita
           transition: 'background 1s ease-in-out',
-          filter: 'grayscale(100%)', // Filtro preto e branco apenas no fundo
+          filter: 'grayscale(80%)', // Filtro preto e branco apenas no fundo
           zIndex: -1, // Para garantir que o background fique atrás do conteúdo
         }}
       />
@@ -82,22 +82,35 @@ const Hero: React.FC = () => {
             margin: 0, // Remove margem no Typography
           }}
         >
-            {/* Texto fixo + Texto dinâmico */}
-            <span
-            style={{
-              color: '#FFFFFF',
-              textShadow: '4px 4px 4px #2C3BBA', // Sombra azul
-            }}
+            {/* Container com fundo semitransparente */}
+            <Box
+              sx={{
+                display: 'inline-block',
+                padding: '0.5rem 1rem',
+                backgroundColor: 'rgba(0, 0, 0, 0.4)', // Fundo preto com 30% de opacidade
+                borderRadius: '8px',
+                backdropFilter: 'blur(2px)', // Adiciona um leve efeito de desfoque
+                boxShadow: '0 4px 8px rgba(0, 0, 0, 0.2)',
+              }}
             >
-            Encontre o seu evento
-            </span>
-            <span
-            style={{
-              color: items[currentIndex].color,
-              textShadow: '4px 4px 4px #2C3BBA', // Sombra azul
-            }}
-            >
-            </span>
+              {/* Texto fixo */}
+              <span
+                style={{
+                  color: '#FFFFFF',
+                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)', // Sombra mais sutil
+                }}
+              >
+                Encontre o seu evento
+              </span>
+              {/* Texto dinâmico */}
+              <span
+                style={{
+                  color: items[currentIndex].color,
+                  textShadow: '2px 2px 4px rgba(0, 0, 0, 0.5)', // Sombra mais sutil
+                }}
+              >
+              </span>
+            </Box>
           <span
             style={{
               color: '#FFFFFF',

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Box, 
   Card, 
@@ -16,12 +16,10 @@ import {
   Paper, 
   Link, 
   Collapse,
-  Button,
   TextField,
   TablePagination
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import ReceiptIcon from '@mui/icons-material/Receipt';
 import { format } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
@@ -53,6 +51,13 @@ interface OrdersTableProps {
 }
 
 const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
+  // Estado para controlar se estamos no cliente ou servidor
+  const [isClient, setIsClient] = useState(false);
+  
+  // Efeito para garantir que renderizamos componentes interativos apenas no cliente
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -80,7 +85,11 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
     return null;
   }
 
-  const filteredOrders = orders.filter(o => o.idPedido.toLowerCase().includes(search.toLowerCase()));
+  const filteredOrders = orders.filter(o => {
+    // Verificar se idPedido existe antes de chamar toLowerCase
+    const pedidoId = o.idPedido || '';
+    return pedidoId.toLowerCase().includes(search.toLowerCase());
+  });
   const paginatedOrders = filteredOrders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
@@ -184,7 +193,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
                       <TableCell align="right">{formatPrice(order.fee_amount)}</TableCell>
                       <TableCell align="right">{formatPrice(order.total_amount)}</TableCell>
                       <TableCell align="center">
-                        {order.payment_url && (
+                        {order.payment_url && isClient && (
                           <IconButton
                             aria-label="ver comprovante"
                             size="small"

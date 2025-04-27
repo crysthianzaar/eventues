@@ -16,7 +16,12 @@ export function usePaymentSubmit() {
     user: User,
     eventId: string,
     tickets: TicketData[],
-    orderId?: string
+    orderId?: string,
+    couponInfo?: {
+      couponId: string,
+      code: string,
+      discountAmount: number
+    }
   ) => {
     try {
       if (!user) {
@@ -125,6 +130,12 @@ export function usePaymentSubmit() {
           })),
           user_id: user.uid,
           order_id: orderId, // Incluir order_id se estiver disponível
+          // Incluir informações do cupom se disponível
+          coupon: couponInfo ? {
+            coupon_id: couponInfo.couponId,
+            code: couponInfo.code,
+            discount_amount: couponInfo.discountAmount
+          } : undefined,
           payment: {
             billingType: formData.paymentMethod,
             value: totalAmount,

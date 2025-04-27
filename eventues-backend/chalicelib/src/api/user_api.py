@@ -139,6 +139,88 @@ def get_user_events(user_id):
             headers={'Content-Type': 'application/json'}
         )
 
+@user_api.route('/users/{user_id}/organizer-info', methods=['POST'], cors=cors_config)
+def save_organizer_info(user_id):
+    try:
+        request = user_api.current_request
+        organizer_data = request.json_body
+        
+        # Verificar se o usuário existe
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        if not user_doc.exists:
+            return Response(
+                body={'error': 'Usuário não encontrado'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        # Adicionar campos de data
+        from datetime import datetime
+        organizer_data['created_at'] = datetime.now()
+        organizer_data['updated_at'] = datetime.now()
+        
+        # Atualizar o documento do usuário com as informações do organizador
+        user_ref.update({
+            'organizer_info': organizer_data
+        })
+        
+        return Response(
+            body={'success': True, 'message': 'Informações salvas com sucesso'},
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@user_api.route('/users/{user_id}/organizer-info', methods=['GET'], cors=cors_config)
+def get_organizer_info(user_id):
+    try:
+        # Buscar o documento do usuário
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            return Response(
+                body={'error': 'Usuário não encontrado'},
+                status_code=404,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        user_data = user_doc.to_dict()
+        
+        # Verificar se existem informações de organizador
+        if 'organizer_info' not in user_data or not user_data['organizer_info']:
+            return Response(
+                body={'exists': False},
+                status_code=200,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        organizer_data = user_data['organizer_info']
+        
+        # Converter timestamps para string
+        if 'created_at' in organizer_data and hasattr(organizer_data['created_at'], 'isoformat'):
+            organizer_data['created_at'] = organizer_data['created_at'].isoformat()
+        if 'updated_at' in organizer_data and hasattr(organizer_data['updated_at'], 'isoformat'):
+            organizer_data['updated_at'] = organizer_data['updated_at'].isoformat()
+        
+        return Response(
+            body={'exists': True, 'data': organizer_data},
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body={'error': str(e)},
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
 @user_api.route('/tickets/{order_id}', methods=['GET'], cors=cors_config)
 def get_ticket_details(order_id):
     try:

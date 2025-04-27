@@ -13,8 +13,23 @@ import {
   Tooltip,
   Snackbar,
   Alert,
+  AlertTitle,
   Paper,
   useMediaQuery,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  IconButton,
+  Stepper,
+  Step,
+  StepLabel,
+  ButtonGroup,
+  MenuItem,
+  InputAdornment,
+  Checkbox,
+  FormControlLabel,
 } from "@mui/material";
 import { useRouter } from "next/navigation";
 import EventIcon from "@mui/icons-material/Event";
@@ -28,9 +43,13 @@ import AccountBalanceWalletIcon from "@mui/icons-material/AccountBalanceWallet";
 import InfoIcon from "@mui/icons-material/Info";
 import WarningIcon from "@mui/icons-material/Warning";
 import MonetizationOnIcon from "@mui/icons-material/MonetizationOn";
+import CloseIcon from "@mui/icons-material/Close";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // Corrigido erro de importação
 import { useAuthState } from "react-firebase-hooks/auth"; // Hook para autenticação
 import { fetchMyEvents } from "../api/api"; // Função para chamar seu backend
 import { auth } from "../../../firebase";
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
 
 interface Event {
   id: number;
@@ -334,8 +353,254 @@ const DraftEvents: React.FC<SectionProps> = ({ events, onCardClick }) => {
 
 // Componente de Carteira do Organizador
 const OrganizatorWallet: React.FC<SectionProps> = ({ onNotify }) => {
+  // Estado para controlar se os dados fiscais já existem
+  const [hasOrganizerInfo, setHasOrganizerInfo] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  
+  // Estados para o modal de dados fiscais
+  const [fiscalDataModalOpen, setFiscalDataModalOpen] = useState(false);
+  const [activeStep, setActiveStep] = useState(0); // 0 = Dados fiscais, 1 = Chave Pix
+  
+  // Estados para o formulário
+  const [fiscalType, setFiscalType] = useState<'CPF' | 'CNPJ'>('CPF');
+  const [fiscalDocument, setFiscalDocument] = useState('');
+  const [fullName, setFullName] = useState('');
+  const [birthDate, setBirthDate] = useState('');
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  
+  // Endereço
+  const [cep, setCep] = useState('');
+  const [state, setState] = useState('');
+  const [city, setCity] = useState('');
+  const [street, setStreet] = useState('');
+  const [number, setNumber] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [complement, setComplement] = useState('');
+  
+  // Chave Pix
+  const [pixKeyType, setPixKeyType] = useState('CPF');
+  const [pixKey, setPixKey] = useState('');
+  const [acceptTerms1, setAcceptTerms1] = useState(false);
+  const [acceptTerms2, setAcceptTerms2] = useState(false);
+  
+  // Carregar informações do organizador ao iniciar o componente
+  useEffect(() => {
+    const fetchOrganizerInfo = async () => {
+      try {
+        setIsLoading(true);
+        console.log("🔍 Buscando informações do organizador...");
+        
+        // Tentar diferentes variações de chaves para o userId
+        let userId = localStorage.getItem('userId');
+        if (!userId) userId = localStorage.getItem('user_id');
+        if (!userId) userId = localStorage.getItem('uid');
+        if (!userId) userId = localStorage.getItem('userID');
+        if (!userId) userId = localStorage.getItem('id');
+        
+        console.log("📌 userId encontrado no localStorage:", userId);
+        
+        if (!userId) {
+          console.error("❌ userId não encontrado em nenhuma variação de chave no localStorage");
+          throw new Error('ID do usuário não encontrado');
+        }
+        
+        const url = `${API_BASE_URL}/users/${userId}/organizer-info`;
+        console.log("🌐 Fazendo requisição para:", url);
+        
+        const response = await fetch(url);
+        console.log("✅ Resposta recebida:", response.status, response);
+        
+        const data = await response.json();
+        console.log("📊 Dados recebidos:", data);
+        
+        if (data.exists) {
+          console.log("✅ Dados do organizador encontrados!");
+          setHasOrganizerInfo(true);
+          // Preencher formulário com dados existentes
+          const orgInfo = data.data;
+          console.log("💬 Estrutura completa dos dados:", orgInfo);
+          
+          setFiscalType(orgInfo.fiscalType || 'CPF');
+          setFiscalDocument(orgInfo.fiscalDocument || '');
+          setFullName(orgInfo.fullName || '');
+          setBirthDate(orgInfo.birthDate || '');
+          setPhone(orgInfo.phone || '');
+          setEmail(orgInfo.email || '');
+          
+          // Endereço - acessando o objeto address aninhado
+          if (orgInfo.address) {
+            setCep(orgInfo.address.cep || '');
+            setState(orgInfo.address.state || '');
+            setCity(orgInfo.address.city || '');
+            setStreet(orgInfo.address.street || '');
+            setNumber(orgInfo.address.number || '');
+            setNeighborhood(orgInfo.address.neighborhood || '');
+            setComplement(orgInfo.address.complement || '');
+          }
+          
+          // Chave PIX - acessando o objeto pixInfo aninhado
+          if (orgInfo.pixInfo) {
+            setPixKeyType(orgInfo.pixInfo.pixKeyType || 'CPF');
+            setPixKey(orgInfo.pixInfo.pixKey || '');
+            setAcceptTerms1(true); // Se temos dados salvos, os termos foram aceitos
+            setAcceptTerms2(true);
+          }
+        } else {
+          console.log("ℹ️ Nenhuma informação de organizador encontrada");
+        }
+      } catch (error) {
+        console.error('❌ Erro completo:', error);
+        onNotify('Erro ao carregar informações. Tente novamente mais tarde.', 'error');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchOrganizerInfo();
+  }, [onNotify]);
+  
+  // Funções auxiliares para formatação e validação
+  const formatCPF = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{3})(\d)/, '$1.$2')
+      .replace(/^(\d{3})\.(\d{3})(\d)/, '$1.$2.$3')
+      .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, '$1.$2.$3-$4')
+      .replace(/^(\d{3})\.(\d{3})\.(\d{3})-(\d{2}).+/, '$1.$2.$3-$4');
+  };
+
+  const formatCEP = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{5})(\d)/, '$1-$2')
+      .replace(/^(\d{5})-(\d{3}).+/, '$1-$2');
+  };
+
+  const formatPhone = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{2})(\d)/, '($1) $2')
+      .replace(/^\((\d{2})\) (\d{5})(\d)/, '($1) $2-$3')
+      .replace(/^\((\d{2})\) (\d{5})-(\d{4}).+/, '($1) $2-$3');
+  };
+
+  const formatDate = (value: string) => {
+    return value
+      .replace(/\D/g, '')
+      .replace(/^(\d{2})(\d)/, '$1/$2')
+      .replace(/^(\d{2})\/(\d{2})(\d)/, '$1/$2/$3')
+      .replace(/^(\d{2})\/(\d{2})\/(\d{4}).+/, '$1/$2/$3');
+  };
+  
+  // Handlers para o modal
   const handleOpenFiscalDataForm = () => {
-    onNotify("Em breve você poderá cadastrar seus dados fiscais", "info");
+    setFiscalDataModalOpen(true);
+  };
+
+  const handleCloseFiscalDataModal = () => {
+    setFiscalDataModalOpen(false);
+    setActiveStep(0);
+  };
+
+  const handleNextStep = () => {
+    // Validação básica (pode ser expandida)
+    if (activeStep === 0) {
+      if (!fiscalDocument || !fullName || !birthDate || !phone || !email || !cep || 
+          !state || !city || !street || !number || !neighborhood) {
+        onNotify("Preencha todos os campos obrigatórios", "error");
+        return;
+      }
+    }
+    setActiveStep(1);
+  };
+
+  const handlePreviousStep = () => {
+    setActiveStep(0);
+  };
+
+  const handleSubmitFiscalData = async () => {
+    // Validação básica da chave PIX
+    if (!pixKey || !acceptTerms1 || !acceptTerms2) {
+      onNotify("Preencha todos os campos e aceite os termos", "error");
+      return;
+    }
+    
+    try {
+      setIsSaving(true);
+      console.log("💾 Iniciando salvamento de dados fiscais...");
+      
+      // Tentar diferentes variações de chaves para o userId
+      let userId = localStorage.getItem('userId');
+      if (!userId) userId = localStorage.getItem('user_id');
+      if (!userId) userId = localStorage.getItem('uid');
+      if (!userId) userId = localStorage.getItem('userID');
+      if (!userId) userId = localStorage.getItem('id');
+      
+      console.log("📌 userId encontrado no localStorage:", userId);
+      
+      if (!userId) {
+        console.error("❌ userId não encontrado em nenhuma variação de chave no localStorage");
+        throw new Error('ID do usuário não encontrado');
+      }
+      
+      // Preparar os dados para envio
+      const organizerData = {
+        fiscalType,
+        fiscalDocument,
+        fullName,
+        birthDate,
+        phone,
+        email,
+        address: {
+          cep,
+          state,
+          city,
+          street,
+          number,
+          neighborhood,
+          complement
+        },
+        pixInfo: {
+          pixKeyType,
+          pixKey,
+          termsAccepted: true
+        }
+      };
+      console.log("📝 Dados preparados para envio:", organizerData);
+      
+      // Construir URL
+      const url = `${API_BASE_URL}/users/${userId}/organizer-info`;
+      console.log("🌐 Enviando dados para:", url);
+      
+      // Enviar dados para o backend
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(organizerData)
+      });
+      
+      console.log("✅ Resposta recebida:", response.status, response);
+      const result = await response.json();
+      console.log("📊 Resposta completa:", result);
+      
+      if (response.ok) {
+        onNotify("Dados fiscais salvos com sucesso", "success");
+        setHasOrganizerInfo(true);
+        handleCloseFiscalDataModal();
+      } else {
+        console.error("❌ Erro na resposta:", result.error);
+        throw new Error(result.error || 'Erro ao salvar dados');
+      }
+    } catch (error) {
+      console.error("❌ Erro completo:", error);
+      onNotify("Erro ao salvar dados. Tente novamente mais tarde.", "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleRequestAnalysis = () => {
@@ -348,94 +613,487 @@ const OrganizatorWallet: React.FC<SectionProps> = ({ onNotify }) => {
         CARTEIRA DA ORGANIZAÇÃO
       </Typography>
       
-      {/* Dados fiscais e conta */}
-      <Paper elevation={0} sx={{ 
-        p: 3, 
-        mb: 4, 
-        border: "1px solid #E2E8F0",
-        borderRadius: "8px" 
-      }}>
-        <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: "1.1rem" }}>
-          Dados fiscais e conta para recebimento
-        </Typography>
-        
-        <Box sx={{ 
-          display: "flex", 
-          alignItems: "flex-start", 
-          mb: 2,
-          backgroundColor: "#FFF9C4",
-          p: 2,
-          borderRadius: "6px"
-        }}>
-          <WarningIcon color="warning" sx={{ mr: 1, fontSize: "1.2rem" }} />
-          <Box>
-            <Typography variant="body2" sx={{ fontWeight: "medium" }}>
-              Atenção!
-            </Typography>
-            <Typography variant="body2">
-              Verificamos que você ainda não cadastrou seus dados fiscais e a chave pix para receber os valores dos seus eventos.
+      {isLoading ? (
+        // Loading state
+        <Paper elevation={0} sx={{ p: 3, mb: 4, border: "1px solid #E2E8F0", borderRadius: "8px" }}>
+          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <CircularProgress size={30} />
+            <Typography variant="body1" sx={{ ml: 2 }}>
+              Carregando informações...
             </Typography>
           </Box>
-        </Box>
-        
-        <Button 
-          variant="contained" 
-          color="primary" 
-          size="small" 
-          sx={{ 
-            textTransform: "none",
-            fontWeight: "medium",
-            fontSize: "0.85rem"
-          }}
-          onClick={handleOpenFiscalDataForm}
-        >
-          Informar dados
-        </Button>
-      </Paper>
+        </Paper>
+      ) : (
+        <>
+          {/* Dados fiscais e conta */}
+          <Paper elevation={0} sx={{ 
+            p: 3, 
+            mb: 4, 
+            border: "1px solid #E2E8F0",
+            borderRadius: "8px" 
+          }}>
+            <Typography variant="h6" sx={{ mb: 2, fontWeight: "medium", fontSize: "1.1rem" }}>
+              Dados fiscais e conta para recebimento
+            </Typography>
+            
+            {hasOrganizerInfo ? (
+              // Dados já cadastrados
+              <>
+                <Box sx={{ 
+                  display: "flex", 
+                  alignItems: "flex-start", 
+                  mb: 2,
+                  backgroundColor: "#E3F2FD",
+                  p: 2,
+                  borderRadius: "6px"
+                }}>
+                  <CheckCircleIcon color="primary" sx={{ mr: 1, fontSize: "1.2rem" }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+                      Dados cadastrados!
+                    </Typography>
+                    <Typography variant="body2">
+                      Seus dados fiscais e chave PIX estão cadastrados e prontos para receber os valores dos seus eventos.
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <Grid container spacing={2} sx={{ mb: 2 }}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>Nome:</Typography>
+                    <Typography variant="body2">{fullName}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>{fiscalType}:</Typography>
+                    <Typography variant="body2">{fiscalDocument}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>Tipo de chave PIX:</Typography>
+                    <Typography variant="body2">{pixKeyType}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>Chave PIX:</Typography>
+                    <Typography variant="body2">{pixKey}</Typography>
+                  </Grid>
+                </Grid>
+                
+                <Button 
+                  variant="outlined" 
+                  color="primary" 
+                  size="small" 
+                  sx={{ 
+                    textTransform: "none",
+                    fontWeight: "medium",
+                    fontSize: "0.85rem"
+                  }}
+                  onClick={handleOpenFiscalDataForm}
+                >
+                  Editar dados
+                </Button>
+              </>
+            ) : (
+              // Dados não cadastrados
+              <>
+                <Box sx={{ 
+                  display: "flex", 
+                  alignItems: "flex-start", 
+                  mb: 2,
+                  backgroundColor: "#FFF9C4",
+                  p: 2,
+                  borderRadius: "6px"
+                }}>
+                  <WarningIcon color="warning" sx={{ mr: 1, fontSize: "1.2rem" }} />
+                  <Box>
+                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+                      Atenção!
+                    </Typography>
+                    <Typography variant="body2">
+                      Verificamos que você ainda não cadastrou seus dados fiscais e a chave pix para receber os valores dos seus eventos.
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <Button 
+                  variant="contained" 
+                  color="primary" 
+                  size="small" 
+                  sx={{ 
+                    textTransform: "none",
+                    fontWeight: "medium",
+                    fontSize: "0.85rem"
+                  }}
+                  onClick={handleOpenFiscalDataForm}
+                >
+                  Informar dados
+                </Button>
+              </>
+            )}
+          </Paper>
+        </>
+      )}
       
-      {/* Solicitação de análise */}
-      <Paper elevation={0} sx={{ 
-        p: 3, 
-        border: "1px solid #E2E8F0",
-        borderRadius: "8px",
-        display: "flex",
-        alignItems: "flex-start"
-      }}>
-        <MonetizationOnIcon sx={{ 
-          color: colors.primary, 
-          fontSize: "32px", 
-          mr: 2,
-          mt: 0.5,
-          p: 0.5,
-          backgroundColor: "rgba(25, 118, 210, 0.1)",
-          borderRadius: "50%"
-        }} />
-        
-        <Box>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: "medium", fontSize: "1.1rem" }}>
-            Solicitar análise para antecipação de saque dos seus eventos.
-          </Typography>
+      {/* Modal de Dados Fiscais */}
+      <Dialog 
+        open={fiscalDataModalOpen} 
+        onClose={handleCloseFiscalDataModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ 
+          borderBottom: '1px solid #eee', 
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          p: 2
+        }}>
+          Dados fiscais e dados da conta
+          <IconButton onClick={handleCloseFiscalDataModal} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          {/* Abas de navegação */}
+          <Box sx={{ width: '100%', mb: 3 }}>
+            <Stepper activeStep={activeStep} alternativeLabel>
+              <Step completed={activeStep > 0}>
+                <StepLabel StepIconProps={{
+                  sx: {
+                    color: activeStep === 0 ? colors.primary : colors.grayLight,
+                    backgroundColor: activeStep === 0 ? colors.white : colors.grayLight,
+                  }
+                }}>
+                  <Typography sx={{ fontWeight: activeStep === 0 ? 'bold' : 'normal' }}>
+                    Dados fiscais
+                  </Typography>
+                </StepLabel>
+              </Step>
+              <Step>
+                <StepLabel StepIconProps={{
+                  sx: {
+                    color: activeStep === 1 ? colors.primary : colors.grayLight,
+                    backgroundColor: activeStep === 1 ? colors.white : colors.grayLight,
+                  }
+                }}>
+                  <Typography sx={{ fontWeight: activeStep === 1 ? 'bold' : 'normal' }}>
+                    Chave Pix
+                  </Typography>
+                </StepLabel>
+              </Step>
+            </Stepper>
+          </Box>
           
-          <Typography variant="body2" sx={{ mb: 2, color: colors.grayDark }}>
-            Antes de solicitar esta análise você precisa preencher seus dados fiscais e sua chave pix.
-          </Typography>
+          {activeStep === 0 ? (
+            <>
+              {/* Alerta de atenção */}
+              <Alert severity="warning" sx={{ mb: 3 }}>
+                <AlertTitle>Atenção!</AlertTitle>
+                O CPF ou CNPJ cadastrado deve pertencer ao mesmo titular da conta de repasse.
+              </Alert>
+              
+              {/* Seleção de tipo de documento */}
+              <Box sx={{ mb: 3 }}>
+                <ButtonGroup variant="outlined" color="primary">
+                  <Button 
+                    variant={fiscalType === 'CPF' ? "contained" : "outlined"}
+                    onClick={() => setFiscalType('CPF')}
+                  >
+                    CPF
+                  </Button>
+                  <Button 
+                    variant={fiscalType === 'CNPJ' ? "contained" : "outlined"}
+                    onClick={() => setFiscalType('CNPJ')}
+                  >
+                    CNPJ
+                  </Button>
+                </ButtonGroup>
+              </Box>
+              
+              {/* Formulário de dados pessoais */}
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Nome completo"
+                    fullWidth
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    required
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    label="CPF"
+                    fullWidth
+                    value={fiscalDocument}
+                    onChange={(e) => setFiscalDocument(formatCPF(e.target.value))}
+                    required
+                    inputProps={{ maxLength: 14 }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Nascimento"
+                    fullWidth
+                    value={birthDate}
+                    onChange={(e) => setBirthDate(formatDate(e.target.value))}
+                    required
+                    placeholder="DD/MM/AAAA"
+                    inputProps={{ maxLength: 10 }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Telefone"
+                    fullWidth
+                    value={phone}
+                    onChange={(e) => setPhone(formatPhone(e.target.value))}
+                    required
+                    placeholder="(XX) XXXXX-XXXX"
+                    InputProps={{
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <img 
+                            src="/icons/brazil-flag.png" 
+                            alt="BR" 
+                            width={20} 
+                            height={15} 
+                            style={{ marginRight: 5 }}
+                          />
+                          +55
+                        </InputAdornment>
+                      ),
+                    }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    label="E-mail"
+                    fullWidth
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </Grid>
+                
+                {/* Seção de endereço */}
+                <Grid item xs={12}>
+                  <Typography variant="h6" sx={{ mt: 2, mb: 1 }}>
+                    Endereço
+                  </Typography>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="País"
+                    fullWidth
+                    value="Brasil"
+                    disabled
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="CEP"
+                    fullWidth
+                    value={cep}
+                    onChange={(e) => setCep(formatCEP(e.target.value))}
+                    required
+                    placeholder="XXXXX-XXX"
+                    inputProps={{ maxLength: 9 }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Estado"
+                    fullWidth
+                    select
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                    required
+                  >
+                    {[
+                      "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO",
+                      "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI",
+                      "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"
+                    ].map((state) => (
+                      <MenuItem key={state} value={state}>{state}</MenuItem>
+                    ))}
+                  </TextField>
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Cidade"
+                    fullWidth
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    required
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Rua"
+                    fullWidth
+                    value={street}
+                    onChange={(e) => setStreet(e.target.value)}
+                    required
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Número"
+                    fullWidth
+                    value={number}
+                    onChange={(e) => setNumber(e.target.value)}
+                    required
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Bairro"
+                    fullWidth
+                    value={neighborhood}
+                    onChange={(e) => setNeighborhood(e.target.value)}
+                    required
+                  />
+                </Grid>
+                
+                <Grid item xs={12} sm={6}>
+                  <TextField
+                    label="Complemento (opcional)"
+                    fullWidth
+                    value={complement}
+                    onChange={(e) => setComplement(e.target.value)}
+                  />
+                </Grid>
+              </Grid>
+            </>
+          ) : (
+            <>
+              {/* Etapa 2: Chave PIX */}
+              <Alert severity="warning" sx={{ mb: 3 }}>
+                <AlertTitle>Atenção!</AlertTitle>
+                O CNPJ ou CPF do proprietário da chave pix deve ser o mesmo CNPJ ou CPF informado nos dados fiscais.
+              </Alert>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={12}>
+                  <TextField
+                    label="Tipo de chave PIX"
+                    fullWidth
+                    select
+                    value={pixKeyType}
+                    onChange={(e) => setPixKeyType(e.target.value)}
+                    required
+                  >
+                    <MenuItem value="CPF">CPF</MenuItem>
+                    <MenuItem value="CNPJ">CNPJ</MenuItem>
+                    <MenuItem value="EMAIL">E-mail</MenuItem>
+                    <MenuItem value="TELEFONE">Telefone</MenuItem>
+                    <MenuItem value="ALEATORIA">Chave Aleatória</MenuItem>
+                  </TextField>
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <TextField
+                    label="Chave PIX"
+                    fullWidth
+                    value={pixKey}
+                    onChange={(e) => {
+                      // Aplica a formatação de acordo com o tipo selecionado
+                      let formattedValue = e.target.value;
+                      if (pixKeyType === 'CPF') {
+                        formattedValue = formatCPF(e.target.value);
+                      } else if (pixKeyType === 'TELEFONE') {
+                        formattedValue = formatPhone(e.target.value);
+                      }
+                      setPixKey(formattedValue);
+                    }}
+                    required
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={acceptTerms1} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcceptTerms1(e.target.checked)} 
+                      />
+                    }
+                    label="Ao prosseguir, estou ciente e concordo que a equipe da Eventues pode solicitar mais documentos e validações de segurança, além de entrar em contato pelo celular informado antes de liberar os repasses."
+                    sx={{ my: 1 }}
+                  />
+                </Grid>
+                
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Checkbox 
+                        checked={acceptTerms2} 
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setAcceptTerms2(e.target.checked)} 
+                      />
+                    }
+                    label="Concordo também com os termos e condições da Eventues."
+                    sx={{ my: 1 }}
+                  />
+                </Grid>
+              </Grid>
+            </>
+          )}
           
-          <Button 
-            variant="outlined" 
-            color="primary" 
-            size="small"
-            disabled
-            sx={{ 
-              textTransform: "none",
-              fontWeight: "medium",
-              fontSize: "0.85rem"
-            }}
-            onClick={handleRequestAnalysis}
-          >
-            Solicitar análise
-          </Button>
-        </Box>
-      </Paper>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, borderTop: '1px solid #eee' }}>
+          {activeStep === 0 ? (
+            <>
+              <Button 
+                onClick={handleCloseFiscalDataModal} 
+                variant="outlined" 
+                color="inherit"
+                disabled={isSaving}
+              >
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleNextStep} 
+                variant="contained" 
+                color="primary"
+                disabled={isSaving}
+              >
+                Continuar
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button 
+                onClick={handlePreviousStep} 
+                variant="outlined" 
+                color="inherit"
+                disabled={isSaving}
+              >
+                Voltar
+              </Button>
+              <Button 
+                onClick={handleSubmitFiscalData} 
+                variant="contained" 
+                color="primary"
+                disabled={isSaving}
+                startIcon={isSaving ? <CircularProgress size={20} color="inherit" /> : null}
+              >
+                {isSaving ? 'Salvando...' : 'Salvar'}
+              </Button>
+            </>
+          )}
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
@@ -568,20 +1226,6 @@ const MyEvents: React.FC = () => {
           <Typography variant="h5" sx={{ fontWeight: "bold" }}>
             MEUS EVENTOS
           </Typography>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={createNewEvent}
-            sx={{ 
-              borderRadius: "4px", 
-              textTransform: "none", 
-              fontWeight: "medium", 
-              boxShadow: "none" 
-            }}
-          >
-            Criar evento
-          </Button>
         </Box>
 
         {/* Área Principal de Conteúdo com Navegação Lateral */}

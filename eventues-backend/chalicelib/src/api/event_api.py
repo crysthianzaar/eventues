@@ -108,7 +108,25 @@ def get_event_dashboard(event_id):
             stats['taxaConversao'] = round((stats['pedidosConfirmados'] / stats['visualizacoes']) * 100, 2)
         
         # Obter todos os pedidos ordenados por data (mais recentes primeiro)
-        all_orders.sort(key=lambda x: x.get('created_at', 0), reverse=True)
+        # Função para converter created_at para um formato comparável
+        def get_created_at_key(order):
+            created_at = order.get('created_at')
+            if not created_at:
+                return 0.0  # Garantir que retorne float
+            # Se for um objeto datetime, converter para timestamp
+            if hasattr(created_at, 'timestamp'):
+                return float(created_at.timestamp())
+            # Se for string, tentar converter para timestamp ou usar um valor padrão
+            try:
+                # Tentar converter string ISO para datetime e depois para timestamp
+                from datetime import datetime
+                dt = datetime.fromisoformat(str(created_at).replace('Z', '+00:00'))
+                return float(dt.timestamp())
+            except (ValueError, TypeError):
+                # Se falhar, usar um valor padrão
+                return 0.0
+            
+        all_orders.sort(key=get_created_at_key, reverse=True)
         
         stats['pedidos'] = [{
             'idPedido': order.get('payment_id', ''),
@@ -117,7 +135,7 @@ def get_event_dashboard(event_id):
             'total_amount': order.get('total_amount', ''),
             'fee_amount': order.get('fee_amount', ''),
             'payment_url': order.get('payment_url', ''),
-            'data': order.get('created_at').isoformat() if order.get('created_at') else '',
+            'data': order.get('created_at').isoformat() if hasattr(order.get('created_at'), 'isoformat') else str(order.get('created_at')) if order.get('created_at') else '',
             'metodoPagamento': order.get('payment_details', {}).get('billingType', '') if order.get('payment_details') else 'Não especificado'
         } for order in all_orders]
         

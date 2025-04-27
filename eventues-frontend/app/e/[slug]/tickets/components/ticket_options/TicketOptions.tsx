@@ -325,7 +325,7 @@ export default function TicketOptions({
                         </MainPrice>
                         {ticket.valor > 0 && (
                           <Tooltip
-                            title="Taxa de 7,99% para manutenção da plataforma. Valor mínimo de R$ 2,00 para ingressos abaixo de R$ 20,00."
+                            title="Ingressos e Incrições online incluem uma taxa de comodidade para manutenção da plataforma. Esta taxa contribui para custos essenciais como servidores, processamento de pagamentos, segurança dos seus dados e suporte ao cliente."
                             placement="bottom"
                             arrow
                           >

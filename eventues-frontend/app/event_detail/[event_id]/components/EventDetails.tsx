@@ -30,12 +30,14 @@ import MonetizationOnIcon from "@mui/icons-material/MonetizationOn"; // Para ing
 import AssignmentIcon from "@mui/icons-material/Assignment"; // Para formulários de inscrição
 import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/resumo
 import HowToRegIcon from "@mui/icons-material/HowToReg"; // Para check-in de participantes
+import LocalOfferIcon from "@mui/icons-material/LocalOffer"; // Para cupons de desconto
 import Image from "next/image"; // Next.js Image component
 import SummaryCard from "./Summary";
 import InformationCard from "./InformationCard";
 import FormCard from "./FormCard";
 import CriarIngressoPage from "./TicketsAndValues";
 import CheckinCard from "./CheckinCard";
+import CouponsCard from "./CouponsCard";
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
 import api from "../apis/api";
 
@@ -334,6 +336,19 @@ const OrganizatorEventDetail: React.FC = () => {
         />
       ),
       description: "Gerenciamento de check-in dos participantes do evento.",
+    },
+    {
+      icon: <LocalOfferIcon />, // Ícone de etiqueta para cupons de desconto
+      title: "Cupons de Desconto",
+      component: (
+        <CouponsCard
+          eventId={eventDetail.event_id}
+          onNotify={(message, severity) =>
+            handleNotifyAndAction(message, severity, () => {})
+          }
+        />
+      ),
+      description: "Gerenciamento de cupons de desconto para o evento.",
     },
     // Adicione mais cards conforme necessário...
   ];

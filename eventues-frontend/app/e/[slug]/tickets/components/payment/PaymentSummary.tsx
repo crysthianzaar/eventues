@@ -70,13 +70,18 @@ interface PaymentSummaryProps {
   backendFee?: number;
   backendTotal?: number;
   backendSubtotal?: number;
+  // Discount information
+  discountAmount?: number;
+  discountCode?: string;
 }
 
 export default function PaymentSummary({ 
   tickets, 
   backendFee, 
   backendTotal, 
-  backendSubtotal
+  backendSubtotal,
+  discountAmount = 0,
+  discountCode
 }: PaymentSummaryProps) {
   
   // Calculate totals directly from ticket data
@@ -88,14 +93,27 @@ export default function PaymentSummary({
     return total + (ticket.taxa * ticket.quantity);
   }, 0);
   
-  const calculatedTotal = tickets.reduce((total, ticket) => {
-    return total + (ticket.valor_total * ticket.quantity);
-  }, 0);
+  // Calculamos o total como a soma direta do subtotal + taxas, em vez de usar valor_total
+  const calculatedTotal = calculatedSubtotal + calculatedFees;
   
   // Use backend values if available, otherwise use calculated values
   const subtotal = backendSubtotal ?? calculatedSubtotal;
   const fees = backendFee ?? calculatedFees;
-  const total = backendTotal ?? calculatedTotal;
+  let total = backendTotal ?? calculatedTotal;
+  
+  // Calculate the total after discount if there is one
+  if (discountAmount > 0) {
+    total = (subtotal + fees) - discountAmount;
+  }
+  
+  console.log('PaymentSummary - Valores:', {
+    calculatedSubtotal,
+    calculatedFees,
+    calculatedTotal,
+    subtotal,
+    fees,
+    total
+  });
 
   return (
     <SummaryContainer>
@@ -109,6 +127,10 @@ export default function PaymentSummary({
         const quantity = Number(ticket.quantity) || 1;
         if (!quantity || quantity === 0) return null;
 
+        // Para garantir que usamos os valores exatos do backend por ingresso
+        const totalValor = valor * quantity;
+        const totalTaxa = taxa * quantity;
+        
         return (
           <Box key={ticket.ticket_id} sx={{ mb: 2 }}>
             <SummaryRow>
@@ -116,7 +138,7 @@ export default function PaymentSummary({
                 {ticket.ticket_name} x {quantity}
               </SummaryLabel>
               <SummaryValue>
-                {formatPrice(valor * quantity)}
+                {formatPrice(totalValor)}
               </SummaryValue>
             </SummaryRow>
             <SummaryRow>
@@ -124,7 +146,7 @@ export default function PaymentSummary({
                 Taxa de serviço
               </SummaryLabel>
               <SummaryValue sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                {formatPrice(taxa * quantity)}
+                {formatPrice(totalTaxa)}
               </SummaryValue>
             </SummaryRow>
           </Box>
@@ -132,6 +154,26 @@ export default function PaymentSummary({
       })}
 
       <Divider sx={{ my: 2 }} />
+      
+      {/* Show original subtotal and discount if there is a discount */}
+      {discountAmount > 0 && (
+        <>
+          <SummaryRow>
+            <SummaryLabel>Subtotal</SummaryLabel>
+            <SummaryValue>{formatPrice(subtotal + fees)}</SummaryValue>
+          </SummaryRow>
+          <SummaryRow>
+            <SummaryLabel sx={{ color: 'success.main', display: 'flex', alignItems: 'center' }}>
+              Desconto{discountCode ? ` (${discountCode})` : ''}
+            </SummaryLabel>
+            <SummaryValue sx={{ color: 'success.main' }}>
+              - {formatPrice(discountAmount)}
+            </SummaryValue>
+          </SummaryRow>
+        </>
+      )}
+      
+      {/* Total row always shows */}
       <SummaryRow>
         <TotalLabel>Total</TotalLabel>
         <TotalValue>{formatPrice(total)}</TotalValue>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Button, CircularProgress, Alert, Typography, Divider, TextField, Grid } from '@mui/material';
+import { Box, Button, CircularProgress, Alert, Typography, Divider, TextField, Grid, InputAdornment, IconButton } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -27,6 +27,8 @@ import PaymentSummary from './PaymentSummary';
 import { Ingresso } from '@/app/apis/api';
 import { calculatePlatformFee } from '../../utils/calculateFee';
 import { formatPrice } from '@/app/utils/formatPrice';
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
 
 const CheckoutContainer = styled(Box)(({ theme }) => ({
   width: '100%',
@@ -224,12 +226,20 @@ interface PaymentComponentProps {
   ticketId: string;
   customerData: CustomerData;
   ticketData: TicketData[];
-  onPaymentSuccess: (orderId: string) => void;
-  onPaymentError: (error: string) => void;
-  orderTotal?: number;
-  orderSubtotal?: number;
-  orderFees?: number;
+  onPaymentSuccess: (paymentId: string) => void;
+  onPaymentError: (errorMessage: string) => void;
+  orderTotal: number;
+  orderSubtotal: number;
+  orderFees: number;
+  onDiscountApplied?: (discountInfo: {
+    discountAmount: number;
+    finalAmount: number;
+    couponCode: string;
+    couponId: string;
+  }) => void;
 }
+
+
 
 export default function PaymentComponent({
   eventId,
@@ -240,14 +250,52 @@ export default function PaymentComponent({
   onPaymentError,
   orderTotal,
   orderSubtotal,
-  orderFees
+  orderFees,
+  onDiscountApplied
 }: PaymentComponentProps) {
-  const [orderId, setOrderId] = React.useState<string | undefined>('');
-  React.useEffect(() => {
+  const [orderId, setOrderId] = useState<string | undefined>('');
+  const [orderData, setOrderData] = useState<any>(null);
+  const [loadingOrder, setLoadingOrder] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BOLETO' | 'CREDIT_CARD'>('PIX');
+  
+  // Define the payment form data state
+  const [formData, setFormData] = useState<PaymentFormData>({
+    name: customerData?.name || '',
+    email: customerData?.email || '',
+    cpfCnpj: customerData?.cpf || '',
+    phone: customerData?.phone || '',
+    paymentMethod: 'CREDIT_CARD',
+    cardNumber: '',
+    cardExpiry: '',
+    cardCvv: '',
+    cardHolderName: '',
+    cardFocus: '',
+    cardType: '',
+    postalCode: ''
+  });
+
+  useEffect(() => {
     const urlParts = window.location.pathname.split('/');
     const orderIdIndex = urlParts.findIndex(part => part === 'payment') - 1;
     const extractedOrderId = orderIdIndex > 0 ? urlParts[orderIdIndex] : undefined;
     setOrderId(extractedOrderId);
+    
+    // Buscar os dados do pedido quando o orderId estiver disponível
+    if (extractedOrderId) {
+      setLoadingOrder(true);
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/get-order/${extractedOrderId}`)
+        .then(response => response.json())
+        .then(data => {
+          console.log('Order data from API:', data);
+          setOrderData(data);
+        })
+        .catch(error => {
+          console.error('Error fetching order data:', error);
+        })
+        .finally(() => {
+          setLoadingOrder(false);
+        });
+    }
   }, []);
   const router = useRouter();
   const [user] = useAuthState(auth);
@@ -255,25 +303,26 @@ export default function PaymentComponent({
   
   const [currentStep, setCurrentStep] = useState<'method' | 'details'>('method');
   
-  
-  
-  const [formData, setFormData] = useState<PaymentFormData>({
-    name: customerData.name || '',
-    email: customerData.email || '',
-    cpfCnpj: customerData.cpf || '',
-    paymentMethod: 'PIX',
-    phone: customerData.phone || '',
-    cardNumber: '',
-    cardExpiry: '',
-    cardCvv: '',
-    cardHolderName: '',
-    cardFocus: '',
-    cardType: '',
-    postalCode: '',
-  });
-  
-  const [couponCode, setCouponCode] = useState('');
-  const [couponError, setCouponError] = useState<string | null>(null);
+  // States for payment processing
+  const [processingPayment, setProcessingPayment] = useState<boolean>(false);
+  const [paymentErrors, setPaymentErrors] = useState<{ [key: string]: string }>({});
+  const [showCardForm, setShowCardForm] = useState<boolean>(false);
+  const [showPixQrCode, setShowPixQrCode] = useState<boolean>(false);
+  const [showBoletoInfo, setShowBoletoInfo] = useState<boolean>(false);
+  const [customerId, setCustomerId] = useState<string>("");
+  const [creditCardToken, setCreditCardToken] = useState<string>("");
+  const [showPaymentResult, setShowPaymentResult] = useState<boolean>(false);
+  const [paymentResult, setPaymentResult] = useState<any>(null);
+  const [pixQrCode, setPixQrCode] = useState<{
+    encodedImage: string;
+    payload: string;
+  } | null>(null);
+  const [couponCode, setCouponCode] = useState<string>("");
+  const [couponError, setCouponError] = useState<string>("");
+  const [validatingCoupon, setValidatingCoupon] = useState<boolean>(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<any>(null);
+  const [discountAmount, setDiscountAmount] = useState<number>(0);
+  const [originalTotal, setOriginalTotal] = useState<number>(orderTotal);
 
   const tickets: Ingresso[] = useMemo(() => 
     ticketData.map(ticket => ({
@@ -298,7 +347,7 @@ export default function PaymentComponent({
   const { 
     loading, 
     error, 
-    paymentResult, 
+    paymentResult: paymentResultHook, 
     submitPayment, 
     setError 
   } = usePaymentSubmit();
@@ -306,7 +355,7 @@ export default function PaymentComponent({
   const {
     showSuccessModal,
     showSuccessOverlay,
-  } = usePaymentStatus(paymentResult, user!);
+  } = usePaymentStatus(paymentResultHook, user!);
 
   const totalAmount = useMemo(() => {
     if (orderTotal !== undefined && orderTotal > 0) {
@@ -327,10 +376,7 @@ export default function PaymentComponent({
     return calculatedTotal;
   }, [ticketData, orderTotal]);
   
-  const displayAmount = totalAmount;
-  
-  
-
+  const displayAmount = appliedCoupon ? originalTotal - discountAmount : totalAmount;
   
   const formIsValid = useMemo(() => {
     if (formData.paymentMethod === 'CREDIT_CARD') {
@@ -354,8 +400,6 @@ export default function PaymentComponent({
       );
     }
   }, [formData]);
-  
-
 
   useEffect(() => {
     let mounted = true;
@@ -368,7 +412,7 @@ export default function PaymentComponent({
         const userData = await fetchUserData(user);
         if (!mounted) return;
         
-        setFormData(prev => ({
+        setFormData((prev: PaymentFormData) => ({
           ...prev,
           name: prev.name || userData.name || '',
           email: prev.email || userData.email || '',
@@ -394,14 +438,13 @@ export default function PaymentComponent({
   }, [user, customerData, setFormData, setError]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+    setFormData((prev: PaymentFormData) => ({ ...prev, [name]: value }));
   };
 
   const handleSelectChange = (value: 'PIX' | 'BOLETO' | 'CREDIT_CARD') => {
-    setFormData(prev => ({
-      ...prev,
-      paymentMethod: value
-    }));
+    setPaymentMethod(value);
+    setFormData((prev: PaymentFormData) => ({ ...prev, paymentMethod: value }));
     setCurrentStep('details');
   };
   
@@ -410,50 +453,66 @@ export default function PaymentComponent({
   };
 
   const handleCardNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
-    const formatted = value.replace(/(\d{4})/g, '$1 ').trim();
-    setFormData(prev => ({ ...prev, cardNumber: formatted }));
+    const { value } = e.target;
+    const formatted = value.replace(/\D/g, '').replace(/(\d{4})/g, '$1 ').trim();
+    setFormData((prev: PaymentFormData) => ({ ...prev, cardNumber: formatted }));
   };
 
   const handleCardExpiryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
-    if (value.length <= 4) {
-      const formatted = value.replace(/(\d{2})(\d{2})/, '$1/$2').trim();
-      setFormData(prev => ({ ...prev, cardExpiry: formatted }));
-    }
+    const { value } = e.target;
+    const formatted = value.replace(/\D/g, '').replace(/(\d{2})(\d{2})/, '$1/$2').trim();
+    setFormData((prev: PaymentFormData) => ({ ...prev, cardExpiry: formatted }));
   };
 
   const handleCardCVVChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, '');
-    if (value.length <= 4) {
-      setFormData(prev => ({ ...prev, cardCvv: value }));
-    }
+    const { value } = e.target;
+    setFormData((prev: PaymentFormData) => ({ ...prev, cardCvv: value }));
   };
 
   const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
-    setFormData(prev => ({ 
-      ...prev, 
-      cardFocus: e.target.name as 'number' | 'name' | 'expiry' | 'cvc' | '' 
-    }));
+    const { name } = e.target;
+    // Convert the name to a valid cardFocus type
+    const focusValue = (name === 'number' || name === 'name' || name === 'expiry' || name === 'cvc') 
+      ? name as 'number' | 'name' | 'expiry' | 'cvc'
+      : '';
+    setFormData((prev: PaymentFormData) => ({ ...prev, cardFocus: focusValue }));
   };
 
   const handleSubmit = async () => {
     try {
-      // Extrair o order_id da URL se disponível
-      const urlParts = window.location.pathname.split('/');
-      const orderIdIndex = urlParts.findIndex(part => part === 'payment') - 1;
-      const orderId = orderIdIndex > 0 ? urlParts[orderIdIndex] : undefined;
+      // Get orderId from state instead of redeclaring
+      if (!orderId) {
+        console.error('Order ID not found');
+        return;
+      }
       
       console.log('Order ID from URL:', orderId);
+      
+      // Preparar informações do cupom para enviar ao backend, se existirem
+      const couponInfoForBackend = appliedCoupon ? {
+        couponId: appliedCoupon.coupon_id,
+        code: appliedCoupon.code,
+        discountAmount: discountAmount
+      } : undefined;
+      
+      // Log para debug
+      if (couponInfoForBackend) {
+        console.log('Enviando informações de cupom para o backend:', couponInfoForBackend);
+      }
       
       const result = await submitPayment(
         formData,
         user!,
         eventId,
         ticketData,
-        orderId // Passar o order_id para o hook
+        orderId,
+        couponInfoForBackend // Passar informações do cupom para o backend
       );
       
+      // Importante: atualizar o estado com o resultado do pagamento para exibir QR code/boleto
+      setPaymentResult(result);
+      
+      // Apenas redirecionar automaticamente para página de sucesso se for cartão confirmado
       if (result.billingType === 'CREDIT_CARD' && result.status === 'CONFIRMED') {
         onPaymentSuccess(result.id);
       }
@@ -464,14 +523,83 @@ export default function PaymentComponent({
   };
 
   const handleCouponChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setCouponCode(e.target.value);
-    // Clear error when changing coupon code
-    if (couponError) setCouponError(null);
+    setCouponCode(e.target.value.toUpperCase().trim());
+    setCouponError("");
   };
 
-  const handleApplyCoupon = () => {
-    // For now, always show that the coupon is invalid
-    setCouponError('Cupom inválido no momento.');
+  const handleApplyCoupon = async () => {
+    if (!couponCode) {
+      setCouponError("Por favor, insira um código de cupom");
+      return;
+    }
+    
+    try {
+      setValidatingCoupon(true);
+      setCouponError("");
+      
+      const response = await fetch(`${API_BASE_URL}/validate-coupon`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          event_id: eventId,
+          code: couponCode,
+          purchase_amount: originalTotal
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Erro ao validar cupom');
+      }
+      
+      if (!data.valid) {
+        setCouponError(data.error || 'Cupom inválido');
+        return;
+      }
+      
+      // Cupom válido
+      setAppliedCoupon(data.coupon);
+      setDiscountAmount(data.discount.applied_discount);
+      
+      // Atualizar o valor total
+      const newTotal = data.discount.final_amount;
+      
+      // Disparar evento para o componente pai atualizar o valor total
+      if (onDiscountApplied) {
+        onDiscountApplied({
+          discountAmount: data.discount.applied_discount,
+          finalAmount: newTotal,
+          couponCode: couponCode,
+          couponId: data.coupon.coupon_id
+        });
+      }
+      
+    } catch (error: any) {
+      console.error('Erro ao validar cupom:', error);
+      setCouponError(error.message || 'Erro ao validar cupom');
+    } finally {
+      setValidatingCoupon(false);
+    }
+  };
+  
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setDiscountAmount(0);
+    setCouponCode('');
+    setCouponError('');
+    
+    // Notificar o componente pai
+    if (onDiscountApplied) {
+      onDiscountApplied({
+        discountAmount: 0,
+        finalAmount: originalTotal,
+        couponCode: '',
+        couponId: ''
+      });
+    }
   };
 
   return (
@@ -820,7 +948,7 @@ export default function PaymentComponent({
                 disabled={loading || !formIsValid}
                 startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PaymentIcon />}
               >
-                {loading ? 'Processando...' : `Pagar ${displayAmount}`}
+                {loading ? 'Processando...' : `Pagar ${formatPrice(displayAmount)}`}
               </SubmitButton>
             </Box>
             
@@ -833,7 +961,7 @@ export default function PaymentComponent({
                 disabled={loading || !formIsValid}
                 startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <PaymentIcon />}
               >
-                {loading ? 'Processando...' : `Pagar ${displayAmount}`}
+                {loading ? 'Processando...' : `Pagar ${formatPrice(displayAmount)}`}
               </SubmitButton>
             </Box>
           </>
@@ -856,6 +984,7 @@ export default function PaymentComponent({
                 value={couponCode}
                 onChange={handleCouponChange}
                 error={!!couponError}
+                disabled={!!appliedCoupon}
                 sx={{
                   '& .MuiOutlinedInput-root': {
                     borderTopRightRadius: 0,
@@ -863,18 +992,51 @@ export default function PaymentComponent({
                   }
                 }}
               />
-              <CouponButton 
-                variant="contained" 
-                disabled={!couponCode}
-                onClick={handleApplyCoupon}
-              >
-                Aplicar
-              </CouponButton>
+              {!appliedCoupon ? (
+                <CouponButton 
+                  variant="contained" 
+                  disabled={!couponCode || validatingCoupon}
+                  onClick={handleApplyCoupon}
+                >
+                  {validatingCoupon ? (
+                    <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} />
+                  ) : 'Aplicar'}
+                </CouponButton>
+              ) : (
+                <CouponButton 
+                  variant="outlined" 
+                  color="error"
+                  onClick={handleRemoveCoupon}
+                >
+                  Remover
+                </CouponButton>
+              )}
             </Box>
             {couponError && (
               <Typography variant="caption" color="error" sx={{ mt: 0.5 }}>
                 {couponError}
               </Typography>
+            )}
+            {appliedCoupon && (
+              <Box sx={{ 
+                mt: 1, 
+                p: 1, 
+                bgcolor: 'success.light', 
+                borderRadius: 1,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between'
+              }}>
+                <Typography variant="body2" color="success.dark">
+                  Cupom <strong>{appliedCoupon.code}</strong> aplicado: 
+                  {appliedCoupon.discount_type === 'percentage' 
+                    ? ` ${appliedCoupon.discount_value}% de desconto` 
+                    : ` R$ ${appliedCoupon.discount_value.toFixed(2)} de desconto`}
+                </Typography>
+                <Typography variant="body2" fontWeight="bold" color="success.dark">
+                  - R$ {discountAmount.toFixed(2)}
+                </Typography>
+              </Box>
             )}
           </Box>
         </CouponSection>
@@ -884,19 +1046,43 @@ export default function PaymentComponent({
           <SectionTitle>
             <ReceiptIcon /> Resumo do Pedido
           </SectionTitle>
-          <PaymentSummary 
-            tickets={ticketData.map(ticket => ({
-              ticket_id: ticket.id,
-              ticket_name: ticket.name,
-              valor: ticket.price,
-              taxa: calculatePlatformFee(ticket.price),
-              valor_total: ticket.price + calculatePlatformFee(ticket.price),
-              quantity: ticket.quantity
-            }))}
-            backendTotal={orderTotal}
-            backendSubtotal={orderSubtotal}
-            backendFee={orderFees}
-          />
+          {loadingOrder ? (
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 2 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : orderData && orderData.tickets ? (
+            <PaymentSummary 
+              tickets={orderData.tickets.map((ticket: any) => ({
+                ticket_id: ticket.ticket_id,
+                ticket_name: ticket.ticket_name,
+                valor: ticket.valor,
+                taxa: ticket.taxa,
+                valor_total: ticket.valor_total,
+                quantity: ticket.quantity
+              }))}
+              backendTotal={orderData.total_amount}
+              backendSubtotal={orderData.subtotal_amount}
+              backendFee={orderData.fee_amount}
+              discountAmount={discountAmount}
+              discountCode={appliedCoupon?.code}
+            />
+          ) : (
+            <PaymentSummary 
+              tickets={ticketData.map(ticket => ({
+                ticket_id: ticket.id,
+                ticket_name: ticket.name,
+                valor: ticket.price,
+                taxa: calculatePlatformFee(ticket.price),
+                valor_total: ticket.price + calculatePlatformFee(ticket.price),
+                quantity: ticket.quantity
+              }))}
+              backendTotal={orderTotal}
+              backendSubtotal={orderSubtotal}
+              backendFee={orderFees}
+              discountAmount={discountAmount}
+              discountCode={appliedCoupon?.code}
+            />
+          )}
         </OrderSummarySection>
       </CheckoutSidebar>
 

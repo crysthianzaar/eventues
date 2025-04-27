@@ -1,14 +1,15 @@
 // components/LoginPage.tsx
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Box, Card, CircularProgress } from '@mui/material';
 import useAuth from '../hooks/useAuth';
 import Image from 'next/image';
 import AuthForm from './components/AuthForm';
 
-const LoginPage = () => {
+// Componente interno que usa useSearchParams
+const LoginContent = () => {
   const {
     email,
     setEmail,
@@ -96,6 +97,17 @@ const LoginPage = () => {
         )}
       </Card>
     </Box>
+  );
+};
+
+// Componente principal com Suspense
+const LoginPage = () => {
+  return (
+    <Suspense fallback={<Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+      <CircularProgress />
+    </Box>}>
+      <LoginContent />
+    </Suspense>
   );
 };
 

@@ -24,13 +24,14 @@ import {
   TableHead,
   TableRow,
   Paper,
+  Zoom,
 } from "@mui/material";
 import { Save, PhotoCamera, Add, Edit, Delete } from "@mui/icons-material";
 import { styled } from "@mui/system";
 import { useParams } from "next/navigation";
 import dynamic from "next/dynamic";
 import ImageCropperModal from "../utils/ImageCropperModal";
-import AttachmentModal from "../utils/AttachmentModal"; // Importando o AttachmentModal
+import AttachmentModal from "../utils/AttachmentModal";
 import {
   uploadDocumentFile,
   deleteDocumentFile,
@@ -40,11 +41,17 @@ import {
   UploadResponse,
   DocumentData,
 } from "../apis/api";
-import debounce from "lodash.debounce"; // Importando debounce
 
 // Carregamento dinâmico do ReactQuill
 const ReactQuill = dynamic(() => import("react-quill"), { ssr: false });
 import "react-quill/dist/quill.snow.css";
+
+// Para tipagem do DOMParser em SSR
+declare global {
+  interface Window {
+    DOMParser: typeof DOMParser;
+  }
+}
 
 // Definição de cores
 const colors = {
@@ -146,6 +153,8 @@ const InformationCard: React.FC = () => {
   const [submitting, setSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [hasChanges, setHasChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
     message: "",
@@ -256,6 +265,64 @@ const InformationCard: React.FC = () => {
     }
   };
 
+  // Função para normalizar conteúdo HTML e remover espaços extras de forma completa
+  const normalizeHtmlContent = (htmlContent: string | null | undefined): string => {
+    if (!htmlContent) return initialDescriptionTemplate;
+    
+    // Usa o DOM para parsear e regenerar o HTML limpo
+    try {
+      // Cria um parser de DOM temporário
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(htmlContent, 'text/html');
+      
+      // Limpa espaços extras em nós de texto
+      const cleanTextNodes = (node: Node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          // Se for texto vazio ou apenas whitespace, e não estiver em um <pre> ou elemento especial
+          const parentTag = node.parentElement?.tagName.toLowerCase();
+          const isInPreserveElement = parentTag === 'pre' || parentTag === 'code';
+          
+          if (!isInPreserveElement && node.textContent && node.textContent.trim() === '') {
+            node.textContent = '';
+          } else if (!isInPreserveElement && node.textContent) {
+            // Normaliza espaços em nós de texto normais
+            node.textContent = node.textContent.replace(/\s+/g, ' ').trim();
+          }
+        }
+        
+        // Processa filhos recursivamente
+        if (node.hasChildNodes()) {
+          Array.from(node.childNodes).forEach(cleanTextNodes);
+        }
+      };
+      
+      // Aplica limpeza no corpo do documento
+      cleanTextNodes(doc.body);
+      
+      // Remove elementos vazios desnecessários
+      const cleanupEmptyElements = (node: Element) => {
+        const children = Array.from(node.children);
+        children.forEach(child => {
+          cleanupEmptyElements(child);
+        });
+        
+        // Se o elemento está vazio e não é um elemento que pode ser vazio
+        const allowedEmptyElements = ['br', 'hr', 'img', 'input', 'link', 'meta'];
+        if (node.innerHTML.trim() === '' && !allowedEmptyElements.includes(node.tagName.toLowerCase())) {
+          node.parentNode?.removeChild(node);
+        }
+      };
+      
+      cleanupEmptyElements(doc.body);
+      
+      // Retorna o HTML limpo
+      return doc.body.innerHTML.trim();
+    } catch (error) {
+      console.error('Erro ao limpar HTML:', error);
+      return htmlContent.trim();
+    }
+  };
+
   // Função para buscar dados do evento
   const fetchEventData = useCallback(async () => {
     if (!event_id) return;
@@ -263,6 +330,10 @@ const InformationCard: React.FC = () => {
       setLoading(true);
       // Buscar detalhes do evento
       const eventData = await getEventDetails(event_id);
+      
+      // Normaliza a descrição do evento antes de adicionar ao estado
+      const normalizedDescription = normalizeHtmlContent(eventData.event_description);
+      
       setFormData({
         eventName: eventData.name,
         eventCategory: eventData.event_category,
@@ -277,7 +348,7 @@ const InformationCard: React.FC = () => {
         organizationContact: eventData.organization_contact,
         eventType: eventData.event_type,
         eventStatus: eventData.event_status,
-        eventDescription: eventData.event_description || initialDescriptionTemplate,
+        eventDescription: normalizedDescription,
       });
 
       // Definir banner image se existir
@@ -380,18 +451,14 @@ const InformationCard: React.FC = () => {
   // Função para lidar com mudanças nos campos de input
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    if (!loading) {
-      handleAutoSave({ ...formData, [name]: value });
-    }
     setFormData((prev) => ({ ...prev, [name]: value }));
+    setHasChanges(true);
   };
 
   // Função para lidar com mudanças na descrição do evento
   const handleDescriptionChange = (value: string) => {
-    if (!loading) {
-      handleAutoSave({ ...formData, eventDescription: value });
-    }
     setFormData((prev) => ({ ...prev, eventDescription: value }));
+    setHasChanges(true);
   };
 
   // Função para adicionar anexos com nome personalizado
@@ -494,47 +561,58 @@ const InformationCard: React.FC = () => {
     }
   };
 
-  // Função para salvar os dados do evento (Auto-Save)
-  const handleAutoSave = useCallback(
-    debounce(async (updatedData: typeof formData) => {
-      if (loading) return;
+  // Função para salvar os dados do evento manualmente
+  const handleSaveChanges = async () => {
+    if (loading || !hasChanges) return;
 
-      try {
-        const dataToSend = {
-          event_id: event_id,
-          name: updatedData.eventName,
-          event_category: updatedData.eventCategory,
-          start_date: updatedData.startDate,
-          end_date: updatedData.endDate,
-          state: updatedData.state,
-          city: updatedData.city,
-          address: updatedData.address,
-          address_complement: updatedData.addressComplement,
-          address_detail: updatedData.addressDetail,
-          organization_name: updatedData.organizationName,
-          organization_contact: updatedData.organizationContact,
-          event_type: updatedData.eventType,
-          event_status: updatedData.eventStatus,
-          event_description: updatedData.eventDescription,
-        };
+    try {
+      setIsSaving(true);
+      
+      // Normalize a descrição antes de salvar para remover espaços extras
+      const normalizedDescription = normalizeHtmlContent(formData.eventDescription);
+      
+      const dataToSend = {
+        event_id: event_id,
+        name: formData.eventName,
+        event_category: formData.eventCategory,
+        start_date: formData.startDate,
+        end_date: formData.endDate,
+        state: formData.state,
+        city: formData.city,
+        address: formData.address,
+        address_complement: formData.addressComplement,
+        address_detail: formData.addressDetail,
+        organization_name: formData.organizationName,
+        organization_contact: formData.organizationContact,
+        event_type: formData.eventType,
+        event_status: formData.eventStatus,
+        event_description: normalizedDescription,
+      };
+      
+      // Atualize também o estado local para manter a consistência
+      setFormData(prev => ({
+        ...prev,
+        eventDescription: normalizedDescription
+      }));
 
-        await updateEventDetails(event_id, dataToSend);
-        setSnackbar({
-          open: true,
-          message: "Alterações salvas com sucesso!",
-          severity: "success",
-        });
-      } catch (error) {
-        console.error("Erro ao salvar o evento:", error);
-        setSnackbar({
-          open: true,
-          message: "Erro ao salvar as alterações. Tente novamente.",
-          severity: "error",
-        });
-      }
-    }, 1000),
-    [event_id, loading]
-  );
+      await updateEventDetails(event_id, dataToSend);
+      setHasChanges(false);
+      setSnackbar({
+        open: true,
+        message: "Alterações salvas com sucesso!",
+        severity: "success",
+      });
+    } catch (error) {
+      console.error("Erro ao salvar o evento:", error);
+      setSnackbar({
+        open: true,
+        message: "Erro ao salvar as alterações. Tente novamente.",
+        severity: "error",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   useEffect(() => {
     fetchEventData();
@@ -595,7 +673,28 @@ const InformationCard: React.FC = () => {
   }
 
   return (
-    <Box>
+    <Box sx={{ position: 'relative', pb: 10 }}>
+      {/* Botão de salvar flutuante */}
+      <Zoom in={hasChanges}>
+        <Fab 
+          color="primary" 
+          variant="extended"
+          aria-label="save"
+          onClick={handleSaveChanges}
+          disabled={isSaving}
+          sx={{ 
+            position: 'fixed', 
+            bottom: 32, 
+            right: 32,
+            zIndex: 1000,
+            minWidth: '110px',
+          }}
+        >
+          {isSaving ? <CircularProgress size={24} color="inherit" sx={{ mr: 1 }} /> : <Save sx={{ mr: 1 }} />}
+          {isSaving ? "Salvando..." : "Salvar"}
+        </Fab>
+      </Zoom>
+      
       {/* Banner do Evento */}
       <StyledCard>
         {bannerImage ? (
@@ -800,8 +899,16 @@ const InformationCard: React.FC = () => {
           <SectionHeader variant="h6">Descrição do Evento</SectionHeader>
           <ReactQuill
             value={formData.eventDescription}
-            onChange={handleDescriptionChange}
-            modules={quillModules}
+            onChange={(content) => {
+              // Aplicar a mudança diretamente, sem processamento adicional
+              handleDescriptionChange(content);
+            }}
+            modules={{
+              ...quillModules,
+              clipboard: {
+                matchVisual: false // Impede a criação de espaços extras no cole
+              },
+            }}
             formats={quillFormats}
             placeholder="Adicione aqui as informações do seu evento..."
             style={{
@@ -810,6 +917,7 @@ const InformationCard: React.FC = () => {
               height: "300px",
               marginBottom: "30px",
             }}
+            theme="snow"
           />
         </Grid>
 

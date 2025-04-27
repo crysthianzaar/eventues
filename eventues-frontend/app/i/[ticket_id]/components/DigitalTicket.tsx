@@ -144,6 +144,7 @@ const DigitalTicket = ({ ticketDetails, formatDate }: DigitalTicketProps) => {
       case 'PAGAMENTO PENDENTE':
       case 'pending':
         return 'warning';
+      case 'CANCELADO':
       case 'cancelled':
         return 'error';
       default:
