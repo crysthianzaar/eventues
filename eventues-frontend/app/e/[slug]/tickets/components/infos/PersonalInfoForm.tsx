@@ -117,18 +117,41 @@ const PersonalInfoForm: FC<PersonalInfoFormProps> = ({
     defaultValues: initialData
   });
 
+  // Interface para corresponder ao tipo Participant no arquivo api.ts
+  interface Participant {
+    fullName: string;
+    email: string;
+    [key: string]: any; // Para outros campos
+  }
+  
   const consolidateParticipantInfo = (formData: FormData): Order => {
     const updatedOrder = { ...order } as Order;
     let participantIndex = 0;
 
     updatedOrder.tickets = updatedOrder.tickets.map(ticket => {
-      const participants = [];
+      const participants: Participant[] = [];
       for (let i = 0; i < ticket.quantity; i++) {
-        const participant: Record<string, any> = {};
+        // Inicializa com valores padrão para os campos obrigatórios
+        const participant: Participant = {
+          fullName: "",
+          email: ""
+        };
+        
+        // Preenche com os valores do formulário
         formFields.forEach(field => {
           const fieldName = `participant${participantIndex}_${field.id}`;
-          participant[field.id] = formData[fieldName];
+          
+          // Mapeamento dos campos do formulário para os campos do participante
+          if (field.id === 'fullName') {
+            participant.fullName = String(formData[fieldName] || "");
+          } else if (field.id === 'email') {
+            participant.email = String(formData[fieldName] || "");
+          } else {
+            // Outros campos
+            participant[field.id] = formData[fieldName];
+          }
         });
+        
         participants.push(participant);
         participantIndex++;
       }

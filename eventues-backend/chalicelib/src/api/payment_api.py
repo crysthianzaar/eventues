@@ -315,3 +315,36 @@ def qr_code_checkin(event_id):
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
+
+@payment_api.route('/update-order-status/{order_id}', methods=['POST'], cors=cors_config)
+def update_order_status(order_id):
+    """
+    Update the status of an order. Used primarily for free tickets
+    to mark them as confirmed without going through payment processing.
+    """
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+        
+        if not data or 'status' not in data:
+            return Response(
+                body={'error': 'Missing required field: status'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        status = data['status']
+        payment_usecase = PaymentUseCase()
+        result, status_code = payment_usecase.update_order_status(order_id, status, db)
+        
+        return Response(
+            body=firestore_json_dumps(result) if isinstance(result, dict) else result,
+            status_code=status_code,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=firestore_json_dumps({'error': str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )

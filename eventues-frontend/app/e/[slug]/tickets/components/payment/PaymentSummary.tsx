@@ -115,13 +115,52 @@ export default function PaymentSummary({
     total
   });
 
+  // Função para agrupar ingressos do mesmo tipo
+  const groupTicketsByName = (ticketsList: OrderTicket[]) => {
+    const groupedTickets: Record<string, OrderTicket> = {};
+    
+    ticketsList.forEach(ticket => {
+      const ticketName = ticket.ticket_name;
+      const valor = Number(ticket.valor) || 0;
+      const taxa = Number(ticket.taxa) || 0;
+      const quantity = Number(ticket.quantity) || 1;
+      
+      if (!quantity || quantity === 0) return;
+      
+      if (groupedTickets[ticketName]) {
+        // Se já existe um ingresso com este nome, atualize a quantidade e valores
+        groupedTickets[ticketName].quantity += quantity;
+        // Atualizamos os valores totais
+        if (groupedTickets[ticketName].valor_total !== undefined) {
+          groupedTickets[ticketName].valor_total! += (valor * quantity);
+        }
+        // Taxa total
+        if (groupedTickets[ticketName].taxa !== undefined) {
+          groupedTickets[ticketName].taxa! += (taxa * quantity);
+        }
+      } else {
+        // Se não existe, adicione-o à lista de agrupamento
+        groupedTickets[ticketName] = {
+          ...ticket,
+          valor_total: valor * quantity,
+          taxa: taxa * quantity
+        };
+      }
+    });
+    
+    return Object.values(groupedTickets);
+  };
+  
+  // Agrupa ingressos do mesmo tipo
+  const groupedTickets = groupTicketsByName(tickets);
+
   return (
     <SummaryContainer>
       <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600, mb: 2 }}>
         Resumo do pedido
       </Typography>
 
-      {tickets.map((ticket) => {
+      {groupedTickets.map((ticket) => {
         const valor = Number(ticket.valor) || 0;
         const taxa = Number(ticket.taxa) || 0;
         const quantity = Number(ticket.quantity) || 1;
@@ -129,7 +168,6 @@ export default function PaymentSummary({
 
         // Para garantir que usamos os valores exatos do backend por ingresso
         const totalValor = valor * quantity;
-        const totalTaxa = taxa * quantity;
         
         return (
           <Box key={ticket.ticket_id} sx={{ mb: 2 }}>
@@ -146,7 +184,7 @@ export default function PaymentSummary({
                 Taxa de serviço
               </SummaryLabel>
               <SummaryValue sx={{ fontSize: '0.8rem', color: 'text.secondary' }}>
-                {formatPrice(totalTaxa)}
+                {formatPrice(taxa)}
               </SummaryValue>
             </SummaryRow>
           </Box>

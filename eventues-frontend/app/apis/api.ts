@@ -43,11 +43,23 @@ export interface Event {
   updated_at: string;
 }
 
+interface Participant {
+  fullName: string;
+  email: string;
+  termsAccepted?: boolean;
+  [key: string]: any; // Para campos adicionais
+}
+
 export interface OrderTicket {
   quantity: number;
   ticket_id: string;
-  ticket_name?: string;
+  ticket_name: string;
   ticket_color?: string;
+  valor?: number;
+  taxa?: number;
+  valor_total?: number;
+  participants?: Participant[];
+  qr_code_uuid?: string;
 }
 
 export interface Order {
@@ -235,5 +247,33 @@ export async function getAllEvents(): Promise<Event[]> {
   } catch (error) {
     console.error('Erro ao buscar todos os eventos:', error);
     return [];
+  }
+}
+
+/**
+ * Update the status of an order
+ * This is used for free ticket orders to immediately mark them as confirmed
+ * without going through the payment flow
+ */
+export const updateOrderStatus = async (orderId: string, status: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/update-order-status/${orderId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ status }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error updating order status:', errorData);
+      throw new Error(errorData.message || 'Failed to update order status');
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error in updateOrderStatus:', error);
+    throw error;
   }
 }

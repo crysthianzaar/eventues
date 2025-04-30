@@ -606,7 +606,7 @@ const CreateEvent: React.FC = () => {
                 width: isMobile ? "100%" : "50%",
                 height: isMobile ? "200px" : "auto",
                 background:
-                  "url(https://img.freepik.com/vetores-gratis/ilustracao-de-execucao-de-mulher-geometrica-azul_1284-52845.jpg) center center / cover no-repeat",
+                  "url(/create.jpg) center center / cover no-repeat",
                 borderRadius: isMobile ? "15px 15px 0 0" : "15px 0 0 15px",
               }}
             />

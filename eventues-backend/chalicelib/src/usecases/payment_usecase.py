@@ -489,6 +489,7 @@ class PaymentUseCase:
 
     def update_order_participants(self, order_id: str, tickets: list, db) -> tuple:
         from datetime import datetime
+        import uuid
         try:
             if not tickets:
                 return {'error': 'No participant data provided'}, 400
@@ -497,14 +498,49 @@ class PaymentUseCase:
             order_doc = order_ref.get()
             if not order_doc.exists:
                 return {'error': 'Order not found'}, 404
-
+            
+            # Nova estrutura para garantir QR codes únicos por participante
+            restructured_tickets = []
+            
+            for ticket in tickets:
+                # Verifica se temos múltiplos participantes no mesmo ticket
+                if 'participants' in ticket and isinstance(ticket['participants'], list) and len(ticket['participants']) > 0:
+                    # Se a quantidade for 1, mantém a estrutura original com apenas um qr_code_uuid
+                    if ticket.get('quantity', 1) == 1:
+                        # Garante que exista um qr_code_uuid
+                        if 'qr_code_uuid' not in ticket:
+                            ticket['qr_code_uuid'] = str(uuid.uuid4())
+                        restructured_tickets.append(ticket)
+                    else:
+                        # Para quantity > 1, divide em múltiplos tickets, um para cada participante
+                        # cada um com seu próprio qr_code_uuid
+                        participants = ticket.get('participants', [])
+                        for i, participant in enumerate(participants):
+                            # Cria um ticket individual para cada participante
+                            individual_ticket = ticket.copy()
+                            individual_ticket['quantity'] = 1
+                            individual_ticket['qr_code_uuid'] = str(uuid.uuid4())
+                            individual_ticket['participants'] = [participant]
+                            
+                            # Ajusta o valor total para refletir apenas 1 ingresso
+                            if 'valor_total' in individual_ticket:
+                                base_valor = individual_ticket.get('valor', 0)
+                                base_taxa = individual_ticket.get('taxa', 0)
+                                individual_ticket['valor_total'] = base_valor + base_taxa
+                                
+                            restructured_tickets.append(individual_ticket)
+                else:
+                    # Se não houver participantes ainda, mantém a estrutura original
+                    restructured_tickets.append(ticket)
+                    
+            # Atualiza a ordem com a nova estrutura de tickets
             order_ref.update({
-                'tickets': tickets,
+                'tickets': restructured_tickets,
                 'status': 'PAGAMENTO PENDENTE',
                 'updated_at': datetime.now()
             })
 
-            return {'message': 'Participant information updated successfully'}, 200
+            return {'message': 'Participant information updated successfully, QR codes generated'}, 200
         except Exception as e:
             return {'error': str(e)}, 500
 
@@ -698,5 +734,67 @@ class PaymentUseCase:
                 'message': f"Check-in {'realizado' if checkin_status else 'revertido'} com sucesso por QR code",
                 'participant': flat_participant
             }, 200
+        except Exception as e:
+            return {'error': str(e)}, 500
+            
+    def update_order_status(self, order_id: str, status: str, db) -> tuple:
+        """
+        Updates the status of an order. This is primarily used for free ticket orders
+        to mark them as confirmed without going through payment processing.
+        
+        Args:
+            order_id: The ID of the order to update
+            status: The new status to set (e.g., 'CONFIRMADO')
+            db: Firestore database instance
+            
+        Returns:
+            tuple: (result, status_code)
+        """
+        from datetime import datetime
+        try:
+            if not order_id:
+                return {'error': 'Order ID is required'}, 400
+                
+            if not status:
+                return {'error': 'Status is required'}, 400
+                
+            # Get the order document
+            order_ref = db.collection('orders').document(order_id)
+            order_doc = order_ref.get()
+            
+            if not order_doc.exists:
+                return {'error': 'Order not found'}, 404
+                
+            # Update the order status
+            order_ref.update({
+                'status': status,
+                'updated_at': datetime.now()
+            })
+            
+            # For free tickets marked as confirmed, also update to indicate it's been processed
+            if status == 'CONFIRMADO':
+                # Generate QR code UUIDs for tickets if not already present
+                order_data = order_doc.to_dict()
+                tickets = order_data.get('tickets', [])
+                
+                import uuid
+                updated_tickets = []
+                
+                for ticket in tickets:
+                    # Only generate QR code UUID if not already present
+                    if not ticket.get('qr_code_uuid'):
+                        ticket['qr_code_uuid'] = str(uuid.uuid4())
+                    updated_tickets.append(ticket)
+                
+                if updated_tickets:
+                    order_ref.update({
+                        'tickets': updated_tickets
+                    })
+            
+            return {
+                'message': f'Order status updated to {status} successfully',
+                'order_id': order_id
+            }, 200
+            
         except Exception as e:
             return {'error': str(e)}, 500

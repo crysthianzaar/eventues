@@ -24,7 +24,8 @@ import {
   CardContent,
   Chip,
   Fade,
-  Zoom
+  Zoom,
+  Tooltip
 } from '@mui/material';
 import {
   AccessTime as AccessTimeIcon,
@@ -328,223 +329,170 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
           <Grid container spacing={4}>
-            {/* Hero Section */}
+            {/* Banner Section - Layout limpo como na imagem */}
             <Grid item xs={12}>
-              <Zoom in={isLoaded} timeout={800}>
-                <Card 
-                  elevation={3}
-                  sx={{ 
-                    borderRadius: 4,
+              <Box sx={{ mb: 4 }}>
+                {/* Card do Banner (imagem) */}
+                <Card
+                  elevation={1}
+                  sx={{
+                    borderRadius: 2,
                     overflow: 'hidden',
-                    position: 'relative',
-                    bgcolor: colors.surface.dark,
-                    boxShadow: '0 10px 30px -5px rgba(0, 0, 0, 0.2)'
+                    bgcolor: '#000',
+                    mb: 2,
+                    boxShadow: '0 6px 12px rgba(0, 0, 0, 0.1)'
                   }}
                 >
-                  <CardMedia
-                    component="img"
-                    height={isMobile ? "300" : "500"}
-                    image={`${bannerUrl}?v=${cacheBuster}`}
-                    alt={`Banner do evento ${event.name}`}
-                    sx={{
-                      objectFit: 'cover',
-                      filter: 'brightness(0.85)',
-                      transition: 'transform 0.3s ease-in-out',
-                      '&:hover': {
-                        transform: 'scale(1.02)'
-                      }
-                    }}
-                  />
-                  <Box
-                    sx={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      background: colors.gradient.dark,
-                      color: colors.text.light,
-                      p: { xs: 3, md: 6 },
-                      pt: { xs: 8, md: 12 }
-                    }}
-                  >
-                    <Stack spacing={2} maxWidth="800px">
-                      <Chip
-                        label={event.event_type}
-                        size="small"
-                        sx={{ 
-                          alignSelf: 'flex-start',
-                          bgcolor: colors.accent,
-                          color: colors.text.primary,
-                          fontWeight: 600,
-                          px: 1,
-                          borderRadius: '16px',
-                          '&:hover': {
-                            bgcolor: colors.accent,
-                            transform: 'translateY(-1px)'
-                          },
-                          transition: 'transform 0.2s ease'
+                  {/* Chip de categoria no canto superior */}
+                  <Box sx={{ position: 'relative' }}>
+                    
+                    {/* Imagem do Banner */}
+                    <Box
+                      sx={{
+                        width: '100%',
+                        height: isMobile ? 280 : 350,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <CardMedia
+                        component="img"
+                        image={`${bannerUrl}?v=${cacheBuster}`}
+                        alt={`Banner do evento ${event.name}`}
+                        sx={{
+                          width: '100%',
+                          height: '100%',
+                          objectFit: 'contain',
+                          objectPosition: 'center'
                         }}
                       />
-                      
-                      <Typography 
-                        variant={isMobile ? "h4" : "h2"}
-                        component="h1" 
-                        sx={{
-                          fontWeight: 800,
-                          textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-                          letterSpacing: '-0.02em',
-                          lineHeight: 1.2
-                        }}
-                      >
-                        {event.name}
-                      </Typography>
-                      
-                      <Stack 
-                        direction="row" 
-                        spacing={2} 
-                        alignItems="center"
-                        divider={<Divider orientation="vertical" flexItem sx={{ bgcolor: 'rgba(255,255,255,0.3)' }} />}
-                      >
-                        <Typography variant="subtitle1" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                          Por {event.organization_name}
-                        </Typography>
-                        <Typography variant="subtitle1" sx={{ opacity: 0.9, fontWeight: 500 }}>
-                          {event.city}, {event.state}
-                        </Typography>
-                      </Stack>
-                    </Stack>
+                    </Box>
                   </Box>
                 </Card>
-              </Zoom>
-            </Grid>
-
-            {/* Action Bar */}
-            <Grid item xs={12}>
-              <Paper 
-                elevation={2}
-                sx={{ 
-                  p: { xs: 2, md: 3 },
-                  borderRadius: 3,
-                  bgcolor: colors.surface.light,
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: 2,
-                  border: `1px solid ${colors.border.light}`,
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }}
-              >
-                <Button
-                  variant="contained"
-                  size="large"
-                  onClick={handleTicketNavigation}
-                  sx={{
-                    px: 4,
-                    py: 1.5,
-                    borderRadius: '50px',
-                    fontSize: '1.1rem',
-                    bgcolor: colors.primary,
-                    fontWeight: 600,
-                    boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
-                    '&:hover': {
-                      bgcolor: '#4338CA',
-                      transform: 'translateY(-2px)',
-                      boxShadow: '0 6px 12px -2px rgba(79, 70, 229, 0.3)'
-                    },
-                    transition: 'all 0.2s ease-in-out'
-                  }}
-                >
-                  {event.event_type.toLowerCase() === 'esportivo' ? 'Se Inscrever' : 'Garantir Ingresso'}
-                </Button>
-
-                <IconButton
-                  onClick={(e) => setShareAnchorEl(e.currentTarget)}
-                  sx={{
-                    bgcolor: colors.surface.highlight,
-                    color: colors.primary,
-                    p: 2,
-                    borderRadius: '50%',
-                    border: `2px solid ${colors.border.accent}`,
-                    '&:hover': {
-                      bgcolor: colors.surface.highlight,
-                      transform: 'scale(1.05) rotate(5deg)'
-                    },
-                    transition: 'all 0.2s ease-in-out'
-                  }}
-                >
-                  <ShareIcon />
-                </IconButton>
                 
-                {/* Menu de compartilhamento */}
-                <Menu
-                  anchorEl={shareAnchorEl}
-                  open={Boolean(shareAnchorEl)}
-                  onClose={() => setShareAnchorEl(null)}
-                  PaperProps={{
-                    elevation: 3,
-                    sx: { borderRadius: 2, mt: 1 }
+                {/* Card de Informações principais + Action Bar */}
+                <Card
+                  elevation={1}
+                  sx={{
+                    borderRadius: 2,
+                    overflow: 'hidden',
+                    p: { xs: 2, md: 3 },
+                    bgcolor: '#FFF',
+                    mb: 2
                   }}
                 >
-                  <MenuItem onClick={() => {
-                    shareOnSocialMedia('facebook');
-                    setShareAnchorEl(null);
-                  }}>
-                    <ListItemIcon><FacebookIcon color="primary" /></ListItemIcon>
-                    <ListItemText primary="Facebook" />
-                  </MenuItem>
-                  
-                  <MenuItem onClick={() => {
-                    shareOnSocialMedia('twitter');
-                    setShareAnchorEl(null);
-                  }}>
-                    <ListItemIcon><TwitterIcon style={{ color: '#1DA1F2' }} /></ListItemIcon>
-                    <ListItemText primary="Twitter" />
-                  </MenuItem>
-                  
-                  <MenuItem onClick={() => {
-                    shareOnSocialMedia('whatsapp');
-                    setShareAnchorEl(null);
-                  }}>
-                    <ListItemIcon><WhatsAppIcon style={{ color: '#25D366' }} /></ListItemIcon>
-                    <ListItemText primary="WhatsApp" />
-                  </MenuItem>
-                  
-                  <MenuItem onClick={() => {
-                    shareOnSocialMedia('telegram');
-                    setShareAnchorEl(null);
-                  }}>
-                    <ListItemIcon><TelegramIcon style={{ color: '#0088cc' }} /></ListItemIcon>
-                    <ListItemText primary="Telegram" />
-                  </MenuItem>
-                  
-                  <MenuItem onClick={() => {
-                    shareOnSocialMedia('linkedin');
-                    setShareAnchorEl(null);
-                  }}>
-                    <ListItemIcon><LinkedInIcon style={{ color: '#0077B5' }} /></ListItemIcon>
-                    <ListItemText primary="LinkedIn" />
-                  </MenuItem>
-                  
-                  <MenuItem onClick={() => {
-                    shareOnSocialMedia('copy');
-                    setShareAnchorEl(null);
-                  }}>
-                    <ListItemIcon><ContentCopyIcon /></ListItemIcon>
-                    <ListItemText primary="Copiar Link" />
-                  </MenuItem>
-                  
-                  <Divider />
-                  
-                  <MenuItem onClick={() => {
-                    handleShare();
-                    setShareAnchorEl(null);
-                  }}>
-                    <ListItemIcon><ShareIcon /></ListItemIcon>
-                    <ListItemText primary="Compartilhamento nativo" secondary="Usar compartilhamento do dispositivo" />
-                  </MenuItem>
-                </Menu>
-              </Paper>
+                  <Grid container spacing={3} alignItems="center">
+                    {/* Informações principais */}
+                    <Grid item xs={12} md={8}>
+                      <Box sx={{ height: '100%' }}>
+                        {/* Título do evento */}
+                        <Typography 
+                          variant={isMobile ? "h5" : "h4"} 
+                          component="h1"
+                          sx={{ 
+                            mb: 1.5, 
+                            fontWeight: 700,
+                            color: '#1A202C'
+                          }}
+                        >
+                          {event.name}
+                        </Typography>
+                        {/* Organização e Local */}
+                        <Stack 
+                          direction="row" 
+                          spacing={3} 
+                          divider={<Divider orientation="vertical" flexItem />}
+                          sx={{ 
+                            mb: 2,
+                            color: '#4A5568',
+                            flexWrap: 'wrap',
+                            gap: 1
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Groups2 fontSize="small" sx={{ color: colors.primary, opacity: 0.8 }} />
+                            <Typography variant="body2">{event.organization_name}</Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <LocationOnIcon fontSize="small" sx={{ color: colors.primary, opacity: 0.8 }} />
+                            <Typography variant="body2">{event.city}, {event.state}</Typography>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    </Grid>
+
+                    {/* Data, hora, e ações à direita */}
+                    <Grid item xs={12} md={4}>
+                      <Box
+                        sx={{
+                          display: 'flex',
+                          flexDirection: { xs: 'column', md: 'row' },
+                          alignItems: { xs: 'stretch', md: 'center' },
+                          gap: { xs: 2, md: 3 },
+                          justifyContent: 'flex-end',
+                          height: '100%'
+                        }}
+                      >
+                        {/* Action Bar: Botão e Compartilhar */}
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="center"
+                          justifyContent="flex-end"
+                          sx={{ minWidth: 180 }}
+                        >
+                          <Button
+                            variant="contained"
+                            size="large"
+                            onClick={handleTicketNavigation}
+                            sx={{
+                              px: 4,
+                              py: 1.5,
+                              borderRadius: '50px',
+                              fontSize: '1.1rem',
+                              bgcolor: colors.primary,
+                              fontWeight: 600,
+                              boxShadow: '0 4px 6px -1px rgba(79, 70, 229, 0.2)',
+                              '&:hover': {
+                                bgcolor: '#4338CA',
+                                transform: 'translateY(-2px)',
+                                boxShadow: '0 6px 12px -2px rgba(79, 70, 229, 0.3)'
+                              },
+                              transition: 'all 0.2s ease-in-out',
+                              width: { xs: 'auto', md: '100%' },
+                              minWidth: 180
+                            }}
+                          >
+                            {event.event_type.toLowerCase() === 'esportivo' ? 'Se Inscrever' : 'Garantir Ingresso'}
+                          </Button>
+                          <Tooltip title="Compartilhar" arrow>
+                            <IconButton
+                              onClick={(e) => setShareAnchorEl(e.currentTarget)}
+                              sx={{
+                                bgcolor: colors.surface.highlight,
+                                color: colors.primary,
+                                p: 2,
+                                borderRadius: '50%',
+                                border: `2px solid ${colors.border.accent}`,
+                                '&:hover': {
+                                  bgcolor: colors.surface.highlight,
+                                  transform: 'scale(1.05) rotate(5deg)'
+                                },
+                                transition: 'all 0.2s ease-in-out'
+                              }}
+                              aria-label="Compartilhar"
+                            >
+                              <ShareIcon />
+                            </IconButton>
+                            
+                          </Tooltip>
+                        </Stack>
+                      </Box>
+                    </Grid>
+                  </Grid>
+                </Card>
+              </Box>
             </Grid>
 
             {/* Main Content */}

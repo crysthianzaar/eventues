@@ -2,36 +2,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import {
-  Box,
-  CircularProgress,
-  Typography,
-  Card,
-  CardContent,
-  Grid,
-  Button,
-  Tooltip,
-  Snackbar,
-  Alert,
-  AlertTitle,
-  Paper,
-  useMediaQuery,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  IconButton,
-  Stepper,
-  Step,
-  StepLabel,
-  ButtonGroup,
-  MenuItem,
-  InputAdornment,
-  Checkbox,
-  FormControlLabel,
+import { 
+  Box, Typography, Button, Card, CardContent, CardActions, CardMedia, Grid, 
+  Avatar, Chip, IconButton, useMediaQuery, Stack, Alert, Snackbar, CircularProgress, 
+  Dialog, DialogTitle, DialogContent, DialogActions, TextField, Paper, Tooltip,
+  Stepper, Step, StepLabel, ButtonGroup, MenuItem, InputAdornment, Checkbox, FormControlLabel,
+  AlertTitle
 } from "@mui/material";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import EventIcon from "@mui/icons-material/Event";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
@@ -48,6 +26,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // Corrigido erro
 import { useAuthState } from "react-firebase-hooks/auth"; // Hook para autenticação
 import { fetchMyEvents } from "../api/api"; // Função para chamar seu backend
 import { auth } from "../../../firebase";
+import LoadingOverlay from "../../components/LoadingOverlay";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_BACKEND_API_URL || 'https://obc5v0hl83.execute-api.sa-east-1.amazonaws.com';
 
@@ -1106,8 +1085,10 @@ const MyEvents: React.FC = () => {
   const [snackbarOpen, setSnackbarOpen] = useState<boolean>(false);
   const [snackbarMessage, setSnackbarMessage] = useState<string>("");
   const [snackbarSeverity, setSnackbarSeverity] = useState<"success" | "error" | "info" | "warning">("success");
+  const [navigating, setNavigating] = useState<boolean>(false); // Estado para controlar quando está navegando
   const [user] = useAuthState(auth); // Firebase Authentication
   const router = useRouter();
+  const pathname = usePathname();
   const isSmallScreen = useMediaQuery("(max-width:600px)");
 
   useEffect(() => {
@@ -1147,6 +1128,7 @@ const MyEvents: React.FC = () => {
 
   // Navega para os detalhes do evento
   const handleCardClick = (event_id: string) => {
+    setNavigating(true); // Ativa o overlay de loading
     router.push(`/event_detail/${event_id}`);
   };
   
@@ -1214,6 +1196,7 @@ const MyEvents: React.FC = () => {
 
   return (
     <Box sx={{ display: "flex" }}>
+      {navigating && <LoadingOverlay />}
       <Box sx={{ flexGrow: 1, backgroundColor: colors.background, minHeight: "100vh" }}>
         {/* Header Section with title and Create Event button */}
         <Box sx={{ 

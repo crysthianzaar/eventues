@@ -3,6 +3,8 @@ export interface TicketData {
   name: string;
   price: number;
   quantity: number;
+  taxa?: number;
+  valor_total?: number;
 }
 
 export interface PaymentTicket {

@@ -19,7 +19,7 @@ import { getEventDashboard, DashboardStats } from '../apis/dashboardApi';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '@/firebase';
 import { formatPrice } from '@/app/utils/formatPrice';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { format } from 'date-fns';
 import { parseISO } from 'date-fns/parseISO';
 import OrdersTable from './OrdersTable';
@@ -400,27 +400,54 @@ const Dashboard: React.FC = () => {
           </Card>
         </Grid>
         
-        {/* Métodos de pagamento utilizados */}
+        {/* Métodos de pagamento utilizados - Gráfico de Pizza */}
         <Grid item xs={12} sm={4}>
           <Card sx={{ boxShadow: '0 4px 20px rgba(0, 0, 0, 0.2)' }}>
             <CardContent>
               <Typography variant="body2" color={colors.grayDark} gutterBottom>
                 Métodos de pagamento
               </Typography>
-              <Box sx={{ mt: 2 }}>
-                <Typography variant="body2">
-                  Cartão de Crédito: {data.metodosPagamento.cartaoCredito}
-                </Typography>
-                <Typography variant="body2">
-                  Pix: {data.metodosPagamento.pix}
-                </Typography>
-                <Typography variant="body2">
-                  Boleto: {data.metodosPagamento.boleto}
-                </Typography>
-                <Typography variant="body2">
-                  Outros: {data.metodosPagamento.outros}
-                </Typography>
-              </Box>
+              {Object.values(data.metodosPagamento).some(value => value > 0) ? (
+                <Box sx={{ height: 200, width: '100%', position: 'relative' }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: 'Cartão de Crédito', value: data.metodosPagamento.cartaoCredito },
+                          { name: 'Pix', value: data.metodosPagamento.pix },
+                          { name: 'Boleto', value: data.metodosPagamento.boleto },
+                          { name: 'Pendentes', value: data.metodosPagamento.outros }
+                        ].filter(item => item.value > 0)}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                        outerRadius={60}
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {[
+                          { name: 'Cartão de Crédito', color: '#4C51BF' },
+                          { name: 'Pix', color: '#48BB78' },
+                          { name: 'Boleto', color: '#F6AD55' },
+                          { name: 'Pendentes', color: '#A0AEC0' }
+                        ].map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        formatter={(value, name) => [`${value} pedido${value !== 1 ? 's' : ''}`, name]}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Box>
+              ) : (
+                <Box sx={{ mt: 2, textAlign: 'center' }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Nenhum pagamento realizado ainda
+                  </Typography>
+                </Box>
+              )}
             </CardContent>
           </Card>
         </Grid>
