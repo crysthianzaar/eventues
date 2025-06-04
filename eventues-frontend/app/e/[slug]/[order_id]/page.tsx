@@ -31,7 +31,7 @@ export default function OrderPage() {
           router.push(`/i/${orderId}`);
         } else {
           // Otherwise redirect to payment
-          router.push(`/e/${slug}/${orderId}/payment`);
+          router.push(`/i/${orderId}`);
         }
       } catch (error) {
         console.error('Error fetching order:', error);

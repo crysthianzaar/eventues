@@ -81,6 +81,10 @@ const Navbar: React.FC = () => {
   };
 
   const handleMyEvents = () => {
+    router.push("/meus_eventos");
+  };
+
+  const handleMyTickets = () => {
     router.push("/meus_ingressos");
   };
 
@@ -116,7 +120,7 @@ const Navbar: React.FC = () => {
       label: "Meus Ingressos",
       path: "/meus_ingressos",
       icon: <ArticleIcon/>,
-      action: () => handleMyEvents(),
+      action: () => handleMyTickets(),
     },
     {
       label: "Contato",
