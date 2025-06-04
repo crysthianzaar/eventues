@@ -234,6 +234,8 @@ class PaymentUseCase:
         # 5. Create payment
         payment_method = data['payment'].get('billingType', '').lower()
         due_date = (datetime.now() + timedelta(days=3 if payment_method == 'boleto' else 1)).strftime('%Y-%m-%d')
+        
+        # Initialize payment data with basic information
         payment_data = {
             'customer': data['customer'],
             'billingType': payment_method.upper(),
@@ -241,6 +243,38 @@ class PaymentUseCase:
             'dueDate': due_date,
             'description': f"Compra de ingressos para o evento {event_data['name']}"
         }
+        
+        # Handle installment payments if specified for credit cards
+        installments = data['payment'].get('installments', 1)
+        if payment_method == 'credit_card' and installments and installments > 1:
+            # Get installment details if provided
+            installment_value = data['payment'].get('installmentValue')
+            installment_total = data['payment'].get('installmentTotal')
+            interest_amount = data['payment'].get('interestAmount', 0)
+            
+            print(f"[DEBUG] Processing installment payment: {installments}x")
+            print(f"[DEBUG] Total with interest: {installment_total if installment_total else total_amount}")
+            print(f"[DEBUG] Interest amount: {interest_amount}")
+            
+            # Add installment info to payment data
+            payment_data['installmentCount'] = installments
+            
+            # If the frontend provided specific installment values with interest
+            if installment_value is not None:
+                # Use the total with interest
+                if installment_total:
+                    payment_data['value'] = installment_total
+                    # Update the total_amount to include interest for the order record
+                    total_amount = installment_total
+                
+                # Asaas API requires installmentValue to be provided
+                payment_data['installmentValue'] = installment_value
+            else:
+                # If no specific values provided, calculate a default installment value
+                print(f"[WARN] No specific installment values provided, calculating default installment value")
+                # Calculate the installment value as total divided by number of installments
+                calculated_installment_value = total_amount / installments
+                payment_data['installmentValue'] = round(calculated_installment_value, 2)
         if payment_method == 'credit_card' and data['payment'].get('creditCard'):
             card_data = data['payment']['creditCard']
             payment_data.update({
@@ -273,8 +307,21 @@ class PaymentUseCase:
             'payment_id': payment_result['id'],
             'payment_url': payment_result.get('invoiceUrl'),
             'status': order_status or payment_result['status'],
-            'payment_details': payment_result
+            'payment_details': payment_result,
+            'updated_at': datetime.now()
         })
+        
+        # If this was an installment payment, add that information to the order
+        if payment_method == 'credit_card' and data['payment'].get('installments', 1) > 1:
+            installment_info = {
+                'installments': data['payment'].get('installments'),
+                'installmentValue': data['payment'].get('installmentValue'),
+                'totalWithInterest': data['payment'].get('installmentTotal'),
+                'interestAmount': data['payment'].get('interestAmount')
+            }
+            order_ref.update({
+                'installment_info': installment_info
+            })
         payment_result['subtotal_amount'] = subtotal_amount
         payment_result['fee_amount'] = fee_amount
         payment_result['total_amount'] = total_amount

@@ -27,6 +27,11 @@ export interface PaymentFormData {
   postalCode: string;
   customerId?: string;
   addressNumber?: string;
+  // Installment related fields
+  installments?: number;
+  installmentValue?: number;
+  installmentTotal?: number;
+  interestAmount?: number;
 }
 
 export interface PaymentResult {

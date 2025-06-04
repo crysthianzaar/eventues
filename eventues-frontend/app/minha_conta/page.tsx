@@ -39,13 +39,22 @@ interface Event {
   start_date: string;
   order_id: string;
   ticket_id: string;
+  total_amount: number;
   status: string;
   payment_id: string;
   payment_url: string;
 }
 
+interface PaginationInfo {
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
 interface ApiResponse {
   events: Event[];
+  pagination: PaginationInfo;
 }
 
 interface UserInfo {
@@ -96,57 +105,97 @@ const MinhaContaPage = () => {
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupMessage, setPopupMessage] = useState('');
   const [loading, setLoading] = useState(false);
+  
+  // Pagination state
+  const [pagination, setPagination] = useState<PaginationInfo>({
+    total: 0,
+    page: 1,
+    page_size: 10,
+    total_pages: 0
+  });
+  
+  // Filtering state
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  
   const router = useRouter();
 
   useEffect(() => {
+    if (loadingAuth || errorAuth) {
+      return;
+    }
+
+    if (!user) {
+      router.push('/');
+      return;
+    }
+
     const fetchUserInfo = async () => {
-      if (user) {
-        try {
-          const token = await getIdToken(user);
-          const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${user.uid}`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          });
-
-          const { name, email, birth_date, phone_number, cpf } = response.data as UserInfo;
-
-          setUserInfo({
-            name: name || 'Usuário',
-            cpf: cpf || '-',
-            email: email || '-',
-            birth_date: birth_date || '-',
-            phone_number: phone_number || '-',
-          });
-
-          // Fetch real events
-          await fetchUserEvents(user.uid, token);
-        } catch (err) {
-          setLoadError('Falha ao carregar informações da conta.');
-        }
-      }
-    };
-
-    const fetchUserEvents = async (userId: string, token: string) => {
-      setLoading(true);
       try {
-        const response = await axios.get<ApiResponse>(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${userId}/events`, {
+        const token = await getIdToken(user);
+        
+        // Fetch user data
+        const response = await axios.get(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${user.uid}`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
 
-        // O backend já retorna os campos no formato correto
-        setEvents(response.data.events);
-        setLoading(false);
+        const { name, email, birth_date, phone_number, cpf } = response.data as UserInfo;
+
+        setUserInfo({
+          name: name || 'Usuário',
+          cpf: cpf || '-',
+          email: email || '-',
+          birth_date: birth_date || '-',
+          phone_number: phone_number || '-',
+        });
+        
+        // Fetch events with pagination and filtering
+        await fetchUserEvents(user.uid, token, pagination.page, pagination.page_size, statusFilter);
       } catch (err) {
-        setLoadError('Falha ao carregar eventos.');
-        setLoading(false);
+        setLoadError('Falha ao carregar informações da conta.');
       }
     };
 
     fetchUserInfo();
-  }, [user]);
+  }, [user, loadingAuth, errorAuth, router, pagination.page, pagination.page_size, statusFilter]);
+
+  const fetchUserEvents = async (userId: string, token: string, page = 1, pageSize = 5, status = 'all') => {
+    setLoading(true);
+    try {
+      const response = await axios.get<ApiResponse>(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/users/${userId}/events`, {
+          params: {
+            page,
+            page_size: pageSize,
+            status,
+          },
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      // Update both events and pagination information
+      setEvents(response.data.events);
+      setPagination(response.data.pagination);
+      setLoading(false);
+    } catch (err) {
+      console.error('Error fetching events:', err);
+      setLoadError('Falha ao carregar eventos.');
+      setLoading(false);
+    }
+  };
+
+  // Handle page change
+  const handlePageChange = (newPage: number) => {
+    setPagination((prev) => ({ ...prev, page: newPage }));
+  };
+
+  // Handle status filter change
+  const handleStatusFilterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setStatusFilter(e.target.value);
+  };
 
   const handleEditProfile = () => {
     router.push('/configurar_perfil');
@@ -177,6 +226,78 @@ const MinhaContaPage = () => {
         break;
       default:
         break;
+    }
+  };
+
+  const handleDownloadTicket = async (orderId: string) => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const token = await getIdToken(user);
+      const response = await axios.get(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/tickets/${orderId}/download`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          responseType: 'blob' // Important for handling file downloads
+        }
+      );
+      
+      // Create a download link and trigger it
+      const url = window.URL.createObjectURL(new Blob([response.data as BlobPart]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `ingresso-${orderId}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error downloading ticket:', err);
+      setPopupMessage('Falha ao baixar o ingresso. Tente novamente mais tarde.');
+      setPopupOpen(true);
+      setLoading(false);
+    }
+  };
+
+  const handleCancelOrder = async (orderId: string) => {
+    if (!user) return;
+    
+    try {
+      setLoading(true);
+      const token = await getIdToken(user);
+      
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/orders/${orderId}/cancel`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (response.status === 200) {
+        // Update the event status locally
+        setEvents(prevEvents => 
+          prevEvents.map(event => 
+            event.order_id === orderId ? { ...event, status: 'CANCELLED' } : event
+          )
+        );
+        
+        setPopupMessage('Pedido cancelado com sucesso.');
+        setPopupOpen(true);
+      }
+      
+      setLoading(false);
+    } catch (err) {
+      console.error('Error cancelling order:', err);
+      setPopupMessage('Falha ao cancelar o pedido. Tente novamente mais tarde.');
+      setPopupOpen(true);
+      setLoading(false);
     }
   };
 
@@ -282,12 +403,12 @@ const MinhaContaPage = () => {
                 gap: { xs: 2, md: 0 },
               }}
             >
-              <Typography 
-                variant="h5" 
-                sx={{ 
+              <Typography
+                variant="h5"
+                sx={{
                   fontWeight: 'bold',
                   fontSize: { xs: '1.5rem', md: '2rem' },
-                  color: '#2c2c2c'
+                  color: '#2c2c2c',
                 }}
               >
                 Minha Conta
@@ -296,14 +417,14 @@ const MinhaContaPage = () => {
                 variant="outlined"
                 startIcon={<EditIcon />}
                 onClick={handleEditProfile}
-                sx={{ 
+                sx={{
                   width: { xs: '100%', md: 'auto' },
                   borderColor: '#1976d2',
                   color: '#1976d2',
                   '&:hover': {
                     borderColor: '#1565c0',
-                    backgroundColor: 'rgba(25, 118, 210, 0.04)'
-                  }
+                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                  },
                 }}
               >
                 EDITAR PERFIL
@@ -329,19 +450,19 @@ const MinhaContaPage = () => {
                   marginRight: { md: '40px', xs: '0' },
                   marginBottom: { xs: '15px', md: '0' },
                   bgcolor: '#e0e0e0',
-                  fontSize: '2.5rem'
+                  fontSize: '2.5rem',
                 }}
               >
                 {userInfo.name?.charAt(0).toUpperCase()}
               </Avatar>
               <Box sx={{ flex: 1, width: { xs: '100%', md: 'auto' } }}>
-                <Typography 
-                  variant="h6" 
-                  sx={{ 
+                <Typography
+                  variant="h6"
+                  sx={{
                     marginBottom: '16px',
                     fontSize: { xs: '1.25rem', md: '1.5rem' },
                     fontWeight: '500',
-                    color: '#2c2c2c'
+                    color: '#2c2c2c',
                   }}
                 >
                   {userInfo.name}
@@ -362,157 +483,6 @@ const MinhaContaPage = () => {
                 </Box>
               </Box>
             </Box>
-
-            {/* Events List */}
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                marginBottom: '20px', 
-                fontWeight: 'bold',
-                textAlign: { xs: 'center', md: 'left' }
-              }}
-            >
-              Meus Ingressos e Inscrições 
-            </Typography>
-            {loading ? (
-              <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 2,
-                py: 4
-              }}>
-                <CircularProgress />
-                <Typography color="text.secondary">
-                  Carregando seus eventos...
-                </Typography>
-              </Box>
-            ) : events.length > 0 ? (
-              <Grid container spacing={2}>
-                {events.map((event) => (
-                  <Grid item xs={12} sm={6} key={event.event_id}>
-                    <Card
-                      sx={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)',
-                        borderRadius: '8px',
-                        overflow: 'hidden',
-                        height: '100%',
-                        backgroundColor: '#fff',
-                        border: '1px solid #eee',
-                        '&:hover': {
-                          borderColor: 'primary.main',
-                          transition: 'border-color 0.2s ease-in-out',
-                        },
-                      }}
-                    >
-                      {event.imageUrl ? (
-                        <CardMedia
-                          component="img"
-                          image={event.imageUrl}
-                          alt={event.name}
-                          sx={{
-                            height: { xs: 140, md: 180 },
-                            width: '100%',
-                            objectFit: 'cover',
-                            borderTopLeftRadius: '8px',
-                            borderTopRightRadius: '8px',
-                          }}
-                        />
-                      ) : (
-                        <Box
-                          sx={{
-                            height: { xs: 140, md: 180 },
-                            width: '100%',
-                            backgroundColor: '#f5f5f5',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderTopLeftRadius: '8px',
-                            borderTopRightRadius: '8px',
-                          }}
-                        >
-                          <Typography variant="subtitle2" color="text.secondary">
-                            Sem imagem
-                          </Typography>
-                        </Box>
-                      )}
-                      <CardContent 
-                        sx={{ 
-                          flexGrow: 1,
-                          display: 'flex',
-                          flexDirection: 'column',
-                          padding: { xs: '12px', md: '16px' },
-                        }}
-                      >
-                        <Typography 
-                          variant="h6" 
-                          sx={{ 
-                            fontWeight: 'bold', 
-                            mb: 0.5,
-                            fontSize: { xs: '1rem', md: '1.25rem' },
-                          }}
-                        >
-                          {event.name}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.secondary"
-                          sx={{ mb: 1 }}
-                        >
-                          {event.start_date ? `Evento: ${new Date(event.start_date).toLocaleDateString('pt-BR')}` : ''}
-                        </Typography>
-                        <Chip
-                          label={event.status}
-                          color={getStatusColor(event.status)}
-                          variant="filled"
-                          size="small"
-                          sx={{ mb: 2, fontWeight: 'bold', fontSize: { xs: '0.85rem', md: '1rem' }, alignSelf: 'flex-start', textTransform: 'capitalize' }}
-                          aria-label={`Status: ${event.status}`}
-                        />
-                        <Button
-                          fullWidth
-                          variant="outlined"
-                          startIcon={<InfoIcon />}
-                          onClick={() => handleEventAction('info', event)}
-                          sx={{ 
-                            mt: 'auto',
-                            py: { xs: 1, md: 1.5 },
-                            fontSize: { xs: '0.875rem', md: '1rem' },
-                          }}
-                        >
-                          Visualizar Informações
-                        </Button>
-                      </CardContent>
-                    </Card>
-                  </Grid>
-                ))}
-              </Grid>
-            ) : (
-              <Typography 
-                sx={{ 
-                  textAlign: 'center',
-                  py: 4,
-                }}
-              >
-                Nenhum evento encontrado.
-              </Typography>
-            )}
-
-            {/* Error Notification */}
-            {loadError && (
-              <Snackbar
-                open={!!loadError}
-                autoHideDuration={4000}
-                onClose={() => setLoadError(null)}
-                anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-              >
-                <Alert onClose={() => setLoadError(null)} severity="error">
-                  {loadError}
-                </Alert>
-              </Snackbar>
-            )}
 
             {/* Popup Message */}
             <Snackbar

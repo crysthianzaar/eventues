@@ -73,6 +73,11 @@ interface PaymentSummaryProps {
   // Discount information
   discountAmount?: number;
   discountCode?: string;
+  // Installment information
+  installmentNumber?: number;
+  installmentValue?: number;
+  hasInterest?: boolean;
+  interestAmount?: number;
 }
 
 export default function PaymentSummary({ 
@@ -81,7 +86,11 @@ export default function PaymentSummary({
   backendTotal, 
   backendSubtotal,
   discountAmount = 0,
-  discountCode
+  discountCode,
+  installmentNumber = 1,
+  installmentValue = 0,
+  hasInterest = false,
+  interestAmount = 0
 }: PaymentSummaryProps) {
   
   // Calculate totals directly from ticket data
@@ -153,6 +162,11 @@ export default function PaymentSummary({
   
   // Agrupa ingressos do mesmo tipo
   const groupedTickets = groupTicketsByName(tickets);
+  
+  // Se houver juros de parcelamento, adicionar ao total
+  if (hasInterest && interestAmount > 0) {
+    total += interestAmount;
+  }
 
   return (
     <SummaryContainer>
@@ -179,6 +193,7 @@ export default function PaymentSummary({
                 {formatPrice(totalValor)}
               </SummaryValue>
             </SummaryRow>
+
             <SummaryRow>
               <SummaryLabel sx={{ fontSize: '0.8rem', color: 'text.disabled' }}>
                 Taxa de serviço
@@ -208,6 +223,30 @@ export default function PaymentSummary({
               - {formatPrice(discountAmount)}
             </SummaryValue>
           </SummaryRow>
+        </>
+      )}
+      
+      {/* Show installment information if installments > 1 */}
+      {installmentNumber > 1 && (
+        <>
+          <SummaryRow>
+            <SummaryLabel>
+              Parcelamento em {installmentNumber}x
+            </SummaryLabel>
+            <SummaryValue>
+              {formatPrice(installmentValue)}/mês
+            </SummaryValue>
+          </SummaryRow>
+          {hasInterest && interestAmount > 0 && (
+            <SummaryRow>
+              <SummaryLabel sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                Juros do parcelamento
+              </SummaryLabel>
+              <SummaryValue sx={{ fontSize: '0.85rem', color: 'text.secondary' }}>
+                + {formatPrice(interestAmount)}
+              </SummaryValue>
+            </SummaryRow>
+          )}
         </>
       )}
       

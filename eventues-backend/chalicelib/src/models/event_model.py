@@ -33,6 +33,9 @@ class EventModel:
     address_detail: Optional[str] = None
     event_status: Optional[str] = None
     event_description: Optional[str] = None
+    # Campos de políticas para o evento
+    installment_enabled: bool = False
+    max_installments: int = 2
     created_at: datetime = field(default_factory=lambda: datetime.now(datetime.utcnow().tzinfo))
     updated_at: datetime = field(default_factory=lambda: datetime.now(datetime.utcnow().tzinfo))
 
@@ -58,6 +61,9 @@ class EventModel:
             organization_contact=data.get('organization_contact'),
             event_status=data.get('event_status'),
             event_description=data.get('event_description'),
+            # Campos de políticas
+            installment_enabled=bool(data.get('installment_enabled', False)),
+            max_installments=int(data.get('max_installments', 2)),
             created_at=datetime.fromisoformat(data.get('created_at')) if data.get('created_at') else datetime.now(datetime.utcnow().astimezone().tzinfo),
             updated_at=datetime.fromisoformat(data.get('updated_at')) if data.get('updated_at') else datetime.now(datetime.utcnow().astimezone().tzinfo)
         )
@@ -81,6 +87,9 @@ class EventModel:
             'organization_contact': self.organization_contact,
             'event_status': self.event_status,
             'event_description': self.event_description,
+            # Campos de políticas
+            'installment_enabled': self.installment_enabled,
+            'max_installments': self.max_installments,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Box, Button, CircularProgress, Alert, Typography, Divider, TextField, Grid, InputAdornment, IconButton } from '@mui/material';
+import { Box, Button, CircularProgress, Alert, Typography, Divider, TextField, Grid, InputAdornment, IconButton, FormControl, InputLabel, Select, MenuItem, FormHelperText } from '@mui/material';
 import { useRouter } from 'next/navigation';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LaunchIcon from '@mui/icons-material/Launch';
@@ -17,14 +17,14 @@ import QrCode2Icon from '@mui/icons-material/QrCode2';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { auth } from '../../../../../../firebase';
 import { fetchUserData } from '../../api/userApi';
-import { PaymentFormData, CustomerData, TicketData, PaymentTicket, PaymentResult } from './types';
+import { CustomerData, TicketData, PaymentTicket, PaymentResult, PaymentFormData } from './types';
 import { PaymentMethods } from './PaymentMethods';
 import { CreditCardForm } from './CreditCardForm';
 import { PaymentSuccess } from './PaymentSuccess';
 import { usePaymentSubmit } from './hooks/usePaymentSubmit';
 import { usePaymentStatus } from './hooks/usePaymentStatus';
 import PaymentSummary from './PaymentSummary';
-import { Ingresso } from '@/app/apis/api';
+import { Ingresso, simulateInstallments, InstallmentOption, getEventPolicies } from '@/app/apis/api';
 import { calculatePlatformFee } from '../../utils/calculateFee';
 import { formatPrice } from '@/app/utils/formatPrice';
 
@@ -239,7 +239,7 @@ interface PaymentComponentProps {
   }) => void;
 }
 
-
+// Using PaymentFormData interface imported from './types'
 
 export default function PaymentComponent({
   eventId,
@@ -258,6 +258,13 @@ export default function PaymentComponent({
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BOLETO' | 'CREDIT_CARD'>('PIX');
   
+  // Installment-related states
+  const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([]);
+  const [selectedInstallment, setSelectedInstallment] = useState<number>(1);
+  const [loadingInstallments, setLoadingInstallments] = useState<boolean>(false);
+  const [installmentsEnabled, setInstallmentsEnabled] = useState<boolean>(false);
+  const [maxInstallments, setMaxInstallments] = useState<number>(2);
+  
   // Define the payment form data state
   const [formData, setFormData] = useState<PaymentFormData>({
     name: customerData?.name || '',
@@ -271,7 +278,11 @@ export default function PaymentComponent({
     cardHolderName: '',
     cardFocus: '',
     cardType: '',
-    postalCode: ''
+    postalCode: '',
+    installments: 1,
+    installmentValue: 0,
+    installmentTotal: 0,
+    interestAmount: 0
   });
 
   useEffect(() => {
@@ -288,6 +299,11 @@ export default function PaymentComponent({
         .then(data => {
           console.log('Order data from API:', data);
           setOrderData(data);
+          
+          // Após carregar os dados do pedido, carregar as políticas de parcelamento
+          if (data && data.event_id) {
+            loadEventPolicies(data.event_id);
+          }
         })
         .catch(error => {
           console.error('Error fetching order data:', error);
@@ -297,6 +313,42 @@ export default function PaymentComponent({
         });
     }
   }, []);
+  
+  // Carregar as políticas de parcelamento do evento
+  const loadEventPolicies = async (eventId: string) => {
+    try {
+      const policies = await getEventPolicies(eventId);
+      console.log('Event payment policies:', policies);
+      
+      // Atualizar estados com base nas políticas
+      setInstallmentsEnabled(policies?.installment_enabled || false);
+      setMaxInstallments(policies?.max_installments || 2);
+      
+      // Se o parcelamento estiver habilitado, carregar as opções de parcelamento
+      if (policies?.installment_enabled && orderTotal > 0) {
+        fetchInstallmentOptions(orderTotal, eventId, policies.max_installments);
+      }
+    } catch (error) {
+      console.error('Error loading event payment policies:', error);
+    }
+  };
+  
+  // Função para buscar opções de parcelamento
+  const fetchInstallmentOptions = async (amount: number, eventId: string, maxInstallments: number) => {
+    try {
+      setLoadingInstallments(true);
+      const result = await simulateInstallments(amount, eventId, maxInstallments);
+      console.log('Installment options:', result);
+      
+      if (result && result.installments) {
+        setInstallmentOptions(result.installments);
+      }
+    } catch (error) {
+      console.error('Error fetching installment options:', error);
+    } finally {
+      setLoadingInstallments(false);
+    }
+  };
   const router = useRouter();
   const [user] = useAuthState(auth);
   const [loadingUserData, setLoadingUserData] = useState(false);
@@ -376,7 +428,49 @@ export default function PaymentComponent({
     return calculatedTotal;
   }, [ticketData, orderTotal]);
   
-  const displayAmount = appliedCoupon ? originalTotal - discountAmount : totalAmount;
+  // Helper function to safely get installment information
+  const getInstallmentInfo = useMemo(() => {
+    const defaultInfo = {
+      installmentValue: 0,
+      hasInterest: false,
+      interestValue: 0,
+      totalValue: 0
+    };
+    
+    if (!installmentOptions || installmentOptions.length === 0) {
+      return defaultInfo;
+    }
+    
+    const selectedOption = installmentOptions.find(option => option.installmentNumber === selectedInstallment);
+    if (!selectedOption) {
+      return defaultInfo;
+    }
+    
+    return {
+      installmentValue: selectedOption.installmentValue || 0,
+      hasInterest: !!selectedOption.interest && selectedOption.interest > 0,
+      interestValue: selectedOption.interestValue || 0,
+      totalValue: selectedOption.totalValue || 0
+    };
+  }, [installmentOptions, selectedInstallment]);
+
+  // Calculate the display amount based on discounts and installments
+  const displayAmount = useMemo(() => {
+    // First consider any discount
+    const amountAfterDiscount = appliedCoupon ? originalTotal - discountAmount : totalAmount;
+    
+    // Then check if there are installments selected
+    if (formData.paymentMethod === 'CREDIT_CARD' && selectedInstallment > 1) {
+      const { totalValue } = getInstallmentInfo;
+      
+      // If there's a valid total value with interest, use it
+      if (totalValue > 0) {
+        return totalValue;
+      }
+    }
+    
+    return amountAfterDiscount;
+  }, [appliedCoupon, originalTotal, discountAmount, totalAmount, formData.paymentMethod, selectedInstallment, getInstallmentInfo]);
   
   const formIsValid = useMemo(() => {
     if (formData.paymentMethod === 'CREDIT_CARD') {
@@ -446,6 +540,12 @@ export default function PaymentComponent({
     setPaymentMethod(value);
     setFormData((prev: PaymentFormData) => ({ ...prev, paymentMethod: value }));
     setCurrentStep('details');
+    
+    // Reset installments to 1 when changing payment method
+    if (value !== 'CREDIT_CARD') {
+      setSelectedInstallment(1);
+      setFormData(prev => ({ ...prev, installments: 1 }));
+    }
   };
   
   const handleBackToMethods = () => {
@@ -500,8 +600,36 @@ export default function PaymentComponent({
         console.log('Enviando informações de cupom para o backend:', couponInfoForBackend);
       }
       
+      // Verificar se há informações de parcelamento para incluir
+      let paymentFormData = { ...formData };
+      
+      // Se tiver selecionado parcelamento, garantir que todas as informações necessárias estão incluídas
+      if (selectedInstallment > 1) {
+        // Encontrar a opção de parcelamento selecionada para obter valores corretos
+        const selectedOption = installmentOptions.find(option => option.installmentNumber === selectedInstallment);
+        
+        if (selectedOption) {
+          paymentFormData = {
+            ...paymentFormData,
+            installments: selectedInstallment,
+            installmentValue: selectedOption.installmentValue,
+            installmentTotal: selectedOption.totalValue,
+            interestAmount: selectedOption.interestValue
+          };
+          
+          console.log('Installment details for payment:', {
+            installments: selectedInstallment,
+            installmentValue: selectedOption.installmentValue,
+            totalWithInterest: selectedOption.totalValue,
+            interestAmount: selectedOption.interestValue
+          });
+        }
+      }
+      
+      console.log('Submitting payment with form data:', paymentFormData);
+      
       const result = await submitPayment(
-        formData,
+        paymentFormData,
         user!,
         eventId,
         ticketData,
@@ -919,6 +1047,67 @@ export default function PaymentComponent({
                     onPostalCodeChange={(value) => setFormData(prev => ({ ...prev, postalCode: value }))}
                     onInputFocus={handleInputFocus}
                   />
+                  
+                  {/* Installment options */}
+                  {installmentsEnabled && installmentOptions.length > 0 && (
+                    <Box sx={{ mt: 4 }}>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 2 }}>
+                        Opções de Parcelamento
+                      </Typography>
+                      
+                      <FormControl fullWidth size="small">
+                        <InputLabel id="installments-select-label">Número de parcelas</InputLabel>
+                        <Select
+                          labelId="installments-select-label"
+                          id="installments-select"
+                          value={selectedInstallment}
+                          label="Número de parcelas"
+                          onChange={(e) => {
+                            const newValue = Number(e.target.value);
+                            setSelectedInstallment(newValue);
+                            
+                            // Find the selected installment option details
+                            const selectedOption = installmentOptions.find(option => option.installmentNumber === newValue);
+                            
+                            // Update formData with all installment information
+                            setFormData(prev => ({ 
+                              ...prev, 
+                              installments: newValue,
+                              installmentValue: selectedOption?.installmentValue || 0,
+                              installmentTotal: selectedOption?.totalValue || 0,
+                              interestAmount: selectedOption?.interestValue || 0
+                            }));
+                            
+                            console.log(`Selected installment: ${newValue}x`, 
+                              `Value per installment: ${formatPrice(selectedOption?.installmentValue || 0)}`,
+                              `Total with interest: ${formatPrice(selectedOption?.totalValue || 0)}`,
+                              `Interest amount: ${formatPrice(selectedOption?.interestValue || 0)}`);
+                          }}
+                          disabled={loadingInstallments}
+                        >
+                          {installmentOptions.map((option) => {
+                            // Show interest information if applicable
+                            const hasInterest = option.interest > 0;
+                            const installmentLabel = hasInterest
+                              ? `${option.installmentNumber}x de ${formatPrice(option.installmentValue)} (${formatPrice(option.totalValue)}) com juros`
+                              : `${option.installmentNumber}x de ${formatPrice(option.installmentValue)} sem juros`;
+                              
+                            return (
+                              <MenuItem key={option.installmentNumber} value={option.installmentNumber}>
+                                {installmentLabel}
+                              </MenuItem>
+                            );
+                          })}
+                        </Select>
+                        <FormHelperText>
+                          {loadingInstallments ? 'Carregando opções de parcelamento...' : 
+                           selectedInstallment > 1 ? 
+                            'Parcelamento com juros' : 
+                            'Selecione o número de parcelas'}
+                        </FormHelperText>
+                      </FormControl>
+                    </Box>
+                  )}
                 </Box>
               )}
 
@@ -1065,6 +1254,10 @@ export default function PaymentComponent({
               backendFee={orderData.fee_amount}
               discountAmount={discountAmount}
               discountCode={appliedCoupon?.code}
+              installmentNumber={selectedInstallment}
+              installmentValue={getInstallmentInfo.installmentValue}
+              hasInterest={getInstallmentInfo.hasInterest}
+              interestAmount={getInstallmentInfo.interestValue}
             />
           ) : (
             <PaymentSummary 
@@ -1081,6 +1274,10 @@ export default function PaymentComponent({
               backendFee={orderFees}
               discountAmount={discountAmount}
               discountCode={appliedCoupon?.code}
+              installmentNumber={selectedInstallment}
+              installmentValue={getInstallmentInfo.installmentValue}
+              hasInterest={getInstallmentInfo.hasInterest}
+              interestAmount={getInstallmentInfo.interestValue}
             />
           )}
         </OrderSummarySection>

@@ -15,6 +15,7 @@ import {
   Menu,
   MenuItem,
   Typography,
+  Divider,
 } from "@mui/material";
 import {
   Menu as MenuIcon,
@@ -26,13 +27,23 @@ import {
   AddCircleOutline as AddCircleOutlineIcon,
   Login as LoginIcon,
   AccountCircle as AccountCircleIcon,
-  Close as CloseIcon, // Importação do ícone de fechar
+  Close as CloseIcon,
+  InfoOutlined as InfoOutlinedIcon,
 } from "@mui/icons-material";
 import { useAuthState } from "react-firebase-hooks/auth";
 import { auth } from "../../firebase"; // Certifique-se de ajustar o caminho
 import { useRouter, usePathname } from "next/navigation"; // Importação de usePathname
 import Image from "next/image"; // Importação do componente next/image
 import { useTheme } from "@mui/material/styles"; // Importação do tema
+
+interface MenuItemType {
+  label: string;
+  path: string;
+  icon: JSX.Element;
+  action: () => void;
+  variant?: "text" | "outlined" | "contained";
+  color?: "inherit" | "primary" | "secondary" | "success" | "error" | "info" | "warning";
+}
 
 const Navbar: React.FC = () => {
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -70,7 +81,7 @@ const Navbar: React.FC = () => {
   };
 
   const handleMyEvents = () => {
-    router.push("/meus_eventos");
+    router.push("/meus_ingressos");
   };
 
   const handleAccountSettings = () => {
@@ -88,7 +99,7 @@ const Navbar: React.FC = () => {
   };
 
   // Definição dos itens do menu
-  const menuItems = [
+  const menuItems: MenuItemType[] = [
     {
       label: "Início",
       path: "/",
@@ -102,9 +113,9 @@ const Navbar: React.FC = () => {
       action: () => handleOrganizerPage(),
     },
     {
-      label: "Meus Eventos",
-      path: "/meus_eventos",
-      icon: <EventIcon />,
+      label: "Meus Ingressos",
+      path: "/meus_ingressos",
+      icon: <ArticleIcon/>,
       action: () => handleMyEvents(),
     },
     {
@@ -112,20 +123,18 @@ const Navbar: React.FC = () => {
       path: "/contato",
       icon: <ContactMailIcon />,
       action: () => router.push("/contato"),
-    },
-    {
-      label: "Criar Evento",
-      path: "/criar_evento",
-      icon: <AddCircleOutlineIcon />,
-      action: () => handleCreateEvent(),
-      variant: "contained",
-      color: "success",
-    },
+    }
   ];
 
   // Handlers para o Drawer (toggle)
   const handleToggleDrawer = () => {
     setDrawerOpen((prev) => !prev);
+  };
+  
+  // Navegação para novas rotas
+  const navigateTo = (path: string) => {
+    router.push(path);
+    setDrawerOpen(false);
   };
 
   // Handlers para o Menu de Perfil
@@ -141,71 +150,228 @@ const Navbar: React.FC = () => {
   const drawerList = (
     <Box
       sx={{
-        width: 250,
-        padding: 2,
+        width: 280,
         backgroundColor: "#ffffff",
         height: "100%",
         color: "#000000",
         display: "flex",
         flexDirection: "column",
+        pt: 2,
       }}
       role="presentation"
-      // Remover os handlers onClick e onKeyDown que fecham o Drawer automaticamente
-      // para permitir que o botão de fechar funcione corretamente
     >
-      {/* Botão de fechar */}
-      <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 2 }}>
-        <IconButton onClick={handleToggleDrawer} aria-label="Fechar menu">
-          <CloseIcon />
-        </IconButton>
+      {/* Perfil do usuário no topo */}
+      {user && (
+        <Box sx={{ px: 3, mb: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 500, color: "#333" }}>
+              {user.displayName || "Usuário"}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "#666", mb: 1 }}>
+              {user.email}
+            </Typography>
+          </Box>
+          <Divider sx={{ mb: 2 }} />
+        </Box>
+      )}
+      
+      {/* Seção Pessoal */}
+      <Box sx={{ px: 3, mb: 1 }}>
+        <Typography variant="caption" sx={{ color: "#666", fontWeight: 600, fontSize: "0.7rem", letterSpacing: 0.5 }}>
+          Pessoal
+        </Typography>
       </Box>
-      <List>
-        {menuItems.map((item, index) => (
-          <ListItemButton
-            key={index}
-            onClick={item.action}
-            disabled={!item.path && !item.action}
-            sx={{
-              ...(item.variant === "contained" && {
-                backgroundColor: "#68D391",
-                color: "#fff",
-                borderRadius: "8px",
-                marginY: "4px",
-                "&:hover": {
-                  backgroundColor: "#4CAF50",
-                },
-              }),
-              ...(item.variant !== "contained" && {
-                color: "#000000",
-                "&:hover": {
-                  backgroundColor: "#e2e8f0",
-                },
-              }),
-              paddingX: 2, // Aumenta o padding horizontal para melhor toque
-              paddingY: 1.5, // Aumenta o padding vertical para melhor toque
+      <List sx={{ px: 1 }}>
+        <ListItemButton onClick={() => navigateTo("/minha_conta")} sx={{ borderRadius: 1 }}>
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <AccountCircleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Minha Conta" />
+        </ListItemButton>
+        
+        <ListItemButton onClick={() => navigateTo("/meus_ingressos")} sx={{ borderRadius: 1 }}>
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <ArticleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText primary="Meus Ingressos" />
+        </ListItemButton>
+      </List>
+      
+      <Divider sx={{ my: 2, mx: 3 }} />
+      
+      {/* Seção Organizador */}
+      <Box sx={{ px: 3, mb: 1 }}>
+        <Typography variant="caption" sx={{ color: "#666", fontWeight: 600, fontSize: "0.7rem", letterSpacing: 0.5 }}>
+          Organizador
+        </Typography>
+      </Box>
+      <List sx={{ px: 1 }}>
+        <ListItemButton 
+          onClick={handleCreateEvent} 
+          sx={{ 
+            borderRadius: 1,
+            color: "#333",
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.04)"
+            }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <AddCircleOutlineIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Criar Evento" 
+            primaryTypographyProps={{ fontSize: "0.95rem" }}
+          />
+        </ListItemButton>
+        
+        <ListItemButton 
+          onClick={handleMyEvents} 
+          sx={{ 
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.04)"
+            }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <EventIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Meus Eventos" 
+            primaryTypographyProps={{ fontSize: "0.95rem" }}
+          />
+        </ListItemButton>
+        
+        <ListItemButton 
+          onClick={() => navigateTo("/minha_equipe")} 
+          sx={{ 
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.04)"
+            }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <PersonAddIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Minha Equipe" 
+            primaryTypographyProps={{ fontSize: "0.95rem" }}
+          />
+        </ListItemButton>
+        
+        <ListItemButton 
+          onClick={() => navigateTo("/participantes")} 
+          sx={{ 
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.04)"
+            }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <ContactMailIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Participantes" 
+            primaryTypographyProps={{ fontSize: "0.95rem" }}
+          />
+        </ListItemButton>
+        
+        <ListItemButton 
+          onClick={() => navigateTo("/pagina_organizador")} 
+          sx={{ 
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.04)"
+            }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <HomeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Página do organizador" 
+            primaryTypographyProps={{ fontSize: "0.95rem" }}
+          />
+        </ListItemButton>
+        
+        <ListItemButton 
+          onClick={() => navigateTo("/carteira")} 
+          sx={{ 
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.04)"
+            }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <ArticleIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Carteira da organização" 
+            primaryTypographyProps={{ fontSize: "0.95rem" }}
+          />
+        </ListItemButton>
+      </List>
+      
+      <Divider sx={{ my: 2, mx: 3 }} />
+      
+      {/* Seção Ajuda e Sair */}
+      <List sx={{ px: 1, mt: "auto" }}>
+        <ListItemButton 
+          onClick={() => navigateTo("/ajuda")} 
+          sx={{ 
+            borderRadius: 1,
+            '&:hover': {
+              backgroundColor: "rgba(0,0,0,0.04)"
+            }
+          }}
+        >
+          <ListItemIcon sx={{ minWidth: 40 }}>
+            <InfoOutlinedIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText 
+            primary="Ajuda" 
+            primaryTypographyProps={{ fontSize: "0.95rem" }}
+          />
+        </ListItemButton>
+        
+        {user && (
+          <ListItemButton 
+            onClick={handleLogout} 
+            sx={{ 
+              borderRadius: 1,
+              '&:hover': {
+                backgroundColor: "rgba(0,0,0,0.04)"
+              }
             }}
           >
-            <ListItemIcon
-              sx={{
-                color: item.variant === "contained" ? "#fff" : "#000000",
-                minWidth: "40px", // Ajusta a largura mínima do ícone
-              }}
-            >
-              {item.icon}
+            <ListItemIcon sx={{ minWidth: 40 }}>
+              <LoginIcon fontSize="small" sx={{ transform: "rotate(180deg)" }} />
             </ListItemIcon>
-            <ListItemText
-              primary={
-                <Typography variant="body1" sx={{ fontSize: "1rem" }}>
-                  {item.label}
-                </Typography>
-              }
-              sx={{
-                color: item.variant === "contained" ? "#fff" : "#000000",
-              }}
+            <ListItemText 
+              primary="Sair" 
+              primaryTypographyProps={{ fontSize: "0.95rem" }}
             />
           </ListItemButton>
-        ))}
+        )}
       </List>
+      
+      {/* Botão de fechar na parte superior direita */}
+      <IconButton 
+        onClick={handleToggleDrawer} 
+        aria-label="Fechar menu"
+        sx={{ 
+          position: "absolute", 
+          top: 8, 
+          right: 8,
+          color: "#666"
+        }}
+      >
+        <CloseIcon />
+      </IconButton>
     </Box>
   );
 
@@ -327,23 +493,27 @@ const Navbar: React.FC = () => {
                 sx={{
                   borderRadius: "20px",
                   textTransform: "none",
-                  fontSize: "1rem",
+                  fontSize: "0.95rem",
+                  fontWeight: 500,
+                  padding: item.variant === "contained" ? "6px 16px" : "5px 16px",
                   color:
                     item.variant === "contained" ? "#fff" : "#2D3748",
                   backgroundColor:
                     item.variant === "contained" ? "#68D391" : "transparent",
                   ":hover": item.variant === "contained"
                     ? {
-                        transform: "scale(1.05)",
+                        transform: "translateY(-2px)",
                         backgroundColor: "#4CAF50",
+                        boxShadow: "0 4px 12px rgba(104, 211, 145, 0.2)",
                         color: "#fff",
                       }
                     : {
-                        transform: "scale(1.05)",
+                        transform: "translateY(-2px)",
                         backgroundColor: "#e2e8f0",
+                        boxShadow: "0 4px 12px rgba(226, 232, 240, 0.4)",
                         color: "#2D3748",
                       },
-                  transition: "transform 0.2s",
+                  transition: "all 0.2s ease",
                 }}
                 onClick={item.action}
               >
@@ -363,31 +533,225 @@ const Navbar: React.FC = () => {
                     color: "#5A67D8",
                     borderColor: "#5A67D8",
                     textTransform: "none",
-                    fontSize: "1rem",
+                    fontSize: "0.95rem",
+                    fontWeight: 500,
                     display: "flex",
                     alignItems: "center",
+                    padding: "6px 16px",
+                    transition: "all 0.2s ease",
                     ":hover": {
                       borderColor: "#5A67D8",
                       backgroundColor: "rgba(90, 55, 216, 0.1)",
+                      transform: "translateY(-2px)",
+                      boxShadow: "0 4px 8px rgba(90, 103, 216, 0.15)",
                     },
                   }}
                   onClick={handleMenuClick}
                 >
-                  Perfil
+                  {user.displayName ? user.displayName.split(" ")[0] : "Perfil"}
                 </Button>
                 <Menu
                   anchorEl={anchorEl}
                   open={Boolean(anchorEl)}
                   onClose={handleMenuClose}
                   keepMounted
+                  PaperProps={{
+                    sx: {
+                      width: 280,
+                      mt: 1,
+                      borderRadius: 2,
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                      padding: '12px 0'
+                    }
+                  }}
                 >
-                  <MenuItem onClick={handleAccountSettings}>
-                    Minha Conta
+                  {/* Perfil do usuário no topo */}
+                  {user && (
+                    <Box sx={{ px: 3, mb: 2 }}>
+                      <Box sx={{ display: "flex", flexDirection: "column", mb: 2 }}>
+                        <Typography variant="subtitle1" sx={{ fontWeight: 500, color: "#333" }}>
+                          {user.displayName || "Usuário"}
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "#666", mb: 1 }}>
+                          {user.email}
+                        </Typography>
+                      </Box>
+                      <Box sx={{ height: 1, backgroundColor: "#e2e8f0", mb: 2, mx: 1 }} />
+                    </Box>
+                  )}
+                  
+                  {/* Seção Pessoal */}
+                  <Box sx={{ px: 3, mb: 1 }}>
+                    <Typography variant="caption" sx={{ color: "#666", fontWeight: 600, fontSize: "0.7rem", letterSpacing: 0.5 }}>
+                      Pessoal
+                    </Typography>
+                  </Box>
+                  
+                  <MenuItem 
+                    onClick={handleAccountSettings}
+                    sx={{
+                      borderRadius: 1,
+                      mx: 1,
+                      px: 2,
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <AccountCircleIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem' }}>
+                      Minha Conta
+                    </Typography>
                   </MenuItem>
-                  <MenuItem onClick={handleProfileSettings}>
-                    Configurar Perfil
+                  
+                  <MenuItem 
+                    onClick={() => {
+                      router.push("/meus_ingressos");
+                      handleMenuClose();
+                    }}
+                    sx={{
+                      borderRadius: 1,
+                      mx: 1,
+                      px: 2,
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <ArticleIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem' }}>
+                      Meus Ingressos
+                    </Typography>
                   </MenuItem>
-                  <MenuItem onClick={handleLogout}>Sair</MenuItem>
+
+                  <Box sx={{ height: 1, backgroundColor: "#e2e8f0", my: 2, mx: 3 }} />
+                  
+                  {/* Seção Organizador */}
+                  <Box sx={{ px: 3, mb: 1 }}>
+                    <Typography variant="caption" sx={{ color: "#666", fontWeight: 600, fontSize: "0.7rem", letterSpacing: 0.5 }}>
+                      Organizador
+                    </Typography>
+                  </Box>
+                  
+                  <MenuItem 
+                    onClick={() => {
+                      handleCreateEvent();
+                      handleMenuClose();
+                    }}
+                    sx={{
+                      borderRadius: 1,
+                      mx: 1,
+                      px: 2,
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <AddCircleOutlineIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem' }}>
+                      Criar Evento
+                    </Typography>
+                  </MenuItem>
+                  
+                  <MenuItem 
+                    onClick={() => {
+                      handleMyEvents();
+                      handleMenuClose();
+                    }}
+                    sx={{
+                      borderRadius: 1,
+                      mx: 1,
+                      px: 2,
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <EventIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem' }}>
+                      Meus Eventos
+                    </Typography>
+                  </MenuItem>
+                  <MenuItem 
+                    onClick={() => {
+                      router.push("/carteira");
+                      handleMenuClose();
+                    }}
+                    sx={{
+                      borderRadius: 1,
+                      mx: 1,
+                      px: 2,
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <ArticleIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem' }}>
+                      Carteira da organização
+                    </Typography>
+                  </MenuItem>
+
+                  <Box sx={{ height: 1, backgroundColor: "#e2e8f0", my: 2, mx: 3 }} />
+                  
+                  {/* Seção Ajuda e Sair */}
+                  <MenuItem 
+                    onClick={() => {
+                      router.push("/contato");
+                      handleMenuClose();
+                    }}
+                    sx={{
+                      borderRadius: 1,
+                      mx: 1,
+                      px: 2,
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <InfoOutlinedIcon fontSize="small" />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem' }}>
+                      Ajuda
+                    </Typography>
+                  </MenuItem>
+                  
+                  <MenuItem 
+                    onClick={handleLogout}
+                    sx={{
+                      borderRadius: 1,
+                      mx: 1,
+                      px: 2,
+                      py: 1,
+                      '&:hover': {
+                        backgroundColor: 'rgba(0,0,0,0.04)'
+                      }
+                    }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 35 }}>
+                      <LoginIcon fontSize="small" sx={{ transform: "rotate(180deg)" }} color="error" />
+                    </ListItemIcon>
+                    <Typography variant="body2" sx={{ fontSize: '0.95rem', color: '#e53935' }}>
+                      Sair
+                    </Typography>
+                  </MenuItem>
                 </Menu>
               </>
             ) : (
@@ -399,10 +763,15 @@ const Navbar: React.FC = () => {
                   color: "#2D3748",
                   borderColor: "#2D3748",
                   textTransform: "none",
-                  fontSize: "1rem",
+                  fontSize: "0.95rem",
+                  fontWeight: 500,
+                  padding: "6px 16px",
+                  transition: "all 0.2s ease",
                   ":hover": {
                     borderColor: "#2D3748",
-                    backgroundColor: "rgba(90, 55, 216, 0.1)",
+                    backgroundColor: "rgba(45, 55, 72, 0.08)",
+                    transform: "translateY(-2px)",
+                    boxShadow: "0 4px 8px rgba(45, 55, 72, 0.15)",
                   },
                 }}
                 onClick={handleLogin}
@@ -420,7 +789,7 @@ const Navbar: React.FC = () => {
       </Drawer>
 
       {/* Espaçador para compensar a altura da Navbar fixa */}
-      <Box sx={{ ...theme.mixins.toolbar }} />
+      <Box sx={{ ...theme.mixins.toolbar, mb: 1 }} />
     </>
   );
 };

@@ -89,3 +89,47 @@ class EventUseCase:
 
         event.event_status = event_status
         return self.event_repository.update_event(event)
+        
+    def get_event_policies(self, event_id: str) -> dict:
+        """
+        Retorna as políticas configuradas para um evento específico.
+        """
+        event = self.event_repository.find_event_by_id(event_id)
+        if not event:
+            raise ValueError("Evento não encontrado.")
+            
+        return {
+            'installment_enabled': event.installment_enabled,
+            'max_installments': event.max_installments
+        }
+    
+    def update_event_policies(self, event_id: str, policies_data: dict) -> EventModel:
+        """
+        Atualiza as políticas de um evento, como opções de parcelamento.
+        
+        Args:
+            event_id: O ID do evento a ser atualizado
+            policies_data: Dicionário contendo os dados de políticas a serem atualizados
+            
+        Returns:
+            EventModel com as políticas atualizadas
+        """
+        event = self.event_repository.find_event_by_id(event_id)
+        if not event:
+            raise ValueError("Evento não encontrado.")
+        
+        # Atualiza as políticas de parcelamento
+        if 'installment_enabled' in policies_data:
+            event.installment_enabled = bool(policies_data['installment_enabled'])
+            
+        if 'max_installments' in policies_data:
+            max_installments = int(policies_data['max_installments'])
+            # Garante que o valor está entre 2 e 6
+            if max_installments < 2:
+                max_installments = 2
+            elif max_installments > 6:
+                max_installments = 6
+            event.max_installments = max_installments
+        
+        # Salva as atualizações
+        return self.event_repository.update_event(event)

@@ -145,7 +145,8 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
 
   // Função para compartilhamento em redes sociais específicas
   const shareOnSocialMedia = (platform: 'facebook' | 'twitter' | 'whatsapp' | 'telegram' | 'linkedin' | 'copy') => {
-    const url = window.location.href;
+    // Check if we're in a browser environment before accessing window
+    const url = typeof window !== 'undefined' ? window.location.href : `https://eventues.com/e/${event.slug}`;
     const title = `${event.name} - ${event.city}`;
     const description = [
       `🎯 ${event.event_type}: ${event.name}`,

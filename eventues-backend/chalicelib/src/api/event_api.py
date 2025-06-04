@@ -688,3 +688,96 @@ def delete_event_form(event_id):
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
+
+@event_api.route('/events/{event_id}/policies', methods=['GET'], cors=cors_config)
+def get_event_policies(event_id):
+    try:
+        policies = use_case.get_event_policies(event_id)
+        return Response(
+            body=json.dumps(policies),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except ValueError as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=404,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        print(f"Erro ao obter políticas do evento: {str(e)}")
+        return Response(
+            body=json.dumps({"error": f"Erro ao obter políticas do evento: {str(e)}"}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )
+
+@event_api.route('/events/{event_id}/policies', methods=['PUT'], cors=cors_config)
+def update_event_policies(event_id):
+    try:
+        request = event_api.current_request
+        payload = request.json_body
+        
+        # Validação dos campos obrigatórios
+        if not isinstance(payload, dict):
+            return Response(
+                body=json.dumps({"error": "Formato de dados inválido. É esperado um objeto JSON."}),
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        # Verifica os campos específicos
+        if 'installment_enabled' in payload and not isinstance(payload['installment_enabled'], bool):
+            return Response(
+                body=json.dumps({"error": "O campo 'installment_enabled' deve ser um valor booleano."}),
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+            
+        if 'max_installments' in payload:
+            try:
+                max_installments = int(payload['max_installments'])
+                if max_installments < 2 or max_installments > 6:
+                    return Response(
+                        body=json.dumps({"error": "O campo 'max_installments' deve ser um número entre 2 e 6."}),
+                        status_code=400,
+                        headers={'Content-Type': 'application/json'}
+                    )
+            except (ValueError, TypeError):
+                return Response(
+                    body=json.dumps({"error": "O campo 'max_installments' deve ser um número inteiro."}),
+                    status_code=400,
+                    headers={'Content-Type': 'application/json'}
+                )
+        
+        # Atualiza as políticas do evento
+        updated_event = use_case.update_event_policies(event_id, payload)
+        
+        # Retorna as políticas atualizadas
+        if isinstance(updated_event, dict):
+            installment_enabled = updated_event.get('installment_enabled')
+            max_installments = updated_event.get('max_installments')
+        else:
+            installment_enabled = getattr(updated_event, 'installment_enabled', None)
+            max_installments = getattr(updated_event, 'max_installments', None)
+        return Response(
+            body=json.dumps({
+                'installment_enabled': installment_enabled,
+                'max_installments': max_installments
+            }),
+            status_code=200,
+            headers={'Content-Type': 'application/json'}
+        )
+    except ValueError as e:
+        return Response(
+            body=json.dumps({"error": str(e)}),
+            status_code=404,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        print(f"Erro ao atualizar políticas do evento: {str(e)}")
+        return Response(
+            body=json.dumps({"error": f"Erro ao atualizar políticas do evento: {str(e)}"}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )

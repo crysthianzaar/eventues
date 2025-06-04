@@ -348,3 +348,76 @@ def update_order_status(order_id):
             status_code=500,
             headers={'Content-Type': 'application/json'}
         )
+
+@payment_api.route('/simulate-installments', methods=['POST'], cors=cors_config)
+def simulate_installments():
+    """
+    Simula as opções de parcelamento disponíveis para um determinado valor.
+    Utiliza a API do Asaas para obter informações detalhadas de cada parcela,
+    incluindo valor, data de vencimento e juros aplicados.
+    """
+    try:
+        request = payment_api.current_request
+        data = request.json_body
+        
+        if not data or 'value' not in data:
+            return Response(
+                body={'error': 'Missing required field: value'},
+                status_code=400,
+                headers={'Content-Type': 'application/json'}
+            )
+        
+        value = float(data['value'])
+        event_id = data.get('event_id', None)
+        max_installments = data.get('max_installments', 12)  # Padrão: máximo da Asaas
+        
+        # Se um event_id for fornecido, verifica as políticas de parcelamento do evento
+        if event_id:
+            from chalicelib.src.usecases.event_usecase import EventUseCase
+            event_usecase = EventUseCase()
+            
+            try:
+                event_policies = event_usecase.get_event_policies(event_id)
+                # Se o parcelamento não estiver habilitado para o evento, retorna apenas parcela única
+                if not event_policies.get('installment_enabled', False):
+                    return Response(
+                        body=firestore_json_dumps({
+                            'installments': [
+                                {
+                                    'installmentNumber': 1,
+                                    'value': value,
+                                    'totalValue': value,
+                                    'installmentValue': value,
+                                    'dueDate': datetime.now().strftime('%Y-%m-%d'),
+                                    'interest': 0,
+                                    'interestValue': 0
+                                }
+                            ]
+                        }),
+                        status_code=200,
+                        headers={'Content-Type': 'application/json'}
+                    )
+                # Limita o parcelamento ao máximo configurado no evento
+                event_max_installments = event_policies.get('max_installments', 12)
+                max_installments = min(max_installments, event_max_installments)
+            except Exception as e:
+                # Se ocorrer erro ao buscar políticas, prossegue com o max_installments padrão
+                print(f"Erro ao buscar políticas do evento: {str(e)}")
+        
+        # Garante que o valor máximo seja 12 (limite da Asaas)
+        max_installments = min(max_installments, 12)
+        
+        # Usa o AsaasUseCase para consultar a API
+        result, status_code = asaas_usecase.simulate_installments(value, max_installments)
+        
+        return Response(
+            body=firestore_json_dumps(result) if isinstance(result, dict) else result,
+            status_code=status_code,
+            headers={'Content-Type': 'application/json'}
+        )
+    except Exception as e:
+        return Response(
+            body=firestore_json_dumps({'error': str(e)}),
+            status_code=500,
+            headers={'Content-Type': 'application/json'}
+        )

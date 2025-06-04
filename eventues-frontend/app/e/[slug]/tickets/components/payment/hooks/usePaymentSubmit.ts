@@ -140,6 +140,11 @@ export function usePaymentSubmit() {
             billingType: formData.paymentMethod,
             value: totalAmount,
             dueDate: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            // Include installment information if available for credit card payments
+            installments: formData.installments,
+            installmentValue: formData.installmentValue,
+            installmentTotal: formData.installmentTotal,
+            interestAmount: formData.interestAmount,
             creditCard: creditCardToken ? {
               token: creditCardToken.creditCardToken,
               holderName: formData.cardHolderName,

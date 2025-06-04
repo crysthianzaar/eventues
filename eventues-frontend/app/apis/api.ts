@@ -277,3 +277,90 @@ export const updateOrderStatus = async (orderId: string, status: string): Promis
     throw error;
   }
 }
+
+/**
+ * Get the payment policies for an event (installment options, etc)
+ */
+export const getEventPolicies = async (eventId: string): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/events/${eventId}/policies`);
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error fetching event policies:', errorData);
+      throw new Error(errorData.message || 'Failed to fetch event policies');
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error in getEventPolicies:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update the payment policies for an event
+ */
+export const updateEventPolicies = async (eventId: string, policies: any): Promise<any> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/events/${eventId}/policies`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(policies),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error updating event policies:', errorData);
+      throw new Error(errorData.message || 'Failed to update event policies');
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error in updateEventPolicies:', error);
+    throw error;
+  }
+}
+
+/**
+ * Simulate installment options for a payment
+ */
+export interface InstallmentOption {
+  installmentNumber: number;
+  value: number;
+  totalValue: number;
+  installmentValue: number;
+  dueDate: string | null;
+  interest: number;
+  interestValue: number;
+  fixedFee?: number;
+}
+
+export const simulateInstallments = async (value: number, eventId?: string, maxInstallments?: number): Promise<{installments: InstallmentOption[]}> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/simulate-installments`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ 
+        value,
+        event_id: eventId,
+        max_installments: maxInstallments 
+      }),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('Error simulating installments:', errorData);
+      throw new Error(errorData.message || 'Failed to simulate installments');
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('Error in simulateInstallments:', error);
+    throw error;
+  }
+}

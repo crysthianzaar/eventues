@@ -14,8 +14,8 @@ export default function SiteNavigationJsonLd() {
       description: 'Área do Participante com calendário, próximos eventos e histórico de participações.'
     },
     {
-      name: 'Meus Eventos',
-      url: 'https://eventues.com.br/meus_eventos',
+      name: 'Meus Ingressos',
+      url: 'https://eventues.com.br/meus_ingressos',
       description: 'Confira os seus eventos.'
     },
     {

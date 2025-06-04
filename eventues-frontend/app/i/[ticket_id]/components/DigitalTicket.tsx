@@ -320,9 +320,6 @@ const DigitalTicket = ({ ticketDetails, formatDate }: DigitalTicketProps) => {
           </Box>
           
           <TicketDivider>
-            <Typography variant="caption" sx={{ backgroundColor: '#f5f5f5', px: 1, zIndex: 1 }}>
-              Informações do Pedido
-            </Typography>
           </TicketDivider>
           
           <Box sx={{ display: 'flex', flexWrap: 'wrap', mt: 2, gap: 2 }}>
@@ -332,18 +329,6 @@ const DigitalTicket = ({ ticketDetails, formatDate }: DigitalTicketProps) => {
               </Typography>
               <Typography variant="body2" sx={{ fontWeight: 500 }}>
                 {formatDate(ticketDetails.created_at)}
-              </Typography>
-            </Box>
-            
-            <Box sx={{ minWidth: 120 }}>
-              <Typography variant="caption" color="text.secondary">
-                Valor Total
-              </Typography>
-              <Typography variant="body2" sx={{ fontWeight: 500, color: 'primary.main' }}>
-                {new Intl.NumberFormat('pt-BR', {
-                  style: 'currency',
-                  currency: 'BRL',
-                }).format(ticketDetails.total_value)}
               </Typography>
             </Box>
           </Box>

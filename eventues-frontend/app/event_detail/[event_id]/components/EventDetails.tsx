@@ -31,6 +31,7 @@ import AssignmentIcon from "@mui/icons-material/Assignment"; // Para formulário
 import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/resumo
 import HowToRegIcon from "@mui/icons-material/HowToReg"; // Para check-in de participantes
 import LocalOfferIcon from "@mui/icons-material/LocalOffer"; // Para cupons de desconto
+import PaymentIcon from "@mui/icons-material/Payment"; // Para políticas de pagamento
 import Image from "next/image"; // Next.js Image component
 import SummaryCard from "./Summary";
 import InformationCard from "./InformationCard";
@@ -38,6 +39,7 @@ import FormCard from "./FormCard";
 import CriarIngressoPage from "./TicketsAndValues";
 import CheckinCard from "./CheckinCard";
 import CouponsCard from "./CouponsCard";
+import PoliciesCard from "./PoliciesCard";
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
 import api from "../apis/api";
 
@@ -336,6 +338,17 @@ const OrganizatorEventDetail: React.FC = () => {
         />
       ),
       description: "Gerenciamento de check-in dos participantes do evento.",
+    },
+    {
+      icon: <PaymentIcon />, // Ícone de pagamento para políticas de parcelamento
+      title: "Políticas de Pagamento",
+      component: (
+        <PoliciesCard
+          eventId={eventDetail.event_id}
+          handleNotifyAndAction={handleNotifyAndAction}
+        />
+      ),
+      description: "Configuração de políticas de parcelamento para o evento.",
     },
     {
       icon: <LocalOfferIcon />, // Ícone de etiqueta para cupons de desconto
