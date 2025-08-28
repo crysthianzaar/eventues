@@ -1,14 +1,32 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Box, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { useRouter } from 'next/navigation';
 
 interface PaymentSuccessProps {
   message?: string;
+  redirectTo?: string;
+  redirectDelay?: number;
 }
 
-export function PaymentSuccess({ message = 'Redirecionando para os detalhes da sua inscrição...' }: PaymentSuccessProps) {
+export function PaymentSuccess({ 
+  message = 'Redirecionando para os detalhes da sua inscrição...',
+  redirectTo,
+  redirectDelay = 3000
+}: PaymentSuccessProps) {
+  const router = useRouter();
+
+  useEffect(() => {
+    if (redirectTo) {
+      const timer = setTimeout(() => {
+        router.push(redirectTo);
+      }, redirectDelay);
+
+      return () => clearTimeout(timer);
+    }
+  }, [redirectTo, redirectDelay, router]);
   return (
     <Box
       sx={{

@@ -231,6 +231,7 @@ interface PaymentComponentProps {
   orderTotal: number;
   orderSubtotal: number;
   orderFees: number;
+  orderId?: string;
   onDiscountApplied?: (discountInfo: {
     discountAmount: number;
     finalAmount: number;
@@ -251,9 +252,9 @@ export default function PaymentComponent({
   orderTotal,
   orderSubtotal,
   orderFees,
+  orderId,
   onDiscountApplied
 }: PaymentComponentProps) {
-  const [orderId, setOrderId] = useState<string | undefined>('');
   const [orderData, setOrderData] = useState<any>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BOLETO' | 'CREDIT_CARD'>('PIX');
@@ -286,15 +287,10 @@ export default function PaymentComponent({
   });
 
   useEffect(() => {
-    const urlParts = window.location.pathname.split('/');
-    const orderIdIndex = urlParts.findIndex(part => part === 'payment') - 1;
-    const extractedOrderId = orderIdIndex > 0 ? urlParts[orderIdIndex] : undefined;
-    setOrderId(extractedOrderId);
-    
     // Buscar os dados do pedido quando o orderId estiver disponível
-    if (extractedOrderId) {
+    if (orderId) {
       setLoadingOrder(true);
-      fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/get-order/${extractedOrderId}`)
+      fetch(`${process.env.NEXT_PUBLIC_BACKEND_API_URL}/get-order/${orderId}`)
         .then(response => response.json())
         .then(data => {
           console.log('Order data from API:', data);
@@ -312,7 +308,7 @@ export default function PaymentComponent({
           setLoadingOrder(false);
         });
     }
-  }, []);
+  }, [orderId]);
   
   // Carregar as políticas de parcelamento do evento
   const loadEventPolicies = async (eventId: string) => {
@@ -407,7 +403,7 @@ export default function PaymentComponent({
   const {
     showSuccessModal,
     showSuccessOverlay,
-  } = usePaymentStatus(paymentResultHook, user!);
+  } = usePaymentStatus(paymentResultHook, user!, orderId);
 
   const totalAmount = useMemo(() => {
     if (orderTotal !== undefined && orderTotal > 0) {

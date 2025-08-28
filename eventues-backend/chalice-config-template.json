@@ -1,0 +1,26 @@
+{
+  "version": "2.0",
+  "app_name": "eventues-backend",
+  "stages": {
+    "sandbox": {
+      "api_gateway_stage": "sandbox",
+      "environment_variables": {
+        "ENVIRONMENT": "sandbox"
+      },
+      "tags": {
+        "Environment": "sandbox",
+        "Project": "Eventues"
+      }
+    },
+    "production": {
+      "api_gateway_stage": "prod",
+      "environment_variables": {
+        "ENVIRONMENT": "production"
+      },
+      "tags": {
+        "Environment": "production",
+        "Project": "Eventues"
+      }
+    }
+  }
+}

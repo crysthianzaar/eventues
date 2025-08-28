@@ -584,6 +584,7 @@ export default function PaymentPage() {
             orderTotal={orderSummary.totalAmount} // Valor total do backend
             orderSubtotal={orderSummary.subtotal} // Subtotal do backend
             orderFees={orderSummary.fees} // Taxas do backend
+            orderId={orderId}
           />
         )}
       </Container>

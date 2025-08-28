@@ -1,0 +1,55 @@
+/* Global styles for the WoW-themed page */
+
+/* Base font settings */
+body, html {
+  margin: 0;
+  padding: 0;
+  font-family: 'Lora', serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Font loading fallback - prevents layout shift while custom fonts load */
+@font-face {
+  font-family: 'Cinzel';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Cinzel Regular'), local('Cinzel-Regular'), url(https://fonts.gstatic.com/s/cinzel/v11/8vIJ7ww63mVu7gt79mT7.woff2) format('woff2');
+}
+
+@font-face {
+  font-family: 'Lora';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: local('Lora Regular'), local('Lora-Regular'), url(https://fonts.gstatic.com/s/lora/v16/0QIvMX1D_JOuMwr7Iw.woff2) format('woff2');
+}
+
+/* Set default text styles */
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Cinzel', serif;
+  font-weight: 700;
+}
+
+p, span, div {
+  font-family: 'Lora', serif;
+}
+
+/* Remove default styles for links */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+/* Style selection */
+::selection {
+  background: rgba(255, 215, 0, 0.3);
+  color: #612e04;
+}
+
+/* Better scrolling */
+body {
+  overflow-y: scroll;
+  scroll-behavior: smooth;
+}

@@ -1,26 +1,14 @@
-import os
-import json
 import firebase_admin
 from firebase_admin import credentials, firestore, auth, storage
-from dotenv import load_dotenv  # type: ignore
+from chalicelib.src.config.environment import env_config
 
-# Carregar variáveis de ambiente locais (apenas para desenvolvimento)
-load_dotenv()
+# Get Firebase configuration for current environment
+firebase_config = env_config.get_firebase_config()
 
-# Obter credenciais do Firebase da variável de ambiente
-FIREBASE_CREDENTIALS_JSON = os.getenv("FIREBASE_CREDENTIALS_JSON")
-
-if not FIREBASE_CREDENTIALS_JSON:
-    raise ValueError("FIREBASE_CREDENTIALS_JSON não definida na AWS.")
-
-# Corrigir formatação do `private_key` (substituir `\\n` por `\n`)
-firebase_credentials_dict = json.loads(FIREBASE_CREDENTIALS_JSON)
-firebase_credentials_dict["private_key"] = firebase_credentials_dict["private_key"].replace("\\n", "\n")
-
-# Inicializa Firebase diretamente com o JSON corrigido
-cred = credentials.Certificate(firebase_credentials_dict)
+# Initialize Firebase with environment-specific configuration
+cred = credentials.Certificate(firebase_config['credentials'])
 firebase_admin.initialize_app(cred, {
-    'storageBucket': 'eventues-auth.appspot.com'
+    'storageBucket': firebase_config['storage_bucket']
 })
 
 # Conexão com Firestore e Storage

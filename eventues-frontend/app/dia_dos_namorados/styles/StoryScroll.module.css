@@ -1,0 +1,133 @@
+.storyScroll {
+  width: 100%;
+  max-width: 800px;
+  margin: 20px auto 60px;
+  position: relative;
+}
+
+.storyContainer {
+  background-image: url('/dia_dos_namorados/images/parchment-bg.png');
+  background-size: cover;
+  background-repeat: no-repeat;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4);
+  position: relative;
+}
+
+.storyContainer::before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border: 2px solid rgba(139, 69, 19, 0.3);
+  border-radius: 8px;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.storyTitle {
+  text-align: center;
+  font-size: 2.5rem;
+  color: #5c2e0c;
+  margin: 0 0 30px 0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.storyTitle::after {
+  content: '';
+  display: block;
+  width: 150px;
+  height: 2px;
+  background-color: rgba(139, 69, 19, 0.5);
+  margin: 15px auto 0;
+}
+
+.storyItem {
+  position: relative;
+  padding: 10px 20px;
+  margin-bottom: 40px;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 1s ease, transform 1s ease;
+}
+
+.storyItem.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.chapter {
+  font-size: 0.9rem;
+  color: #8b4513;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.eventTitle {
+  font-size: 1.8rem;
+  color: #5c2e0c;
+  margin: 5px 0 15px 0;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(139, 69, 19, 0.3);
+  display: inline-block;
+}
+
+.storyText {
+  font-size: 1.1rem;
+  line-height: 1.7;
+  color: #4e2a0a;
+  text-align: justify;
+  font-family: 'Lora', serif;
+}
+
+.firstLetter {
+  float: left;
+  font-size: 3.5rem;
+  line-height: 0.8;
+  margin-right: 8px;
+  margin-top: 8px;
+  color: #a33915;
+  font-family: 'Cinzel', serif;
+  font-weight: bold;
+}
+
+.separator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.separatorIcon {
+  width: 150px;
+  height: 20px;
+  background-image: url('/dia_dos_namorados/images/separator.png');
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.7;
+}
+
+@media (max-width: 768px) {
+  .storyContainer {
+    padding: 20px;
+  }
+  
+  .storyTitle {
+    font-size: 2rem;
+  }
+  
+  .eventTitle {
+    font-size: 1.5rem;
+  }
+  
+  .firstLetter {
+    font-size: 3rem;
+  }
+}

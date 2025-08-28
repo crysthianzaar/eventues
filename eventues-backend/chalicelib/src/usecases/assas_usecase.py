@@ -1,21 +1,24 @@
 import json
 from typing import Any, Dict, Tuple
 import requests
+from chalicelib.src.config.environment import env_config
 
-
-ASAAS_API_KEY = '$aact_hmlg_000MzkwODA2MWY2OGM3MWRlMDU2NWM3MzJlNzZmNGZhZGY6OjllZTYwYTIzLTRjYjEtNGMzMC05MWZlLTAwZTU5ODM0YTVhMTo6JGFhY2hfYWE0M2M4MzgtYmY0NS00NWEyLTllODMtMDFjZTk0OWExODM1'
-ASAAS_API_URL = 'https://sandbox.asaas.com/api/v3'
 
 class AsaasUseCase:
     def __init__(self):
+        # Get Asaas configuration for current environment
+        asaas_config = env_config.get_asaas_config()
+        self.api_key = asaas_config['api_key']
+        self.api_url = asaas_config['api_url']
+        
         self.headers = {
             'Content-Type': 'application/json',
-            'access_token': ASAAS_API_KEY
+            'access_token': self.api_key
         }
 
     def create_customer(self, customer_data: Dict[str, Any]) -> Dict[str, Any]:
         response = requests.post(
-            f'{ASAAS_API_URL}/customers',
+            f'{self.api_url}/customers',
             json=customer_data,
             headers=self.headers
         )
@@ -31,7 +34,7 @@ class AsaasUseCase:
                 card_data['expiryYear'] = card_data.pop('expirationYear')
 
         response = requests.post(
-            f'{ASAAS_API_URL}/creditCard/tokenize',
+            f'{self.api_url}/creditCard/tokenize',
             json=tokenization_data,
             headers=self.headers
         )
@@ -57,7 +60,7 @@ class AsaasUseCase:
             print(f"[DEBUG] Installment value: {payment_data.get('installmentValue')}")
             
         response = requests.post(
-            f'{ASAAS_API_URL}/payments',
+            f'{self.api_url}/payments',
             json=payment_data,
             headers=self.headers
         )
@@ -70,14 +73,14 @@ class AsaasUseCase:
 
     def get_pix_qr_code(self, payment_id: str) -> Dict[str, Any]:
         response = requests.get(
-            f'{ASAAS_API_URL}/payments/{payment_id}/pixQrCode',
+            f'{self.api_url}/payments/{payment_id}/pixQrCode',
             headers=self.headers
         )
         return response.json() if response.ok else None
 
     def get_payment_status(self, payment_id: str) -> Dict[str, Any]:
         response = requests.get(
-            f'{ASAAS_API_URL}/payments/{payment_id}',
+            f'{self.api_url}/payments/{payment_id}',
             headers=self.headers
         )
         return response.json() if response.ok else None
