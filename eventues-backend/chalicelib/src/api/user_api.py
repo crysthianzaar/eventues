@@ -390,6 +390,7 @@ def get_ticket_details(order_id):
         ticket_details = {
             'order_id': order_id,
             'event_id': event.id,
+            'event_slug': event_data.get('slug'),
             'event_type': event_data.get('event_type'),
             'event_name': event_data.get('name'),
             'event_date': event_date,

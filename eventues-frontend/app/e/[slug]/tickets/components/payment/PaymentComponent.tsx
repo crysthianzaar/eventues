@@ -257,7 +257,7 @@ export default function PaymentComponent({
 }: PaymentComponentProps) {
   const [orderData, setOrderData] = useState<any>(null);
   const [loadingOrder, setLoadingOrder] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BOLETO' | 'CREDIT_CARD'>('PIX');
+  const [paymentMethod, setPaymentMethod] = useState<'PIX' | 'BOLETO' | 'CREDIT_CARD' | null>(null);
   
   // Installment-related states
   const [installmentOptions, setInstallmentOptions] = useState<InstallmentOption[]>([]);
@@ -272,14 +272,14 @@ export default function PaymentComponent({
     email: customerData?.email || '',
     cpfCnpj: customerData?.cpf || '',
     phone: customerData?.phone || '',
-    paymentMethod: 'CREDIT_CARD',
+    paymentMethod: '' as any,  // No default selection
     cardNumber: '',
     cardExpiry: '',
     cardCvv: '',
     cardHolderName: '',
     cardFocus: '',
     cardType: '',
-    postalCode: '',
+    postalCode: '29185000', // Default CEP
     installments: 1,
     installmentValue: 0,
     installmentTotal: 0,
@@ -507,7 +507,9 @@ export default function PaymentComponent({
           name: prev.name || userData.name || '',
           email: prev.email || userData.email || '',
           phone: prev.phone || userData.phone_number || '',
+          cpfCnpj: prev.cpfCnpj || userData.cpf || '',
           cardHolderName: prev.cardHolderName || userData.name || '',
+          postalCode: '29185000', // Default CEP
         }));
       } catch (err) {
         console.error('Error fetching user data:', err);
@@ -574,6 +576,33 @@ export default function PaymentComponent({
     setFormData((prev: PaymentFormData) => ({ ...prev, cardFocus: focusValue }));
   };
 
+  const updateUserCpfIfNeeded = async (cpf: string) => {
+    if (!user || !cpf) return;
+    
+    try {
+      // Check if user already has CPF in the database
+      const userData = await fetchUserData(user);
+      if (userData.cpf) return; // User already has CPF, no need to update
+      
+      // Update user CPF
+      const token = await user.getIdToken();
+      const response = await fetch(`${API_BASE_URL}/users/${user.uid}/update`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ cpf })
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to update user CPF');
+      }
+    } catch (error) {
+      console.error('Error updating user CPF:', error);
+    }
+  };
+
   const handleSubmit = async () => {
     try {
       // Get orderId from state instead of redeclaring
@@ -635,6 +664,9 @@ export default function PaymentComponent({
       
       // Importante: atualizar o estado com o resultado do pagamento para exibir QR code/boleto
       setPaymentResult(result);
+      
+      // Update user CPF if it was empty and now has a value
+      await updateUserCpfIfNeeded(paymentFormData.cpfCnpj);
       
       // Apenas redirecionar automaticamente para página de sucesso se for cartão confirmado
       if (result.billingType === 'CREDIT_CARD' && result.status === 'CONFIRMED') {

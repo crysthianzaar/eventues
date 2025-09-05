@@ -9,7 +9,7 @@ import {
   Stepper, Step, StepLabel, ButtonGroup, MenuItem, InputAdornment, Checkbox, FormControlLabel,
   AlertTitle
 } from "@mui/material";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import EventIcon from "@mui/icons-material/Event";
 import CalendarTodayIcon from "@mui/icons-material/CalendarToday";
 import AddIcon from "@mui/icons-material/Add";
@@ -1089,6 +1089,7 @@ const MyEvents: React.FC = () => {
   const [user] = useAuthState(auth); // Firebase Authentication
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isSmallScreen = useMediaQuery("(max-width:600px)");
 
   useEffect(() => {
@@ -1115,6 +1116,15 @@ const MyEvents: React.FC = () => {
 
     fetchEvents();
   }, [user]);
+
+  // Check URL parameters to open specific tab
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'carteira') {
+      // "Carteira da organização" is the 4th tab (index 3)
+      setExpandedCard(3);
+    }
+  }, [searchParams]);
   
   // Expande ou recolhe um card específico
   const handleExpand = (cardIndex: number) => {

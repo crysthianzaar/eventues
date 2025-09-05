@@ -18,6 +18,7 @@ export interface TicketItem {
 export interface TicketDetails {
   order_id: string;
   event_id: string;
+  event_slug: string;
   event_type: string;
   event_name: string;
   event_date: string;

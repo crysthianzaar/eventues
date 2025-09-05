@@ -302,7 +302,7 @@ const Navbar: React.FC = () => {
         </ListItemButton>
         
         <ListItemButton 
-          onClick={() => navigateTo("/carteira")} 
+          onClick={() => navigateTo("/meus_eventos?tab=carteira")} 
           sx={{ 
             borderRadius: 1,
             '&:hover': {
@@ -690,7 +690,7 @@ const Navbar: React.FC = () => {
                   </MenuItem>
                   <MenuItem 
                     onClick={() => {
-                      router.push("/carteira");
+                      router.push("/meus_eventos?tab=carteira");
                       handleMenuClose();
                     }}
                     sx={{

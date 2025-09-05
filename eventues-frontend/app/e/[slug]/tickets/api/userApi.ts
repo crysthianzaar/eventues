@@ -6,6 +6,7 @@ interface UserData {
   name: string;
   email: string;
   phone_number: string;
+  cpf?: string;
 }
 
 export async function fetchUserData(user: User): Promise<UserData> {
