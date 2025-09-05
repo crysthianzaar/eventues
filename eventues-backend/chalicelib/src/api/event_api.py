@@ -40,12 +40,13 @@ def get_event_dashboard(event_id):
         
         # Inicializar estatísticas
         stats = {
-            'vendasTotais': 0,
-            'vendasPendentes': 0,
-            'vendasCanceladas': 0,
-            'receitaLiquida': 0,
+            'receitaTotal': 0,
+            'valorConfirmado': 0,
+            'valorPendente': 0,
             'valorRepassado': 0,
+            'valorCancelado': 0,
             'valorAReceber': 0,
+            'receitaLiquida': 0,
             'visualizacoes': event.to_dict().get('views', 0),
             'taxaConversao': 0,
             'totalPedidos': 0,
@@ -85,19 +86,58 @@ def get_event_dashboard(event_id):
             # Incrementar contagem total de pedidos
             stats['totalPedidos'] += 1
             
-            # Classificar por status
-            if order_status in ['CONFIRMADO', 'CONFIRMED', 'RECEIVED']:
-                stats['vendasTotais'] += order_total
-                stats['valorRepassado'] += order_total
+            # Classificar por status de pagamento baseado no Asaas e estados internos
+            payment_details = order_data.get('payment_details', {})
+            asaas_status = payment_details.get('status', '')
+            is_transferred = payment_details.get('transferred_to_organizer', False)
+            
+            # Mapear status do Asaas para classificação interna
+            if order_status in ['CONFIRMADO', 'CONFIRMED', 'RECEIVED'] or asaas_status in ['CONFIRMED', 'RECEIVED']:
+                stats['receitaTotal'] += order_total
+                stats['valorConfirmado'] += order_total
                 stats['pedidosConfirmados'] += 1
-            elif order_status in ['PAGAMENTO PENDENTE', 'PENDING']:
-                stats['vendasPendentes'] += order_total
-                stats['valorAReceber'] += order_total
-            elif order_status in ['CANCELADO', 'REFUNDED', 'DELETED', 'CHARGEBACK_REQUESTED']:
-                stats['vendasCanceladas'] += order_total
+                
+                # Verificar se já foi repassado para o organizador
+                if is_transferred:
+                    stats['valorRepassado'] += order_total
+                else:
+                    # Para pagamentos confirmados, o valor a receber é o valor líquido (subtotal)
+                    valor_liquido = order_data.get('subtotal_amount', order_data.get('valor', 0))
+                    stats['valorAReceber'] += valor_liquido
+                    
+            elif order_status in ['PAGAMENTO PENDENTE', 'PENDING'] or asaas_status in ['PENDING', 'AWAITING_PAYMENT']:
+                stats['receitaTotal'] += order_total
+                stats['valorPendente'] += order_total
+                # Pagamentos pendentes não são contados em valorAReceber até serem confirmados
+                
+            elif order_status in ['CANCELADO', 'REFUNDED', 'DELETED', 'CHARGEBACK_REQUESTED'] or asaas_status in ['REFUNDED', 'CHARGEBACK_REQUESTED', 'CHARGEBACK_DISPUTE', 'AWAITING_CHARGEBACK_REVERSAL']:
+                stats['valorCancelado'] += order_total
+                
+            # Tratar casos de pagamentos expirados
+            elif order_status in ['EXPIRADO', 'EXPIRED'] or asaas_status in ['OVERDUE']:
+                stats['valorCancelado'] += order_total
+                
+            # Status AGUARDANDO INFORMAÇÕES não conta para totais financeiros
+            elif 'AGUARDANDO' in order_status.upper() or order_status in ['AWAITING_INFO', 'INFO_PENDING']:
+                # Apenas conta para totalPedidos, mas não para valores financeiros
+                pass
         
         # Calcular receita líquida (total - cancelamentos)
-        stats['receitaLiquida'] = stats['vendasTotais'] - stats['vendasCanceladas']
+        stats['receitaLiquida'] = stats['receitaTotal'] - stats['valorCancelado']
+        
+        # Buscar solicitações de repasse pendentes para subtrair do valor disponível
+        pending_transfers = db.collection('transfer_requests')\
+                             .where('event_id', '==', event_id)\
+                             .where('status', 'in', ['PENDING', 'APPROVED', 'PROCESSING'])\
+                             .stream()
+        
+        total_pending_transfers = 0
+        for transfer in pending_transfers:
+            transfer_data = transfer.to_dict()
+            total_pending_transfers += transfer_data.get('amount', 0)
+        
+        # Subtrair repasses pendentes do valor disponível para repasse
+        stats['valorAReceber'] = max(0, stats['valorAReceber'] - total_pending_transfers)
         
         # Obter total de visualizações do repositório de analytics
         visualizacoes = analytics_repository.get_page_views(event_id)

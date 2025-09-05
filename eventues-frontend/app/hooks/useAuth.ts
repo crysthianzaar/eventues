@@ -34,11 +34,25 @@ const useAuth = () => {
 
   const signInWithEmail = async () => {
     setSigningIn(true);
+    setAuthError(null); // Clear previous errors
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/callback');
-    } catch (err) {
-      setAuthError('Falha ao tentar fazer login com e-mail e senha.');
+    } catch (err: any) {
+      console.error('Login error:', err);
+      
+      // Handle specific Firebase error codes
+      if (err.code === 'auth/user-not-found') {
+        setAuthError('E-mail não encontrado. Verifique seu e-mail ou crie uma conta.');
+      } else if (err.code === 'auth/wrong-password') {
+        setAuthError('Senha incorreta. Tente novamente.');
+      } else if (err.code === 'auth/invalid-email') {
+        setAuthError('Por favor, insira um e-mail válido.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setAuthError('Muitas tentativas de login. Tente novamente mais tarde.');
+      } else {
+        setAuthError('Falha ao tentar fazer login. Verifique suas credenciais.');
+      }
     } finally {
       setSigningIn(false);
     }
@@ -46,12 +60,34 @@ const useAuth = () => {
 
   const signUpWithEmail = async () => {
     setSigningIn(true);
+    setAuthError(null); // Clear previous errors
     try {
       await createUserWithEmailAndPassword(auth, email, password);
       setSignupSuccess(true);
       setTimeout(() => router.push('/callback'), 3000);
-    } catch (err) {
-      setAuthError('Falha ao tentar criar conta.');
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      console.error('Error code:', err.code);
+      
+      // Handle specific Firebase error codes
+      let errorMessage = '';
+      if (err.code === 'auth/email-already-in-use') {
+        errorMessage = 'Este e-mail já está cadastrado. Tente fazer login ou use outro e-mail.';
+      } else if (err.code === 'auth/weak-password') {
+        errorMessage = 'A senha deve ter pelo menos 6 caracteres.';
+      } else if (err.code === 'auth/invalid-email') {
+        errorMessage = 'Por favor, insira um e-mail válido.';
+      } else {
+        errorMessage = 'Falha ao tentar criar conta. Tente novamente.';
+      }
+      
+      console.log('Setting auth error:', errorMessage);
+      setAuthError(errorMessage);
+      
+      // Force a small delay to ensure state update
+      setTimeout(() => {
+        console.log('Auth error after timeout:', errorMessage);
+      }, 100);
     } finally {
       setSigningIn(false);
     }
@@ -62,12 +98,25 @@ const useAuth = () => {
       setAuthError('Por favor, insira seu e-mail para redefinir a senha.');
       return;
     }
+    setAuthError(null); // Clear previous errors
     try {
       await sendPasswordResetEmail(auth, email);
       setResetEmailSent(true);
-    } catch (err) {
-      setAuthError('Erro ao enviar e-mail de redefinição de senha.');
+    } catch (err: any) {
+      console.error('Password reset error:', err);
+      
+      if (err.code === 'auth/user-not-found') {
+        setAuthError('E-mail não encontrado. Verifique se o e-mail está correto.');
+      } else if (err.code === 'auth/invalid-email') {
+        setAuthError('Por favor, insira um e-mail válido.');
+      } else {
+        setAuthError('Erro ao enviar e-mail de redefinição de senha.');
+      }
     }
+  };
+
+  const clearAuthError = () => {
+    setAuthError(null);
   };
 
   return {
@@ -83,6 +132,7 @@ const useAuth = () => {
     signInWithEmail,
     signUpWithEmail,
     handlePasswordReset,
+    clearAuthError,
   };
 };
 

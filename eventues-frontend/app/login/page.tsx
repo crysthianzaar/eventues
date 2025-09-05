@@ -16,10 +16,12 @@ const LoginContent = () => {
     password,
     setPassword,
     signingIn,
+    authError,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
     handlePasswordReset,
+    clearAuthError,
   } = useAuth();
 
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
@@ -36,6 +38,17 @@ const LoginContent = () => {
       setAuthMessage(null);
     }
   }, [searchParams]);
+
+  // Clear auth error only when explicitly switching modes
+  const handleModeChange = (newMode: 'login' | 'signup' | 'reset') => {
+    clearAuthError();
+    setMode(newMode);
+  };
+
+  // Debug: Log authError changes
+  useEffect(() => {
+    console.log('Auth error changed:', authError);
+  }, [authError]);
 
   return (
     <Box
@@ -80,6 +93,22 @@ const LoginContent = () => {
           </Box>
         )}
 
+        {authError && (
+          <Box
+            sx={{
+              backgroundColor: '#fff5f5',
+              padding: '10px',
+              marginBottom: '15px',
+              borderRadius: '5px',
+              border: '1px solid #e53e3e',
+              color: '#e53e3e',
+              fontWeight: 'bold',
+            }}
+          >
+            {authError}
+          </Box>
+        )}
+
         {signingIn ? (
           <CircularProgress />
         ) : (
@@ -90,7 +119,7 @@ const LoginContent = () => {
             password={password}
             setPassword={setPassword}
             handleSubmit={mode === 'login' ? signInWithEmail : mode === 'signup' ? signUpWithEmail : handlePasswordReset}
-            setMode={setMode}
+            setMode={handleModeChange}
             signingIn={signingIn}
             signInWithGoogle={signInWithGoogle}
           />

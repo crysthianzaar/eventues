@@ -32,6 +32,7 @@ import DashboardIcon from "@mui/icons-material/Dashboard"; // Para visão geral/
 import HowToRegIcon from "@mui/icons-material/HowToReg"; // Para check-in de participantes
 import LocalOfferIcon from "@mui/icons-material/LocalOffer"; // Para cupons de desconto
 import PaymentIcon from "@mui/icons-material/Payment"; // Para políticas de pagamento
+import AccountBalanceIcon from "@mui/icons-material/AccountBalance"; // Para repasses
 import Image from "next/image"; // Next.js Image component
 import SummaryCard from "./Summary";
 import InformationCard from "./InformationCard";
@@ -39,6 +40,7 @@ import FormCard from "./FormCard";
 import CriarIngressoPage from "./TicketsAndValues";
 import CheckinCard from "./CheckinCard";
 import CouponsCard from "./CouponsCard";
+import TransferCard from "./TransferCard";
 import PoliciesCard from "./PoliciesCard";
 import { useRouter, useParams } from "next/navigation"; // Importação para obter parâmetros da rota
 import api from "../apis/api";
@@ -362,6 +364,19 @@ const OrganizatorEventDetail: React.FC = () => {
         />
       ),
       description: "Gerenciamento de cupons de desconto para o evento.",
+    },
+    {
+      icon: <AccountBalanceIcon />, // Ícone de banco para repasses
+      title: "Repasses",
+      component: (
+        <TransferCard
+          eventId={eventDetail.event_id}
+          onNotify={(message, severity) =>
+            handleNotifyAndAction(message, severity, () => {})
+          }
+        />
+      ),
+      description: "Solicitação e acompanhamento de repasses financeiros. Solicite transferências de valores confirmados ou adiantamentos com taxa.",
     },
     // Adicione mais cards conforme necessário...
   ];

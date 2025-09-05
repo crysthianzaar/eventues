@@ -42,7 +42,7 @@ const ActionButtons = ({
           variant="outlined"
           color="primary"
           startIcon={<HomeIcon />}
-          onClick={() => router.push('/minha_conta')}
+          onClick={() => router.push('/meus_ingressos')}
           fullWidth
         >
           Minhas Inscrições
@@ -87,7 +87,7 @@ const ActionButtons = ({
             variant="outlined"
             color="primary"
             size="large"
-            onClick={() => router.push('/minha_conta')}
+            onClick={() => router.push('/meus_ingressos')}
           >
             Ver Minhas Inscrições
           </Button>

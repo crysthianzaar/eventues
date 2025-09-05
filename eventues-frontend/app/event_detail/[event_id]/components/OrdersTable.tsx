@@ -17,7 +17,14 @@ import {
   Link, 
   Collapse,
   TextField,
-  TablePagination
+  TablePagination,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Grid,
+  Chip,
+  Button
 } from '@mui/material';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ReceiptIcon from '@mui/icons-material/Receipt';
@@ -44,6 +51,7 @@ interface Order {
   payment_url: string;
   data: string;
   metodoPagamento: string;
+  nomeParticipante?: string;
 }
 
 interface OrdersTableProps {
@@ -58,10 +66,12 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
   useEffect(() => {
     setIsClient(true);
   }, []);
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(true); // Show expanded by default
   const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState('all');
   const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(5);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const getStatusColor = (status: string) => {
     if (status === 'CONFIRMADO' || status === 'CONFIRMED' || status === 'RECEIVED') {
@@ -85,11 +95,32 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
     return null;
   }
 
+  // Get unique payment methods and statuses for filter options
+  const uniquePaymentMethods = Array.from(new Set(orders.map(o => o.metodoPagamento).filter(Boolean)));
+  const uniqueStatuses = Array.from(new Set(orders.map(o => o.status).filter(Boolean)));
+
   const filteredOrders = orders.filter(o => {
-    // Verificar se idPedido existe antes de chamar toLowerCase
-    const pedidoId = o.idPedido || '';
-    return pedidoId.toLowerCase().includes(search.toLowerCase());
+    // Search filter (ID do pedido or participant name)
+    const searchTerm = search.toLowerCase();
+    const matchesSearch = !search || 
+      (o.idPedido || '').toLowerCase().includes(searchTerm) ||
+      (o.nomeParticipante || '').toLowerCase().includes(searchTerm);
+
+    // Status filter
+    const matchesStatus = statusFilter === 'all' || o.status === statusFilter;
+
+    // Payment method filter
+    const matchesPaymentMethod = paymentMethodFilter === 'all' || o.metodoPagamento === paymentMethodFilter;
+
+    return matchesSearch && matchesStatus && matchesPaymentMethod;
   });
+
+  const clearFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setPaymentMethodFilter('all');
+    setPage(0);
+  };
   const paginatedOrders = filteredOrders.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   return (
@@ -121,7 +152,7 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography variant="h6" color={colors.grayDark} sx={{ fontWeight: 700 }}>
-            Todos os Pedidos
+            Todos os Pedidos ({filteredOrders.length})
           </Typography>
           <KeyboardArrowDownIcon
             sx={{
@@ -133,19 +164,75 @@ const OrdersTable: React.FC<OrdersTableProps> = ({ orders }) => {
             aria-label={open ? 'Recolher pedidos' : 'Expandir pedidos'}
           />
         </Box>
-        <TextField
-          label="Buscar por ID"
-          variant="outlined"
-          size="small"
-          value={search}
-          onClick={e => e.stopPropagation()}
-          onChange={e => { setSearch(e.target.value); setPage(0); }}
-          sx={{ width: '250px' }}
-        />
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Chip 
+            label={`${filteredOrders.length} de ${orders.length} pedidos`}
+            size="small"
+            color="primary"
+            variant="outlined"
+          />
+        </Box>
       </Box>
       <CardContent sx={{ pt: 0 }}>
         <Collapse in={open} timeout="auto" unmountOnExit>
-          <TableContainer component={Paper} sx={{ mt: 2, boxShadow: 'none', maxHeight: 500, overflowY: 'auto' }}>
+          {/* Filters Section */}
+          <Box sx={{ mt: 2, mb: 3 }}>
+            <Grid container spacing={2} alignItems="center">
+              <Grid item xs={12} sm={6} md={3}>
+                <TextField
+                  fullWidth
+                  label="Buscar por ID ou Nome"
+                  variant="outlined"
+                  size="small"
+                  value={search}
+                  onChange={e => { setSearch(e.target.value); setPage(0); }}
+                  placeholder="Digite ID do pedido ou nome..."
+                />
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Status</InputLabel>
+                  <Select
+                    value={statusFilter}
+                    label="Status"
+                    onChange={e => { setStatusFilter(e.target.value); setPage(0); }}
+                  >
+                    <MenuItem value="all">Todos os Status</MenuItem>
+                    {uniqueStatuses.map(status => (
+                      <MenuItem key={status} value={status}>{status}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <FormControl fullWidth size="small">
+                  <InputLabel>Método de Pagamento</InputLabel>
+                  <Select
+                    value={paymentMethodFilter}
+                    label="Método de Pagamento"
+                    onChange={e => { setPaymentMethodFilter(e.target.value); setPage(0); }}
+                  >
+                    <MenuItem value="all">Todos os Métodos</MenuItem>
+                    {uniquePaymentMethods.map(method => (
+                      <MenuItem key={method} value={method}>{method}</MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} sm={6} md={3}>
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={clearFilters}
+                  disabled={search === '' && statusFilter === 'all' && paymentMethodFilter === 'all'}
+                >
+                  Limpar Filtros
+                </Button>
+              </Grid>
+            </Grid>
+          </Box>
+          
+          <TableContainer component={Paper} sx={{ boxShadow: 'none', maxHeight: 500, overflowY: 'auto' }}>
             <Table stickyHeader>
               <TableHead>
                 <TableRow sx={{ backgroundColor: '#f9fafb' }}>
