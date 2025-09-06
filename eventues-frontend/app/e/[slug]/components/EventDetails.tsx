@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, memo } from 'react';
+import Image from 'next/image';
 import {
   Box,
   Button,
@@ -103,7 +104,7 @@ const colors = {
   }
 };
 
-const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
+const EventDetails: React.FC<EventDetailsProps> = memo(({ event }) => {
   const [isLoading, setIsLoading] = useState(false);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
@@ -115,8 +116,21 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
   useEffect(() => {
     const fetchBanner = async () => {
       try {
+        // Use event.banner_image_url if available, otherwise fetch from API
+        if (event.banner_image_url) {
+          setBannerUrl(event.banner_image_url);
+          setIsLoaded(true);
+          return;
+        }
+
         const response = await axios.get<DocumentFile[]>(
-          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${event.event_id}/get_document_files`
+          `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/organizer_detail/${event.event_id}/get_document_files`,
+          {
+            timeout: 3000, // Reduce timeout for faster loading
+            headers: {
+              'Cache-Control': 'public, max-age=300'
+            }
+          }
         );
         
         const bannerFile = response.data.find((file) => 
@@ -137,7 +151,7 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
     };
 
     fetchBanner();
-  }, [event.event_id]);
+  }, [event.event_id, event.banner_image_url]);
 
   useEffect(() => {
     setCacheBuster(Date.now());
@@ -352,22 +366,31 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
                       sx={{
                         width: '100%',
                         height: isMobile ? 280 : 350,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center'
+                        position: 'relative',
+                        overflow: 'hidden'
                       }}
                     >
-                      <CardMedia
-                        component="img"
-                        image={`${bannerUrl}?v=${cacheBuster}`}
-                        alt={`Banner do evento ${event.name}`}
-                        sx={{
-                          width: '100%',
-                          height: '100%',
-                          objectFit: 'contain',
-                          objectPosition: 'center'
-                        }}
-                      />
+                      {isLoaded ? (
+                        <Image
+                          src={`${bannerUrl}?v=${cacheBuster}`}
+                          alt={`Banner do evento ${event.name}`}
+                          fill
+                          style={{
+                            objectFit: 'cover',
+                            objectPosition: 'center'
+                          }}
+                          priority={true}
+                          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 80vw, 70vw"
+                          quality={85}
+                        />
+                      ) : (
+                        <Skeleton
+                          variant="rectangular"
+                          width="100%"
+                          height="100%"
+                          animation="wave"
+                        />
+                      )}
                     </Box>
                   </Box>
                 </Card>
@@ -561,6 +584,6 @@ const EventDetails: React.FC<EventDetailsProps> = ({ event }) => {
       </Fade>
     </>
   );
-};
+});
 
 export default EventDetails;

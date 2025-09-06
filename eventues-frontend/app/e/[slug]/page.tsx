@@ -1,11 +1,22 @@
-import React from 'react';
+import React, { Suspense } from 'react';
 import { Metadata } from 'next';
 import axios from 'axios';
 import { notFound } from 'next/navigation';
-import EventDetails from './components/EventDetails';
-import PageViewTracker from './components/PageViewTracker';
+import dynamic from 'next/dynamic';
 import { formatDate } from '@/utils/formatters';
-import { Box } from '@mui/material';
+import { Box, CircularProgress } from '@mui/material';
+import BreadcrumbJsonLd from '@/app/components/BreadcrumbJsonLd';
+import FAQJsonLd, { defaultEventFAQs } from '@/app/components/FAQJsonLd';
+
+// Dynamic imports for better code splitting
+const EventDetails = dynamic(() => import('./components/EventDetails'), {
+  loading: () => <CircularProgress />,
+  ssr: true
+});
+
+const PageViewTracker = dynamic(() => import('./components/PageViewTracker'), {
+  ssr: false
+});
 
 interface PublicEventDetail {
   event_id: string;
@@ -46,7 +57,14 @@ interface PublicEventDetail {
 const fetchPublicEventDetail = async (slug: string): Promise<PublicEventDetail | null> => {
   try {
     const response = await axios.get<PublicEventDetail>(
-      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events/slug/${slug}`
+      `${process.env.NEXT_PUBLIC_BACKEND_API_URL}/events/slug/${slug}`,
+      {
+        timeout: 5000, // 5 second timeout
+        headers: {
+          'Accept': 'application/json',
+          'Cache-Control': 'public, max-age=300', // Cache for 5 minutes
+        }
+      }
     );
     return response.data;
   } catch (error) {
@@ -119,9 +137,20 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 
   // URLs e imagens com URLs absolutas
   const absoluteUrl = `${absoluteBaseUrl}/e/${slug}`;
-  const absoluteBannerUrl = eventDetail.banner_image_url && eventDetail.banner_image_url.startsWith('http') ? 
-    eventDetail.banner_image_url : 
-    `${absoluteBaseUrl}${eventDetail.banner_image_url || '/images/default_banner.jpg'}`;
+  
+  // Garantir que a imagem seja sempre uma URL absoluta e válida
+  let absoluteBannerUrl = '';
+  if (eventDetail.banner_image_url) {
+    if (eventDetail.banner_image_url.startsWith('http')) {
+      absoluteBannerUrl = eventDetail.banner_image_url;
+    } else if (eventDetail.banner_image_url.startsWith('/')) {
+      absoluteBannerUrl = `${absoluteBaseUrl}${eventDetail.banner_image_url}`;
+    } else {
+      absoluteBannerUrl = `${absoluteBaseUrl}/${eventDetail.banner_image_url}`;
+    }
+  } else {
+    absoluteBannerUrl = `${absoluteBaseUrl}/images/default_banner.jpg`;
+  }
 
   // Tags específicas para o tipo de evento
   const eventTags = eventDetail.event_type.toLowerCase().includes('corrida') ? 
@@ -166,6 +195,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
           height: 630,
           alt: `${eventDetail.name} - ${formattedDate}`,
           type: 'image/jpeg',
+        },
+        // Imagem de fallback do Eventues
+        {
+          url: `${absoluteBaseUrl}/logo-social.png`,
+          width: 1200,
+          height: 630,
+          alt: "Eventues - Plataforma de Eventos Esportivos",
+          type: 'image/png',
         },
       ],
     },
@@ -294,12 +331,23 @@ export default async function EventPage({ params }: { params: { slug: string } }
         pb: { xs: 4, md: 8 }
       }}
     >
-      {/* Adiciona dados estruturados JSON-LD para SEO */}
+      {/* Dados estruturados JSON-LD para SEO */}
       <EventJsonLd event={eventDetail} />
+      <BreadcrumbJsonLd eventName={eventDetail.name} />
+      <FAQJsonLd faqs={defaultEventFAQs} />
       
       {/* Componente invisível que rastreia visualizações de página */}
-      <PageViewTracker eventId={eventDetail.event_id} />
-      <EventDetails event={eventDetail} />
+      <Suspense fallback={null}>
+        <PageViewTracker eventId={eventDetail.event_id} />
+      </Suspense>
+      
+      <Suspense fallback={
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '50vh' }}>
+          <CircularProgress />
+        </Box>
+      }>
+        <EventDetails event={eventDetail} />
+      </Suspense>
     </Box>
   );
 }

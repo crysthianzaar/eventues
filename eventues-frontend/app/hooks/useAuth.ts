@@ -117,6 +117,7 @@ const useAuth = () => {
 
   const clearAuthError = () => {
     setAuthError(null);
+    setResetEmailSent(false);
   };
 
   return {

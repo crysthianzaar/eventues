@@ -1,8 +1,71 @@
 import { Suspense } from 'react';
+import { Metadata } from 'next';
 import { getAllEvents } from '../apis/api';
 import Link from 'next/link';
 import type { Event } from '../types/event';
 import { adaptEvents } from '../utils/eventAdapter';
+import BreadcrumbJsonLd from '../components/BreadcrumbJsonLd';
+
+export async function generateMetadata({ searchParams }: { 
+  searchParams: { q?: string; type?: string; city?: string } 
+}): Promise<Metadata> {
+  const { q, type, city } = searchParams;
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://www.eventues.com';
+  
+  let title = 'Buscar Eventos Esportivos';
+  let description = 'Encontre os melhores eventos esportivos no Brasil. Corridas, maratonas, competições e muito mais.';
+  
+  if (q) {
+    title = `Buscar: ${q} - Eventos Esportivos`;
+    description = `Resultados da busca por "${q}". Encontre eventos esportivos relacionados à sua pesquisa.`;
+  } else if (type) {
+    title = `${type} - Eventos Esportivos`;
+    description = `Encontre eventos de ${type} em todo o Brasil. Inscreva-se nos melhores eventos esportivos.`;
+  } else if (city) {
+    title = `Eventos em ${city} - Eventos Esportivos`;
+    description = `Descubra eventos esportivos em ${city}. Corridas, competições e torneios na sua cidade.`;
+  }
+
+  const keywords = [
+    'eventos esportivos',
+    'corridas',
+    'maratonas',
+    'competições',
+    'torneios',
+    'inscrições online',
+    q,
+    type,
+    city,
+    'brasil'
+  ].filter(Boolean).join(', ');
+
+  return {
+    title,
+    description,
+    keywords,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      url: `${baseUrl}/search`,
+      siteName: 'Eventues',
+      locale: 'pt_BR',
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+      site: '@eventues',
+    },
+    alternates: {
+      canonical: `${baseUrl}/search`,
+    },
+    robots: {
+      index: true,
+      follow: true,
+    },
+  };
+}
 
 // Componente de carregamento
 function SearchLoading() {

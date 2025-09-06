@@ -17,6 +17,7 @@ const LoginContent = () => {
     setPassword,
     signingIn,
     authError,
+    resetEmailSent,
     signInWithGoogle,
     signInWithEmail,
     signUpWithEmail,
@@ -90,6 +91,22 @@ const LoginContent = () => {
             }}
           >
             {authMessage}
+          </Box>
+        )}
+
+        {resetEmailSent && (
+          <Box
+            sx={{
+              backgroundColor: '#f0fff4',
+              padding: '10px',
+              marginBottom: '15px',
+              borderRadius: '5px',
+              border: '1px solid #38a169',
+              color: '#38a169',
+              fontWeight: 'bold',
+            }}
+          >
+            E-mail de redefinição enviado! Verifique sua caixa de entrada.
           </Box>
         )}
 
