@@ -5,6 +5,7 @@ import Footer from "./components/Footer";
 import SiteNavigationJsonLd from "./components/SiteNavigationJsonLd";
 import OrganizationJsonLd from "./components/OrganizationJsonLd";
 import WebsiteJsonLd from "./components/WebsiteJsonLd";
+import GoogleSearchConsole from "./components/GoogleSearchConsole";
 
 // Dynamic import for performance monitoring
 const PerformanceMonitor = dynamic(() => import("./components/PerformanceMonitor"), {
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: LayoutProps) {
       </head>
       <body style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh', margin: 0 }}>
         <PerformanceMonitor />
+        <GoogleSearchConsole />
         <Navbar />
         <main>{children}</main>
         <Footer />

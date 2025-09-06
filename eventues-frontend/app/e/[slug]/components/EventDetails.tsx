@@ -45,10 +45,13 @@ import {
 } from '@mui/icons-material';
 import InformationCard from './InformationCard';
 import axios from 'axios';
-import { format } from 'date-fns';
+import { Event } from '@/app/types/event';
 import { formatDate } from '@/utils/formatters';
+import { format } from 'date-fns';
+import useAuth from '@/app/hooks/useAuth';
 import LoadingOverlay from '@/app/components/LoadingOverlay';
 import { useRouter } from 'next/navigation';
+import InternalLinking from '@/app/components/InternalLinking';
 
 interface DocumentFile {
   s3_key: string;
@@ -580,6 +583,11 @@ const EventDetails: React.FC<EventDetailsProps> = memo(({ event }) => {
               </Grid>
             </Grid>
           </Grid>
+          
+          {/* Internal Linking Section for SEO */}
+          <Container maxWidth="lg" sx={{ mt: 6 }}>
+            <InternalLinking />
+          </Container>
         </Container>
       </Fade>
     </>
